@@ -154,14 +154,14 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 .lsub{font-size:12px;color:var(--muted);text-align:center;margin-bottom:24px;}
 .lfield{margin-bottom:14px;}
 .lfield label{display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--t2);margin-bottom:5px;}
-.lfield input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Nunito Sans',sans-serif;font-size:13px;padding:9px 13px;outline:none;transition:border-color .2s;}
+.lfield input{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-family:'Nunito Sans',sans-serif;font-size:16px;padding:11px 13px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none;}
 .lfield input:focus{border-color:#1e1e1e;box-shadow:0 0 0 3px rgba(0,0,0,.08);}
-.ms-btn{width:100%;padding:12px;border-radius:8px;border:none;cursor:pointer;font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;margin-bottom:10px;}
+.ms-btn{width:100%;padding:14px;border-radius:8px;border:none;cursor:pointer;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:700;background:var(--text);color:#fff;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;margin-bottom:10px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:48px;}
 .ms-btn:hover{background:#1a2535;transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,0,0,.25);}
 .ldiv{text-align:center;font-size:11px;color:var(--muted);margin:12px 0;position:relative;}
 .ldiv::before,.ldiv::after{content:"";position:absolute;top:50%;width:40%;height:1px;background:var(--border);}
 .ldiv::before{left:0;}.ldiv::after{right:0;}
-.demo-btn{width:100%;padding:10px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:500;background:#fff;color:var(--t2);transition:all .2s;}
+.demo-btn{width:100%;padding:12px;border-radius:8px;border:1.5px solid var(--border);cursor:pointer;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:500;background:#fff;color:var(--t2);transition:all .2s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:48px;}
 .demo-btn:hover{border-color:#1e1e1e;color:#1e1e1e;background:rgba(0,0,0,.04);}
 .lnote{margin-top:18px;font-size:11px;color:var(--muted);text-align:center;line-height:1.6;background:rgba(0,0,0,.04);border:1px solid rgba(0,0,0,.12);border-radius:6px;padding:10px 12px;}
 
@@ -423,8 +423,8 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       Sign in with Microsoft 365
     </button>
     <div class="ldiv">or sign in with email</div>
-    <div class="lfield"><label>Email</label><input id="demail" type="email" placeholder="your@asterwix.com"></div>
-    <div class="lfield"><label>Password</label><input id="dpass" type="password" placeholder="••••••••"></div>
+    <div class="lfield"><label>Email</label><input id="demail" type="email" placeholder="your@asterwix.com" onkeydown="if(event.key==='Enter')loginStaff()" autocomplete="email" autocapitalize="none" inputmode="email"></div>
+    <div class="lfield"><label>Password</label><input id="dpass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginStaff()" autocomplete="current-password"></div>
     <div id="lerror" style="display:none;color:#b91c1c;font-size:11px;margin-bottom:10px;text-align:center;padding:8px;background:#fdf1f1;border-radius:6px;border:1px solid #f0c0c0;">Incorrect email or password.</div>
     <button class="demo-btn" onclick="loginStaff()" style="background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-weight:700;">Sign In</button>
     <div class="lnote" style="margin-top:14px;">🔒 This system is for <strong>Asterwix staff only</strong>. Unauthorised access is prohibited.</div>
@@ -1034,14 +1034,23 @@ const STAFF = [
 // ════════════════════════════════════════════════════════════
 
 function loginStaff(){
-  const email = document.getElementById("demail").value.trim().toLowerCase();
-  const pass  = document.getElementById("dpass").value;
-  const err   = document.getElementById("lerror");
-  const staff = STAFF.find(s => s.email.toLowerCase()===email && s.password===pass);
-  if(!staff){ err.style.display="block"; document.getElementById("dpass").value=""; return; }
-  err.style.display="none";
-  CU = staff;
-  doLogin();
+  const btn = document.querySelector('.demo-btn');
+  if(btn){ btn.textContent='Signing in...'; btn.disabled=true; }
+  setTimeout(()=>{
+    const email = document.getElementById("demail").value.trim().toLowerCase();
+    const pass  = document.getElementById("dpass").value;
+    const err   = document.getElementById("lerror");
+    const staff = STAFF.find(s => s.email.toLowerCase()===email && s.password===pass);
+    if(!staff){
+      err.style.display="block";
+      document.getElementById("dpass").value="";
+      if(btn){ btn.textContent='Sign In'; btn.disabled=false; }
+      return;
+    }
+    err.style.display="none";
+    CU = staff;
+    doLogin();
+  }, 80);
 }
 
 // ── Microsoft MSAL Configuration ──────────────────────────
