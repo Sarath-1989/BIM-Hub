@@ -1025,11 +1025,13 @@ const ROLE_COLORS = {
 };
 
 const ROLE_PERMS = {
+  //                   Project──────────  Task───────────────  Team──────────────  Logs──────────────  System──────
+  //                   create edit delete create edit  delete  manage assignRoles  model  drawing  reports settings
   "Admin":           { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
   "BIM Manager":     { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
-  "Coordinator":     { createProject:1, editProject:1, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
-  "Team Lead":       { createProject:0, editProject:1, deleteProject:0, createTask:1, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
-  "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
+  "Coordinator":     { createProject:0, editProject:0, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
+  "Team Lead":       { createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
+  "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
   "Jr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:0, modelLog:0, drawingLog:0, settings:0 }
 };
 
@@ -1686,7 +1688,7 @@ function renderProjects(){
   document.getElementById("pgrid").innerHTML=list.map(p=>{
     const th=(p.tids||[]).slice(0,4).map(id=>{const m=gm(id);return m?`<div class="tav" style="background:${m.col}" title="${m.name}">${m.ini}</div>`:""}).join("");
     return`<div class="pcard" onclick="openDetail(${p.id})"><div class="pstrip" style="background:${p.color}"></div><div class="pcode">${p.code}</div><div class="pname">${p.name}</div><div class="pclient">${p.client} · ${p.loc}</div><div class="pmeta">${sbadge(p.status)}<span class="badge bgy">${p.phase}</span></div><div class="pbar"><div class="plbar-l"><span>Progress</span><span>${p.prog}%</span></div><div class="ptrack"><div class="pfill" style="width:${p.prog}%;background:${p.color}"></div></div></div><div class="pfoot"><div class="pteam">${th}</div><div class="pdate">Due ${fd(p.end)}</div></div></div>`;
-  }).join("")+`<div class="padd" onclick="openProjModal()"><div style="font-size:26px;margin-bottom:8px;opacity:.5">＋</div><div style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700">New Project</div><div style="font-size:12px;margin-top:3px">Click to create</div></div>`;
+  }).join("")+(can("createProject")?`<div class="padd" onclick="openProjModal()"><div style="font-size:26px;margin-bottom:8px;opacity:.5">＋</div><div style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700">New Project</div><div style="font-size:12px;margin-top:3px">Click to create</div></div>`:"");
 }
 
 // DETAIL
@@ -1797,13 +1799,13 @@ function renderFiles(p){
 }
 
 // PROJECT MODAL
-function openProjModal(){EPJ=null;document.getElementById("pmtitle").textContent="New BIM Project";["pm-name","pm-cli","pm-loc","pm-desc","pm-lnk"].forEach(id=>document.getElementById(id).value="");document.getElementById("pm-code").value="ASW-2025-0"+NPI;document.getElementById("pm-sta").value="Planning";document.getElementById("pm-ph").value="LOD 100";document.getElementById("pm-col").value="#00b899";document.getElementById("pmdel").style.display="none";document.getElementById("pm-st").value="";document.getElementById("pm-en").value="";openM("pm");}
-function editProj(id){const p=projects.find(x=>x.id===id);if(!p)return;EPJ=id;document.getElementById("pmtitle").textContent="Edit Project";document.getElementById("pm-name").value=p.name;document.getElementById("pm-code").value=p.code;document.getElementById("pm-cli").value=p.client;document.getElementById("pm-loc").value=p.loc||"";document.getElementById("pm-st").value=p.start||"";document.getElementById("pm-en").value=p.end||"";document.getElementById("pm-sta").value=p.status;document.getElementById("pm-ph").value=p.phase;document.getElementById("pm-col").value=p.color;document.getElementById("pm-desc").value=p.desc||"";document.getElementById("pm-lnk").value=p.link||"";document.getElementById("pmdel").style.display="inline-flex";openM("pm");}
-function savePrj(){if(!can(EPJ?"editProject":"createProject")){toast("⚠ No permission");return;}const n=document.getElementById("pm-name").value.trim();if(!n){alert("Name required");return;}const obj={id:EPJ||NPI++,name:n,code:document.getElementById("pm-code").value.trim(),client:document.getElementById("pm-cli").value.trim(),loc:document.getElementById("pm-loc").value.trim(),start:document.getElementById("pm-st").value,end:document.getElementById("pm-en").value,status:document.getElementById("pm-sta").value,phase:document.getElementById("pm-ph").value,color:document.getElementById("pm-col").value,desc:document.getElementById("pm-desc").value.trim(),link:document.getElementById("pm-lnk").value.trim(),prog:EPJ?projects.find(p=>p.id===EPJ).prog:0,tids:EPJ?projects.find(p=>p.id===EPJ).tids:[1]};if(EPJ)projects=projects.map(p=>p.id===EPJ?obj:p);else{projects.push(obj);tasks[obj.id]=[];modelLogs[obj.id]=[];drawingLogs[obj.id]=[];}closeM("pm");renderSidebar();renderProjects();if(EPJ===CPJ)renderDetail(CPJ);saveData();toast("Saved ✓");}
+function openProjModal(){if(!can("createProject")){toast("⚠ Only Admin/BIM Manager can create projects");return;}EPJ=null;document.getElementById("pmtitle").textContent="New BIM Project";["pm-name","pm-cli","pm-loc","pm-desc","pm-lnk"].forEach(id=>document.getElementById(id).value="");document.getElementById("pm-code").value="ASW-2025-0"+NPI;document.getElementById("pm-sta").value="Planning";document.getElementById("pm-ph").value="LOD 100";document.getElementById("pm-col").value="#00b899";document.getElementById("pmdel").style.display="none";document.getElementById("pm-st").value="";document.getElementById("pm-en").value="";openM("pm");}
+function editProj(id){const p=projects.find(x=>x.id===id);if(!p)return;EPJ=id;document.getElementById("pmtitle").textContent="Edit Project";document.getElementById("pm-name").value=p.name;document.getElementById("pm-code").value=p.code;document.getElementById("pm-cli").value=p.client;document.getElementById("pm-loc").value=p.loc||"";document.getElementById("pm-st").value=p.start||"";document.getElementById("pm-en").value=p.end||"";document.getElementById("pm-sta").value=p.status;document.getElementById("pm-ph").value=p.phase;document.getElementById("pm-col").value=p.color;document.getElementById("pm-desc").value=p.desc||"";document.getElementById("pm-lnk").value=p.link||"";document.getElementById("pmdel").style.display=can("deleteProject")?"inline-flex":"none";openM("pm");}
+function savePrj(){if(!can(EPJ?"editProject":"createProject")){toast("⚠ Only Admin/BIM Manager can manage projects");return;}const n=document.getElementById("pm-name").value.trim();if(!n){alert("Name required");return;}const obj={id:EPJ||NPI++,name:n,code:document.getElementById("pm-code").value.trim(),client:document.getElementById("pm-cli").value.trim(),loc:document.getElementById("pm-loc").value.trim(),start:document.getElementById("pm-st").value,end:document.getElementById("pm-en").value,status:document.getElementById("pm-sta").value,phase:document.getElementById("pm-ph").value,color:document.getElementById("pm-col").value,desc:document.getElementById("pm-desc").value.trim(),link:document.getElementById("pm-lnk").value.trim(),prog:EPJ?projects.find(p=>p.id===EPJ).prog:0,tids:EPJ?projects.find(p=>p.id===EPJ).tids:[1]};if(EPJ)projects=projects.map(p=>p.id===EPJ?obj:p);else{projects.push(obj);tasks[obj.id]=[];modelLogs[obj.id]=[];drawingLogs[obj.id]=[];}closeM("pm");renderSidebar();renderProjects();if(EPJ===CPJ)renderDetail(CPJ);saveData();toast("Saved ✓");}
 function delProject(){if(!confirm("Delete project and all tasks?"))return;projects=projects.filter(p=>p.id!==EPJ);delete tasks[EPJ];closeM("pm");pg("projects",document.querySelectorAll(".ni")[1]);renderSidebar();renderProjects();}
 
 // TASK MODAL
-function openTaskModal(){ETK=null;document.getElementById("tmtitle").textContent="New Task";["tm-name","tm-notes"].forEach(id=>document.getElementById(id).value="");document.getElementById("tm-ph").value="LOD 300 — Design Dev";document.getElementById("tm-dis").value="Architecture";document.getElementById("tm-sta").value="Not Started";document.getElementById("tm-pri").value="High";document.getElementById("tm-prog").value=0;document.getElementById("tplab").textContent="0";document.getElementById("tm-st").value="";document.getElementById("tm-en").value="";document.getElementById("tmdel").style.display="none";fillAss(null);openM("tm");}
+function openTaskModal(){if(!can("createTask")){toast("⚠ Only Coordinator or above can manage tasks");return;}ETK=null;document.getElementById("tmtitle").textContent="New Task";["tm-name","tm-notes"].forEach(id=>document.getElementById(id).value="");document.getElementById("tm-ph").value="LOD 300 — Design Dev";document.getElementById("tm-dis").value="Architecture";document.getElementById("tm-sta").value="Not Started";document.getElementById("tm-pri").value="High";document.getElementById("tm-prog").value=0;document.getElementById("tplab").textContent="0";document.getElementById("tm-st").value="";document.getElementById("tm-en").value="";document.getElementById("tmdel").style.display="none";fillAss(null);openM("tm");}
 function editTask(id){const t=allT().find(x=>x.id===id);if(!t)return;ETK=id;document.getElementById("tmtitle").textContent="Edit Task";document.getElementById("tm-name").value=t.name;document.getElementById("tm-ph").value=t.ph;document.getElementById("tm-dis").value=t.dis;document.getElementById("tm-st").value=t.start||"";document.getElementById("tm-en").value=t.end||"";document.getElementById("tm-sta").value=t.sta;document.getElementById("tm-pri").value=t.pri;document.getElementById("tm-prog").value=t.prog;document.getElementById("tplab").textContent=t.prog;document.getElementById("tm-notes").value=t.notes||"";document.getElementById("tmdel").style.display="inline-flex";fillAss(t.aid);openM("tm");}
 function fillAss(sel){document.getElementById("tm-ass").innerHTML=members.map(m=>`<option value="${m.id}" ${m.id===sel?"selected":""}>${m.name} — ${m.role}</option>`).join("");}
 function saveTask(){
@@ -2251,7 +2253,7 @@ function dlBadge(s){
 }
 
 // ─── MODEL MODAL ─────────────────────────────────────────────
-function openModelModal(){ openModelModalForStage('setup'); }
+function openModelModal(){if(!can("modelLog")){toast("⚠ Team Lead or above required for model log");return;} openModelModalForStage('setup'); }
 function openModelModalForStage(stageKey){
   EML=null;
   document.getElementById('mlmtitle').textContent='Add Model Entry';
@@ -2343,7 +2345,7 @@ function delModel(){
 }
 
 // ─── DRAWING MODAL ────────────────────────────────────────────
-function openDrawingModal(){ openDrawingModalForStage('preliminary'); }
+function openDrawingModal(){if(!can("drawingLog")){toast("⚠ Team Lead or above required for drawing log");return;} openDrawingModalForStage('preliminary'); }
 function openDrawingModalForStage(stageKey){
   EDL=null;
   document.getElementById('dlmtitle').textContent='Add Drawing Sheet';
