@@ -960,7 +960,7 @@ let members=[
 // ════════════════════════════════════════════════════════════
 const STAFF = [
   // ── Managers ──────────────────────────────────────────────
-  { email:"admin@asterwix.com",       password:"Admin@2025",    name:"Admin",               role:"BIM Manager",       ini:"AD", col:"#1a1a1a" },
+  { email:"admin@asterwix.com",       password:"Admin@2025",    name:"Admin",               role:"BIM Manager",       perm:"Admin", ini:"AD", col:"#1a1a1a" },
   // ── BIM Team ──────────────────────────────────────────────
   { email:"bim1@asterwix.com",        password:"Staff@2025",    name:"Staff Member 1",      role:"BIM Coordinator",   ini:"S1", col:"#2a6041" },
   { email:"bim2@asterwix.com",        password:"Staff@2025",    name:"Staff Member 2",      role:"BIM Modeller",      ini:"S2", col:"#1e40af" },
@@ -1033,8 +1033,21 @@ const ROLE_PERMS = {
   "Jr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:0, modelLog:0, drawingLog:0, settings:0 }
 };
 
-function getCURole(){ return CU ? (CU.role||"Jr. BIM Modeller") : "Jr. BIM Modeller"; }
-function can(p){ const r=ROLE_PERMS[getCURole()]; return r ? !!r[p] : false; }
+function getCURole(){
+  if(!CU) return "Jr. BIM Modeller";
+  // Check explicit perm field first (set by role management)
+  if(CU.perm && ROLE_PERMS[CU.perm]) return CU.perm;
+  // Then role field
+  if(CU.role && ROLE_PERMS[CU.role]) return CU.role;
+  // Fallback
+  return "Jr. BIM Modeller";
+}
+function isAdminUser(){ return getCURole()==="Admin" || getCURole()==="BIM Manager"; }
+function can(p){
+  const role = getCURole();
+  const r = ROLE_PERMS[role];
+  return r ? !!r[p] : false;
+}
 
 // ── Fetch Azure AD role for logged-in user ─────────────────
 // ── ADMIN EMAILS — Add your admin email(s) here ───────────
