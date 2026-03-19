@@ -468,8 +468,8 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       <div class="ptabs" id="dtabs">
         <div class="ptab active" onclick="dTab('tasks',this)">Tasks</div>
         <div class="ptab" onclick="dTab('timeline',this)">Timeline</div>
-        <div class="ptab" onclick="dTab('models',this)">Model Log</div>
-        <div class="ptab" onclick="dTab('drawings',this)">Drawing Sheet Log</div>
+        <div class="ptab" onclick="dTab('models',this)">BIM Model</div>
+        <div class="ptab" onclick="dTab('drawings',this)">Sheets</div>
         <div class="ptab" onclick="dTab('team',this)">Team</div>
         <div class="ptab" onclick="dTab('files',this)">Files</div>
       </div>
@@ -495,7 +495,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       <div class="ptab-c" id="dtab-models">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div>
-            <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;">Model Preparation Log</div>
+            <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;">BIM Model Log</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px;">Track models through CDE workflow (WIP → Shared → Published) per ISO 19650</div>
           </div>
           <button class="btn btn-p btn-sm" onclick="openModelModal()">+ Add Model Entry</button>
@@ -511,7 +511,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       <div class="ptab-c" id="dtab-drawings">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div>
-            <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;">Drawing Preparation Log</div>
+            <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;">Sheet Register</div>
             <div style="font-size:11px;color:var(--muted);margin-top:2px;">Track drawings through CDE workflow — sheet register per ISO 19650</div>
           </div>
           <button class="btn btn-p btn-sm" onclick="openDrawingModal()">+ Add Drawing Entry</button>
@@ -812,9 +812,12 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       <div class="field"><label>Preparation Stage</label>
         <select id="dl-stage">
           <option value="preliminary">Preliminary / Concept</option>
-          <option value="forreview">S2 — Shared for Review</option>
-          <option value="forconstruct">S3 — Shared for Approval</option>
-          <option value="forissue">S4 — Published / For Issue</option>
+          <option value="wip">WIP — Work in Progress</option>
+          <option value="forreview">IFR — Issued for Review</option>
+          <option value="forconstruct">IFC — Issued for Construction</option>
+          <option value="shopdrg">SD — Shop Drawing</option>
+          <option value="gfc">GFC — Good for Construction</option>
+          <option value="forissue">AB — As-Built / Record</option>
           <option value="asbuilt">As-Built</option>
         </select>
       </div>
@@ -2022,20 +2025,24 @@ let NDL = 200;
 let EDL = null;
 let NDS = 2000; // subtask id counter
 
-// Drawing preparation stages (ordered workflow)
+// Drawing preparation stages (ordered workflow) — ISO 19650 CDE
 const DRAWING_STAGES = [
-  { key:'preliminary', label:'Preliminary / Concept',    icon:'✏️',  color:'#6b7280', desc:'Concept-level drawings for early design review' },
-  { key:'forreview',   label:'For Review (IFC)',         icon:'🔄',  color:'#f59e0b', desc:'Issued for internal and consultant review' },
-  { key:'forconstruct',label:'For Construction (IFC)',   icon:'🏗️',  color:'#3b82f6', desc:'Construction-ready drawings, approved and issued' },
-  { key:'asbuilt',     label:'As-Built',                 icon:'📌',  color:'#10b981', desc:'Final as-built drawings reflecting site execution' },
+  { key:'preliminary', label:'Preliminary / Concept',      icon:'✏️',  color:'#6b7280', desc:'Concept-level drawings for early design review' },
+  { key:'forreview',   label:'Issued for Review (IFR)',    icon:'🔄',  color:'#f59e0b', desc:'Issued for internal and consultant review — S2 CDE' },
+  { key:'forconstruct',label:'Issued for Construction (IFC)', icon:'🏗️', color:'#3b82f6', desc:'Construction-ready drawings, approved and issued — S3 CDE' },
+  { key:'shopdrg',     label:'Shop Drawings',               icon:'🔧',  color:'#8b5cf6', desc:'Contractor-produced shop drawings for fabrication approval' },
+  { key:'gfc',         label:'Good for Construction (GFC)', icon:'✅',  color:'#10b981', desc:'Final approved drawings cleared for construction site use' },
+  { key:'asbuilt',     label:'As-Built / Record',           icon:'📌',  color:'#059669', desc:'Final as-built drawings reflecting actual site execution' },
 ];
 
-// Default sub-tasks per drawing stage
+// Default sub-tasks per drawing stage — ISO 19650 CDE workflow
 const DRAWING_STAGE_TASKS = {
-  preliminary:  ['Prepare concept floor plans','Prepare concept sections & elevations','Prepare site plan','Internal review of preliminary set','Issue preliminary drawings for comment'],
-  forreview:    ['Update drawings from concept comments','Prepare full drawing register','Annotate and dimension drawings','Coordinate with structural & MEP drawings','Issue For Review (IFC) package','Respond to review comments'],
-  forconstruct: ['Incorporate all review comments','Final check against BIM model','Prepare shop drawing schedule','Sign-off by BIM Manager','Issue For Construction (IFC) package','Distribute to contractor & subcontractors'],
-  asbuilt:      ['Collect site markup sheets','Update drawings with site changes','Verify as-built dimensions','Cross-check with final BIM model','Prepare final as-built drawing register','Issue and archive as-built set'],
+  preliminary:  ['Prepare concept floor plans','Prepare concept sections & elevations','Prepare site plan','Prepare design intent sketches','Internal review of preliminary set','Issue preliminary drawings for comment'],
+  forreview:    ['Update drawings from concept comments','Prepare full drawing register','Annotate and dimension all drawings','Coordinate with structural & MEP drawings','Carry out internal QA/QC review','Issue For Review (IFR) package to CDE','Log and respond to review comments'],
+  forconstruct: ['Incorporate all review comments','Final coordination check against BIM model','Confirm all RFIs resolved','Check specification references on drawings','Sign-off by BIM Manager / Project Lead','Issue For Construction (IFC) package','Distribute to contractor & subcontractors','Upload to CDE and notify all parties'],
+  shopdrg:      ['Receive IFC drawings from design team','Prepare shop drawing schedule with contractor','Produce fabrication-level shop drawings','Submit shop drawings for A&E review','Incorporate review comments','Resubmit if required','Obtain design team approval stamp','File approved shop drawings in CDE'],
+  gfc:          ['Confirm all shop drawing approvals are complete','Resolve any outstanding site queries (RFI)','Prepare final GFC drawing set','Carry out pre-issue QA/QC check','Obtain BIM Manager sign-off','Stamp drawings as Good for Construction','Distribute to site and subcontractors','Upload GFC set to CDE archive'],
+  asbuilt:      ['Collect site markup sheets from contractor','Compile all site variations and RFI outcomes','Update drawings with confirmed site changes','Verify as-built dimensions against survey','Cross-check with final BIM model','Prepare final as-built drawing register','Client / Authority submission if required','Issue and archive final as-built set in CDE'],
 };
 
 // ════════════════════════════════════════════════════════════
