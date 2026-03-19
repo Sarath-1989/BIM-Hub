@@ -962,11 +962,12 @@ const STAFF = [
   // ── Managers ──────────────────────────────────────────────
   { email:"admin@asterwix.com",       password:"Admin@2025",    name:"Admin",               role:"BIM Manager",       perm:"Admin", ini:"AD", col:"#1a1a1a" },
   // ── BIM Team ──────────────────────────────────────────────
-  { email:"bim1@asterwix.com",        password:"Staff@2025",    name:"Staff Member 1",      role:"BIM Coordinator",   ini:"S1", col:"#2a6041" },
-  { email:"bim2@asterwix.com",        password:"Staff@2025",    name:"Staff Member 2",      role:"BIM Modeller",      ini:"S2", col:"#1e40af" },
-  { email:"bim3@asterwix.com",        password:"Staff@2025",    name:"Staff Member 3",      role:"BIM Modeller",      ini:"S3", col:"#c05621" },
-  { email:"bim4@asterwix.com",        password:"Staff@2025",    name:"Staff Member 4",      role:"BIM Modeller",      ini:"S4", col:"#6b21a8" },
-  { email:"bim5@asterwix.com",        password:"Staff@2025",    name:"Staff Member 5",      role:"BIM Technician",    ini:"S5", col:"#0e7490" },
+  { email:"bim1@asterwix.com",        password:"Staff@2025",    name:"Staff Member 1",      role:"BIM Coordinator",   perm:"Coordinator",     ini:"S1", col:"#2a6041" },
+  { email:"bim2@asterwix.com",        password:"Staff@2025",    name:"Staff Member 2",      role:"BIM Modeller",      perm:"Sr. BIM Modeller",ini:"S2", col:"#1e40af" },
+  { email:"bim3@asterwix.com",        password:"Staff@2025",    name:"Staff Member 3",      role:"BIM Modeller",      perm:"Sr. BIM Modeller",ini:"S3", col:"#c05621" },
+  { email:"bim4@asterwix.com",        password:"Staff@2025",    name:"Staff Member 4",      role:"BIM Modeller",      perm:"Jr. BIM Modeller",ini:"S4", col:"#6b21a8" },
+  { email:"bim5@asterwix.com",        password:"Staff@2025",    name:"Staff Member 5",      role:"BIM Technician",    perm:"Jr. BIM Modeller",ini:"S5", col:"#0e7490" },
+  { email:"sarath@asterwix.com",      password:"Admin@2025",    name:"Sarath",              role:"BIM Manager",       perm:"BIM Manager",     ini:"SA", col:"#2d6a4f" },
   // ── Add more staff below — copy a line and change details ─
   // { email:"name@asterwix.com",     password:"Pass@2025",     name:"Full Name",           role:"Job Title",         ini:"XX", col:"#333333" },
 ];
@@ -1037,11 +1038,12 @@ const ROLE_PERMS = {
 
 function getCURole(){
   if(!CU) return "Jr. BIM Modeller";
-  // Check explicit perm field first (set by role management)
+  // perm field is the authoritative role
   if(CU.perm && ROLE_PERMS[CU.perm]) return CU.perm;
-  // Then role field
+  // role field fallback
   if(CU.role && ROLE_PERMS[CU.role]) return CU.role;
-  // Fallback
+  // "BIM Coordinator" maps to Coordinator
+  if(CU.role === "BIM Coordinator") return "Coordinator";
   return "Jr. BIM Modeller";
 }
 function isAdminUser(){ return getCURole()==="Admin" || getCURole()==="BIM Manager"; }
@@ -1567,10 +1569,12 @@ async function loginMS() {
       // Fetch role
       const role = await fetchAzureRole();
       CU.role = role || "Jr. BIM Modeller";
+      CU.perm = CU.role; // sync perm with role
       CU.col = ROLE_COLORS[CU.role] || "#555555";
       document.getElementById("uav").style.background = CU.col;
       document.getElementById("urole").textContent = CU.role;
       applyRoleUI();
+      renderTeam(); // re-render to show/hide edit/delete buttons
       toast("Welcome, " + CU.name + " (" + CU.role + ") ✓");
     } else {
       if (btn) btn.innerHTML = origHTML;
@@ -1588,12 +1592,15 @@ async function loginMS() {
 function doLogin(){
   document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="block";
-  // Push initial history state so back doesn't exit app
   history.pushState({page:"dash",proj:null}, "", "#dash");
+  // Sync perm with role if perm not explicitly set
+  if(!CU.perm || !ROLE_PERMS[CU.perm]){
+    CU.perm = CU.role;
+  }
   document.getElementById("uav").textContent=CU.ini;
   document.getElementById("uav").style.background=CU.col||"#2d6a4f";
   document.getElementById("uname").textContent=CU.name;
-  document.getElementById("urole").textContent=CU.role;
+  document.getElementById("urole").textContent=getCURole();
   initApp();
   applyRoleUI();
 }
