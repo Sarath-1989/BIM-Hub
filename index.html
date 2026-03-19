@@ -419,7 +419,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       </div>
       <button id="notif-bell" onclick="toggleNotifStatus()" title="Notification status" style="position:relative;background:transparent;border:1.5px solid var(--border);border-radius:6px;width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;transition:all .2s;">🔔<span id="notif-dot" style="display:none;position:absolute;top:4px;right:4px;width:7px;height:7px;border-radius:50%;background:#b91c1c;border:2px solid #fff;"></span></button>
       <button class="btn btn-g btn-sm" onclick="doSync()">↺ Sync</button>
-      <button class="btn btn-p btn-sm" onclick="openProjModal()">+ New Project</button>
+      <button id="newprojbtn-top" class="btn btn-p btn-sm" onclick="openProjModal()">+ New Project</button>
     </div>
   </div>
   <div class="spbar no" id="spbar">
@@ -454,7 +454,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
         <select id="pflt" onchange="renderProjects()" style="background:#fff;border:1.5px solid var(--border);border-radius:6px;color:var(--t2);font-family:'Nunito Sans',sans-serif;font-size:12px;padding:7px 10px;outline:none;">
           <option value="">All Status</option><option>Active</option><option>On Hold</option><option>Completed</option><option>Planning</option>
         </select>
-        <button class="btn btn-p" onclick="openProjModal()">+ New Project</button>
+        <button id="newprojbtn-page" class="btn btn-p" onclick="openProjModal()">+ New Project</button>
       </div>
     </div>
     <div class="pgrid" id="pgrid"></div>
@@ -496,7 +496,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div>
             <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;">Model Preparation Log</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Track all model stages, revisions and sub-tasks per discipline</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Track models through CDE workflow (WIP → Shared → Published) per ISO 19650</div>
           </div>
           <button class="btn btn-p btn-sm" onclick="openModelModal()">+ Add Model Entry</button>
         </div>
@@ -512,7 +512,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
           <div>
             <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;">Drawing Preparation Log</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Track all drawing stages, sheet lists and sub-tasks per discipline</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Track drawings through CDE workflow — sheet register per ISO 19650</div>
           </div>
           <button class="btn btn-p btn-sm" onclick="openDrawingModal()">+ Add Drawing Entry</button>
         </div>
@@ -635,20 +635,24 @@ input[type=range]{width:100%;accent-color:#ffffff;}
   <div class="modal" style="width:640px;">
     <div class="mt" id="mlmtitle">Add Model Entry</div>
     <div class="fg2">
-      <div class="field"><label>Model Name *</label><input id="ml-name" placeholder="e.g. ARCH-BIM-LOD300"></div>
+      <div class="field"><label>Model Name *</label><input id="ml-name" placeholder="e.g. ASW-ARCH-ZZ-XX-M3-0001 (ISO 19650)"></div>
       <div class="field"><label>File Name</label><input id="ml-file" placeholder="e.g. ASW-ARCH-MODEL-001.rvt"></div>
     </div>
     <div class="fg3">
       <div class="field"><label>Discipline</label>
         <select id="ml-dis">
-          <option>Architecture</option><option>Structure</option><option>MEP</option>
-          <option>Landscape</option><option>Civil</option><option>Coordination</option>
+          <option>Architecture (ARCH)</option><option>Structure (STRU)</option>
+          <option>MEP — Mechanical (MECH)</option><option>MEP — Electrical (ELEC)</option>
+          <option>MEP — Plumbing (PLMB)</option><option>Civil Engineering (CIVL)</option>
+          <option>Survey & Geomatics (SURV)</option><option>Landscape (LAND)</option>
+          <option>Interior Design (INTR)</option><option>Facade (FACD)</option>
+          <option>BIM Coordination (CORD)</option><option>Geotechnical (GETO)</option>
         </select>
       </div>
       <div class="field"><label>LOD</label>
         <select id="ml-lod">
-          <option>LOD 100</option><option>LOD 200</option><option>LOD 300</option>
-          <option>LOD 350</option><option>LOD 400</option><option>LOD 500</option>
+          <option>LOD 100 — Brief</option><option>LOD 200 — Concept</option><option>LOD 300 — Design Development</option>
+          <option>LOD 350 — Construction Documentation</option><option>LOD 400 — Fabrication & Assembly</option><option>LOD 500 — As-Built</option>
         </select>
       </div>
       <div class="field"><label>Revision</label><input id="ml-rev" placeholder="e.g. R01" maxlength="6"></div>
@@ -702,11 +706,11 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       <div class="field"><label>Preparation Stage</label>
         <select id="ml-stage">
           <option value="setup">Model Setup</option>
-          <option value="lod">LOD Development</option>
+          <option value="lod">LOD Development (CDE: WIP)</option>
           <option value="clash">Clash Detection</option>
           <option value="coord">Model Coordination</option>
           <option value="qaqc">QA / QC Check</option>
-          <option value="ifc">IFC Export</option>
+          <option value="ifc">IFC Export (CDE: Shared)</option>
         </select>
       </div>
       <div class="field"><label>Software</label>
@@ -718,7 +722,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     </div>
     <div class="fg2">
       <div class="field"><label>File Link (OneDrive)</label><input id="ml-link" placeholder="https://…"></div>
-      <div class="field"><label>Notes / Remarks</label><input id="ml-notes" placeholder="Coordination notes, clash status…"></div>
+      <div class="field"><label>Notes / Remarks</label><input id="ml-notes" placeholder="Coordination notes, clash status, CDE state…"></div>
     </div>
     <div class="mf">
       <button class="btn btn-g btn-sm" onclick="closeM('mlm')">Cancel</button>
@@ -739,14 +743,20 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     <div class="fg3">
       <div class="field"><label>Discipline</label>
         <select id="dl-dis">
-          <option>Architecture</option><option>Structure</option><option>MEP</option>
-          <option>Landscape</option><option>Civil</option><option>Coordination</option>
+          <option>Architecture (ARCH)</option><option>Structure (STRU)</option>
+          <option>MEP — Mechanical (MECH)</option><option>MEP — Electrical (ELEC)</option>
+          <option>MEP — Plumbing (PLMB)</option><option>Civil Engineering (CIVL)</option>
+          <option>Survey & Geomatics (SURV)</option><option>Landscape (LAND)</option>
+          <option>Interior Design (INTR)</option><option>Facade (FACD)</option>
+          <option>BIM Coordination (CORD)</option><option>Geotechnical (GETO)</option>
         </select>
       </div>
       <div class="field"><label>Drawing Type</label>
         <select id="dl-type">
-          <option>Plan</option><option>Section</option><option>Elevation</option>
-          <option>Detail</option><option>Schedule</option><option>3D View</option><option>Site Plan</option>
+          <option>GA Plan — General Arrangement</option><option>GA Section</option><option>GA Elevation</option>
+          <option>Detail Drawing</option><option>Assembly Drawing</option><option>Schedule / Specification</option>
+          <option>3D View / Render</option><option>Site Plan</option><option>As-Built / Record</option>
+          <option>Shop Drawing</option><option>Coordination Drawing</option>
         </select>
       </div>
       <div class="field"><label>Scale</label><input id="dl-scale" placeholder="e.g. 1:100" maxlength="12"></div>
@@ -802,8 +812,9 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       <div class="field"><label>Preparation Stage</label>
         <select id="dl-stage">
           <option value="preliminary">Preliminary / Concept</option>
-          <option value="forreview">For Review (IFC)</option>
-          <option value="forconstruct">For Construction (IFC)</option>
+          <option value="forreview">S2 — Shared for Review</option>
+          <option value="forconstruct">S3 — Shared for Approval</option>
+          <option value="forissue">S4 — Published / For Issue</option>
           <option value="asbuilt">As-Built</option>
         </select>
       </div>
@@ -833,10 +844,10 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     <div class="fg3">
       <div class="field"><label>Start</label><input id="pm-st" type="date"></div>
       <div class="field"><label>End</label><input id="pm-en" type="date"></div>
-      <div class="field"><label>Status</label><select id="pm-sta"><option>Planning</option><option>Active</option><option>On Hold</option><option>Completed</option></select></div>
+      <div class="field"><label>Status</label><select id="pm-sta"><option>In Preparation</option><option>Active</option><option>On Hold</option><option>Completed</option><option>Archived</option></select></div>
     </div>
     <div class="fg2">
-      <div class="field"><label>BIM Phase</label><select id="pm-ph"><option>LOD 100</option><option>LOD 200</option><option>LOD 300</option><option>LOD 350</option><option>LOD 400</option><option>LOD 500</option></select></div>
+      <div class="field"><label>BIM Phase <span style="font-size:9px;color:var(--muted);font-weight:400">(ISO 19650 LOD)</span></label><select id="pm-ph"><option>LOD 100 — Brief</option><option>LOD 200 — Concept</option><option>LOD 300 — Design Development</option><option>LOD 350 — Construction Documentation</option><option>LOD 400 — Fabrication & Assembly</option><option>LOD 500 — As-Built</option></select></div>
       <div class="field"><label>Color</label><select id="pm-col"><option value="#00b899">Teal</option><option value="#5a4fff">Purple</option><option value="#ff6b35">Orange</option><option value="#c98b00">Gold</option><option value="#d93a52">Red</option><option value="#4cc9f0">Blue</option></select></div>
     </div>
     <div class="ff"><div class="field"><label>Description</label><input id="pm-desc" placeholder="Short description"></div></div>
@@ -855,8 +866,8 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     <div class="mt" id="tmtitle">New Task</div>
     <div class="ff"><div class="field"><label>Task Name *</label><input id="tm-name" placeholder="e.g. Clash Detection — MEP vs Structure"></div></div>
     <div class="fg2">
-      <div class="field"><label>Phase</label><select id="tm-ph"><option>LOD 100 — Concept</option><option>LOD 200 — Schematic</option><option>LOD 300 — Design Dev</option><option>LOD 350 — Construction Doc</option><option>LOD 400 — Fabrication</option><option>LOD 500 — As-Built</option><option>Coordination</option><option>QA/QC</option><option>Client Deliverable</option></select></div>
-      <div class="field"><label>Discipline</label><select id="tm-dis"><option>Architecture</option><option>Structure</option><option>MEP</option><option>Civil</option><option>Coordination</option><option>Survey</option></select></div>
+      <div class="field"><label>Phase</label><select id="tm-ph"><option>LOD 100 — Brief</option><option>LOD 200 — Concept Design</option><option>LOD 300 — Design Development</option><option>LOD 350 — Construction Documentation</option><option>LOD 400 — Fabrication & Assembly</option><option>LOD 500 — As-Built / Record</option><option>CDE — Coordination</option><option>CDE — Clash Detection</option><option>CDE — QA/QC Review</option><option>CDE — Client Deliverable</option><option>IFC Export (CDE: Shared)</option><option>BEP — BIM Execution Plan</option></select></div>
+      <div class="field"><label>Discipline</label><select id="tm-dis"><option>Architecture (ARCH)</option><option>Structure (STRU)</option><option>MEP — Mechanical (MECH)</option><option>MEP — Electrical (ELEC)</option><option>MEP — Plumbing (PLMB)</option><option>Civil Engineering (CIVL)</option><option>Survey & Geomatics (SURV)</option><option>Landscape (LAND)</option><option>Facade (FACD)</option><option>BIM Coordination (CORD)</option><option>Project Management (MGMT)</option></select></div>
     </div>
     <div class="fg2">
       <div class="field"><label>Assignee</label><select id="tm-ass"></select></div>
@@ -909,38 +920,38 @@ const LOGO="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAMCAgMCAgMDA
 // STATE
 let CU=null,CPJ=null,EPJ=null,ETK=null,NPI=10,NTI=200;
 let projects=[
-  {id:1,name:"Al Barsha Mixed-Use Tower",code:"ASW-2025-001",client:"Al Barsha Development LLC",loc:"Dubai, UAE",start:"2025-01-10",end:"2025-12-31",status:"Active",phase:"LOD 300",prog:68,color:"#00b899",desc:"40-floor mixed-use tower with retail podium.",link:"",tids:[1,2,3,4]},
-  {id:2,name:"Abu Dhabi Cultural Centre",code:"ASW-2025-002",client:"Abu Dhabi Culture Authority",loc:"Abu Dhabi, UAE",start:"2025-03-01",end:"2026-06-30",status:"Active",phase:"LOD 200",prog:32,color:"#5a4fff",desc:"Large cultural complex with museum and theatre.",link:"",tids:[1,3,5]},
-  {id:3,name:"Riyadh Metro Station L4",code:"ASW-2024-015",client:"Saudi Transport Authority",loc:"Riyadh, KSA",start:"2024-06-01",end:"2025-08-31",status:"On Hold",phase:"LOD 350",prog:55,color:"#ff6b35",desc:"Underground metro station with retail.",link:"",tids:[2,4,6]},
-  {id:4,name:"Doha Port Expansion",code:"ASW-2025-003",client:"Qatar Port Authority",loc:"Doha, Qatar",start:"2025-04-01",end:"2026-03-31",status:"Planning",phase:"LOD 100",prog:8,color:"#c98b00",desc:"Port expansion with new berths and logistics hub.",link:"",tids:[1,5,6]},
-  {id:5,name:"Dubai Hills Villa Complex",code:"ASW-2024-020",client:"Emaar Properties",loc:"Dubai Hills, UAE",start:"2024-09-01",end:"2025-06-30",status:"Completed",phase:"LOD 500",prog:100,color:"#00a06e",desc:"36-unit luxury villa complex.",link:"",tids:[3,4]},
+  {id:1,name:"Al Barsha Mixed-Use Tower",code:"ASW-2025-001",client:"Al Barsha Development LLC",loc:"Dubai, UAE",start:"2025-01-10",end:"2025-12-31",status:"Active",phase:"LOD 300 — Design Development",prog:68,color:"#00b899",desc:"40-floor mixed-use tower with retail podium.",link:"",tids:[1,2,3,4]},
+  {id:2,name:"Abu Dhabi Cultural Centre",code:"ASW-2025-002",client:"Abu Dhabi Culture Authority",loc:"Abu Dhabi, UAE",start:"2025-03-01",end:"2026-06-30",status:"Active",phase:"LOD 200 — Concept Design",prog:32,color:"#5a4fff",desc:"Large cultural complex with museum and theatre.",link:"",tids:[1,3,5]},
+  {id:3,name:"Riyadh Metro Station L4",code:"ASW-2024-015",client:"Saudi Transport Authority",loc:"Riyadh, KSA",start:"2024-06-01",end:"2025-08-31",status:"On Hold",phase:"LOD 350 — Construction Documentation",prog:55,color:"#ff6b35",desc:"Underground metro station with retail.",link:"",tids:[2,4,6]},
+  {id:4,name:"Doha Port Expansion",code:"ASW-2025-003",client:"Qatar Port Authority",loc:"Doha, Qatar",start:"2025-04-01",end:"2026-03-31",status:"Planning",phase:"LOD 100 — Brief",prog:8,color:"#c98b00",desc:"Port expansion with new berths and logistics hub.",link:"",tids:[1,5,6]},
+  {id:5,name:"Dubai Hills Villa Complex",code:"ASW-2024-020",client:"Emaar Properties",loc:"Dubai Hills, UAE",start:"2024-09-01",end:"2025-06-30",status:"Completed",phase:"LOD 500 — As-Built / Record",prog:100,color:"#00a06e",desc:"36-unit luxury villa complex.",link:"",tids:[3,4]},
 ];
 let tasks={
   1:[
-    {id:1,pid:1,name:"Site Survey & Point Cloud",ph:"LOD 100 — Concept",dis:"Survey",aid:4,start:"2025-01-10",end:"2025-01-25",pri:"High",sta:"Completed",prog:100,notes:"Laser scan registered."},
-    {id:2,pid:1,name:"Conceptual Massing",ph:"LOD 100 — Concept",dis:"Architecture",aid:2,start:"2025-01-20",end:"2025-02-15",pri:"High",sta:"Completed",prog:100,notes:""},
-    {id:3,pid:1,name:"Structural Grid & Foundation",ph:"LOD 200 — Schematic",dis:"Structure",aid:3,start:"2025-02-10",end:"2025-03-20",pri:"High",sta:"Completed",prog:100,notes:"Mat foundation confirmed."},
-    {id:4,pid:1,name:"MEP Schematic Layout",ph:"LOD 200 — Schematic",dis:"MEP",aid:5,start:"2025-03-01",end:"2025-04-20",pri:"Medium",sta:"Completed",prog:100,notes:""},
+    {id:1,pid:1,name:"Site Survey & Point Cloud",ph:"LOD 100 — Brief",dis:"Survey",aid:4,start:"2025-01-10",end:"2025-01-25",pri:"High",sta:"Completed",prog:100,notes:"Laser scan registered."},
+    {id:2,pid:1,name:"Conceptual Massing",ph:"LOD 100 — Brief",dis:"Architecture",aid:2,start:"2025-01-20",end:"2025-02-15",pri:"High",sta:"Completed",prog:100,notes:""},
+    {id:3,pid:1,name:"Structural Grid & Foundation",ph:"LOD 200 — Concept Design",dis:"Structure",aid:3,start:"2025-02-10",end:"2025-03-20",pri:"High",sta:"Completed",prog:100,notes:"Mat foundation confirmed."},
+    {id:4,pid:1,name:"MEP Schematic Layout",ph:"LOD 200 — Concept Design",dis:"MEP",aid:5,start:"2025-03-01",end:"2025-04-20",pri:"Medium",sta:"Completed",prog:100,notes:""},
     {id:5,pid:1,name:"Clash Detection — Round 1",ph:"Coordination",dis:"Coordination",aid:1,start:"2025-04-15",end:"2025-05-05",pri:"High",sta:"Completed",prog:100,notes:"178 clashes resolved."},
-    {id:6,pid:1,name:"LOD 300 Arch Detailing",ph:"LOD 300 — Design Dev",dis:"Architecture",aid:2,start:"2025-05-01",end:"2025-07-15",pri:"High",sta:"In Progress",prog:85,notes:"Facade panels pending."},
-    {id:7,pid:1,name:"LOD 300 Structural Members",ph:"LOD 300 — Design Dev",dis:"Structure",aid:3,start:"2025-05-10",end:"2025-07-30",pri:"High",sta:"In Progress",prog:72,notes:"Transfer slab details outstanding."},
-    {id:8,pid:1,name:"MEP Full HVAC Routing",ph:"LOD 300 — Design Dev",dis:"MEP",aid:5,start:"2025-05-20",end:"2025-08-10",pri:"High",sta:"In Progress",prog:60,notes:"Zone B3 outstanding."},
+    {id:6,pid:1,name:"LOD 300 Arch Detailing",ph:"LOD 300 — Design Development",dis:"Architecture",aid:2,start:"2025-05-01",end:"2025-07-15",pri:"High",sta:"In Progress",prog:85,notes:"Facade panels pending."},
+    {id:7,pid:1,name:"LOD 300 Structural Members",ph:"LOD 300 — Design Development",dis:"Structure",aid:3,start:"2025-05-10",end:"2025-07-30",pri:"High",sta:"In Progress",prog:72,notes:"Transfer slab details outstanding."},
+    {id:8,pid:1,name:"MEP Full HVAC Routing",ph:"LOD 300 — Design Development",dis:"MEP",aid:5,start:"2025-05-20",end:"2025-08-10",pri:"High",sta:"In Progress",prog:60,notes:"Zone B3 outstanding."},
     {id:9,pid:1,name:"Clash Detection — Round 2",ph:"Coordination",dis:"Coordination",aid:1,start:"2025-08-01",end:"2025-08-25",pri:"High",sta:"Not Started",prog:0,notes:"Awaiting MEP completion."},
-    {id:10,pid:1,name:"Construction Docs — Arch",ph:"LOD 350 — Construction Doc",dis:"Architecture",aid:2,start:"2025-09-01",end:"2025-10-30",pri:"High",sta:"Not Started",prog:0,notes:""},
+    {id:10,pid:1,name:"Construction Docs — Arch",ph:"LOD 350 — Construction Documentation",dis:"Architecture",aid:2,start:"2025-09-01",end:"2025-10-30",pri:"High",sta:"Not Started",prog:0,notes:""},
   ],
   2:[
-    {id:20,pid:2,name:"Concept Masterplan",ph:"LOD 100 — Concept",dis:"Architecture",aid:2,start:"2025-03-01",end:"2025-04-15",pri:"High",sta:"Completed",prog:100,notes:""},
-    {id:21,pid:2,name:"Structural Concept",ph:"LOD 200 — Schematic",dis:"Structure",aid:3,start:"2025-04-10",end:"2025-06-01",pri:"High",sta:"In Progress",prog:55,notes:"Long-span roof review needed."},
-    {id:22,pid:2,name:"MEP Concept",ph:"LOD 200 — Schematic",dis:"MEP",aid:5,start:"2025-05-01",end:"2025-07-01",pri:"Medium",sta:"Not Started",prog:0,notes:""},
+    {id:20,pid:2,name:"Concept Masterplan",ph:"LOD 100 — Brief",dis:"Architecture",aid:2,start:"2025-03-01",end:"2025-04-15",pri:"High",sta:"Completed",prog:100,notes:""},
+    {id:21,pid:2,name:"Structural Concept",ph:"LOD 200 — Concept Design",dis:"Structure",aid:3,start:"2025-04-10",end:"2025-06-01",pri:"High",sta:"In Progress",prog:55,notes:"Long-span roof review needed."},
+    {id:22,pid:2,name:"MEP Concept",ph:"LOD 200 — Concept Design",dis:"MEP",aid:5,start:"2025-05-01",end:"2025-07-01",pri:"Medium",sta:"Not Started",prog:0,notes:""},
   ],
   3:[
-    {id:30,pid:3,name:"Underground Structure Model",ph:"LOD 350 — Construction Doc",dis:"Structure",aid:3,start:"2024-06-01",end:"2024-10-01",pri:"High",sta:"On Hold",prog:55,notes:"Client review pending."},
-    {id:31,pid:3,name:"MEP Tunnel Services",ph:"LOD 350 — Construction Doc",dis:"MEP",aid:6,start:"2024-07-01",end:"2025-01-01",pri:"High",sta:"On Hold",prog:40,notes:""},
+    {id:30,pid:3,name:"Underground Structure Model",ph:"LOD 350 — Construction Documentation",dis:"Structure",aid:3,start:"2024-06-01",end:"2024-10-01",pri:"High",sta:"On Hold",prog:55,notes:"Client review pending."},
+    {id:31,pid:3,name:"MEP Tunnel Services",ph:"LOD 350 — Construction Documentation",dis:"MEP",aid:6,start:"2024-07-01",end:"2025-01-01",pri:"High",sta:"On Hold",prog:40,notes:""},
   ],
   4:[],
   5:[
-    {id:50,pid:5,name:"As-Built Survey",ph:"LOD 500 — As-Built",dis:"Survey",aid:4,start:"2025-05-01",end:"2025-06-15",pri:"High",sta:"Completed",prog:100,notes:""},
-    {id:51,pid:5,name:"As-Built Model",ph:"LOD 500 — As-Built",dis:"Architecture",aid:2,start:"2025-05-15",end:"2025-06-30",pri:"High",sta:"Completed",prog:100,notes:""},
+    {id:50,pid:5,name:"As-Built Survey",ph:"LOD 500 — As-Built / Record",dis:"Survey",aid:4,start:"2025-05-01",end:"2025-06-15",pri:"High",sta:"Completed",prog:100,notes:""},
+    {id:51,pid:5,name:"As-Built Model",ph:"LOD 500 — As-Built / Record",dis:"Architecture",aid:2,start:"2025-05-15",end:"2025-06-30",pri:"High",sta:"Completed",prog:100,notes:""},
   ],
 };
 let members=[
@@ -1117,10 +1128,15 @@ function applyRoleUI() {
   // User role in sidebar
   const urole = document.getElementById("urole");
   if (urole) urole.textContent = role;
-  // Hide New Project button
+  // Hide New Project buttons — Admin + BIM Manager only
+  var showProj = can("createProject");
   document.querySelectorAll('[onclick="openProjModal()"]').forEach(el => {
-    el.style.display = can("createProject") ? "" : "none";
+    el.style.display = showProj ? "" : "none";
   });
+  var t = document.getElementById("newprojbtn-top");
+  var p = document.getElementById("newprojbtn-page");
+  if(t) t.style.display = showProj ? "" : "none";
+  if(p) p.style.display = showProj ? "" : "none";
   // Hide Settings nav
   const settingsNav = document.querySelector('[onclick="pg(\'settings\',this)"]');
   if (settingsNav) settingsNav.style.display = can("settings") ? "" : "none";
@@ -1637,7 +1653,7 @@ function pg(id,el,noHistory){
   const t={dash:"Dashboard",projects:"All Projects",team:"Team",timeline:"Master Timeline",settings:"SharePoint Config",reports:"Weekly Reports",detail:"Project Detail"};
   document.getElementById("tptitle").textContent=t[id]||"";
   if(id==="dash")renderDash();
-  if(id==="projects")renderProjects();
+  if(id==="projects"){renderProjects();applyRoleUI();}
   if(id==="team")renderTeam();
   if(id==="timeline")renderMasterTimeline();
   // Push history so back button works on mobile
@@ -1693,6 +1709,8 @@ function renderProjects(){
   let list=projects.filter(p=>(!s||p.name.toLowerCase().includes(s)||p.client.toLowerCase().includes(s)||p.code.toLowerCase().includes(s))&&(!f||p.status===f));
   document.getElementById("psub").textContent=`${list.length} project${list.length!==1?"s":""} found`;
   document.getElementById("pgrid").innerHTML=list.map(p=>{
+  // Re-enforce permissions after render
+  setTimeout(function(){ var t=document.getElementById("newprojbtn-top"); var p=document.getElementById("newprojbtn-page"); var show=can("createProject"); if(t)t.style.display=show?"":"none"; if(p)p.style.display=show?"":"none"; }, 0);
     const th=(p.tids||[]).slice(0,4).map(id=>{const m=gm(id);return m?`<div class="tav" style="background:${m.col}" title="${m.name}">${m.ini}</div>`:""}).join("");
     return`<div class="pcard" onclick="openDetail(${p.id})"><div class="pstrip" style="background:${p.color}"></div><div class="pcode">${p.code}</div><div class="pname">${p.name}</div><div class="pclient">${p.client} · ${p.loc}</div><div class="pmeta">${sbadge(p.status)}<span class="badge bgy">${p.phase}</span></div><div class="pbar"><div class="plbar-l"><span>Progress</span><span>${p.prog}%</span></div><div class="ptrack"><div class="pfill" style="width:${p.prog}%;background:${p.color}"></div></div></div><div class="pfoot"><div class="pteam">${th}</div><div class="pdate">Due ${fd(p.end)}</div></div></div>`;
   }).join("")+(can("createProject")?`<div class="padd" onclick="openProjModal()"><div style="font-size:26px;margin-bottom:8px;opacity:.5">＋</div><div style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700">New Project</div><div style="font-size:12px;margin-top:3px">Click to create</div></div>`:"");
@@ -1702,7 +1720,7 @@ function renderProjects(){
 function renderDetail(pid){
   const p=projects.find(x=>x.id===pid);if(!p)return;
   const pt=tasks[pid]||[],done=pt.filter(t=>t.sta==="Completed").length,ip=pt.filter(t=>t.sta==="In Progress").length;
-  document.getElementById("phdr").innerHTML=`<div class="phdr-top"><div><div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:5px;letter-spacing:.8px">${p.code}</div><div class="phdr-title">${p.name}</div><div class="phdr-meta">${sbadge(p.status)}<span class="badge bgy">${p.phase}</span><span class="badge bgy">${p.loc}</span></div><div style="font-size:12px;color:var(--t2);margin-top:8px">${p.desc||"No description."}</div>${p.link?`<div style="margin-top:7px"><a href="${p.link}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📎 Open OneDrive/SharePoint Folder →</a></div>`:""}</div><button class="btn btn-g btn-sm" onclick="editProj(${p.id})">Edit Project</button></div><div class="phdr-stats"><div class="si"><div class="sv">${p.prog}%</div><div class="sl">Overall</div></div><div class="si"><div class="sv" style="color:var(--a2)">${pt.length}</div><div class="sl">Tasks</div></div><div class="si"><div class="sv" style="color:var(--ok)">${done}</div><div class="sl">Done</div></div><div class="si"><div class="sv" style="color:var(--a3)">${ip}</div><div class="sl">In Progress</div></div></div>`;
+  document.getElementById("phdr").innerHTML=`<div class="phdr-top"><div><div style="font-family:JetBrains Mono,monospace;font-size:10px;color:var(--muted);margin-bottom:5px;letter-spacing:.8px">${p.code}</div><div class="phdr-title">${p.name}</div><div class="phdr-meta">${sbadge(p.status)}<span class="badge bgy">${p.phase}</span><span class="badge bgy">${p.loc}</span></div><div style="font-size:12px;color:var(--t2);margin-top:8px">${p.desc||"No description."}</div>${p.link?`<div style="margin-top:7px"><a href="${p.link}" target="_blank" style="font-size:11px;color:var(--accent);text-decoration:none">📎 Open OneDrive/SharePoint Folder →</a></div>`:""}</div>${can("editProject")?`<button class="btn btn-g btn-sm" onclick="editProj(${p.id})">Edit Project</button>`:""}</div><div class="phdr-stats"><div class="si"><div class="sv">${p.prog}%</div><div class="sl">Overall</div></div><div class="si"><div class="sv" style="color:var(--a2)">${pt.length}</div><div class="sl">Tasks</div></div><div class="si"><div class="sv" style="color:var(--ok)">${done}</div><div class="sl">Done</div></div><div class="si"><div class="sv" style="color:var(--a3)">${ip}</div><div class="sl">In Progress</div></div></div>`;
   document.querySelectorAll(".ptab").forEach(t=>t.classList.remove("active"));
   document.querySelectorAll(".ptab-c").forEach(t=>t.classList.remove("active"));
   document.querySelectorAll(".ptab")[0].classList.add("active");
@@ -1809,8 +1827,8 @@ function renderFiles(p){
 }
 
 // PROJECT MODAL
-function openProjModal(){if(!can("createProject")){toast("⚠ Only Admin/BIM Manager can create projects");return;}EPJ=null;document.getElementById("pmtitle").textContent="New BIM Project";["pm-name","pm-cli","pm-loc","pm-desc","pm-lnk"].forEach(id=>document.getElementById(id).value="");document.getElementById("pm-code").value="ASW-2025-0"+NPI;document.getElementById("pm-sta").value="Planning";document.getElementById("pm-ph").value="LOD 100";document.getElementById("pm-col").value="#00b899";document.getElementById("pmdel").style.display="none";document.getElementById("pm-st").value="";document.getElementById("pm-en").value="";openM("pm");}
-function editProj(id){const p=projects.find(x=>x.id===id);if(!p)return;EPJ=id;document.getElementById("pmtitle").textContent="Edit Project";document.getElementById("pm-name").value=p.name;document.getElementById("pm-code").value=p.code;document.getElementById("pm-cli").value=p.client;document.getElementById("pm-loc").value=p.loc||"";document.getElementById("pm-st").value=p.start||"";document.getElementById("pm-en").value=p.end||"";document.getElementById("pm-sta").value=p.status;document.getElementById("pm-ph").value=p.phase;document.getElementById("pm-col").value=p.color;document.getElementById("pm-desc").value=p.desc||"";document.getElementById("pm-lnk").value=p.link||"";document.getElementById("pmdel").style.display=can("deleteProject")?"inline-flex":"none";openM("pm");}
+function openProjModal(){if(!can("createProject")){toast("⚠ Only Admin/BIM Manager can create projects");return;}EPJ=null;document.getElementById("pmtitle").textContent="New BIM Project";["pm-name","pm-cli","pm-loc","pm-desc","pm-lnk"].forEach(id=>document.getElementById(id).value="");document.getElementById("pm-code").value="ASW-"+new Date().getFullYear()+"-"+String(NPI).padStart(3,"0");document.getElementById("pm-sta").value="Planning";document.getElementById("pm-ph").value="LOD 100";document.getElementById("pm-col").value="#00b899";document.getElementById("pmdel").style.display="none";document.getElementById("pm-st").value="";document.getElementById("pm-en").value="";openM("pm");}
+function editProj(id){if(!can("editProject")){toast("⚠ Only Admin/BIM Manager can edit projects");return;}const p=projects.find(x=>x.id===id);if(!p)return;EPJ=id;document.getElementById("pmtitle").textContent="Edit Project";document.getElementById("pm-name").value=p.name;document.getElementById("pm-code").value=p.code;document.getElementById("pm-cli").value=p.client;document.getElementById("pm-loc").value=p.loc||"";document.getElementById("pm-st").value=p.start||"";document.getElementById("pm-en").value=p.end||"";document.getElementById("pm-sta").value=p.status;document.getElementById("pm-ph").value=p.phase;document.getElementById("pm-col").value=p.color;document.getElementById("pm-desc").value=p.desc||"";document.getElementById("pm-lnk").value=p.link||"";document.getElementById("pmdel").style.display=can("deleteProject")?"inline-flex":"none";openM("pm");}
 function savePrj(){if(!can(EPJ?"editProject":"createProject")){toast("⚠ Only Admin/BIM Manager can manage projects");return;}const n=document.getElementById("pm-name").value.trim();if(!n){alert("Name required");return;}const obj={id:EPJ||NPI++,name:n,code:document.getElementById("pm-code").value.trim(),client:document.getElementById("pm-cli").value.trim(),loc:document.getElementById("pm-loc").value.trim(),start:document.getElementById("pm-st").value,end:document.getElementById("pm-en").value,status:document.getElementById("pm-sta").value,phase:document.getElementById("pm-ph").value,color:document.getElementById("pm-col").value,desc:document.getElementById("pm-desc").value.trim(),link:document.getElementById("pm-lnk").value.trim(),prog:EPJ?projects.find(p=>p.id===EPJ).prog:0,tids:EPJ?projects.find(p=>p.id===EPJ).tids:[1]};if(EPJ)projects=projects.map(p=>p.id===EPJ?obj:p);else{projects.push(obj);tasks[obj.id]=[];modelLogs[obj.id]=[];drawingLogs[obj.id]=[];}closeM("pm");renderSidebar();renderProjects();if(EPJ===CPJ)renderDetail(CPJ);saveData();toast("Saved ✓");}
 function delProject(){if(!confirm("Delete project and all tasks?"))return;projects=projects.filter(p=>p.id!==EPJ);delete tasks[EPJ];closeM("pm");pg("projects",document.querySelectorAll(".ni")[1]);renderSidebar();renderProjects();}
 
@@ -2438,7 +2456,7 @@ function openDrawingModalForStage(stageKey){
   ['dl-num','dl-title','dl-scale','dl-rev','dl-link','dl-notes','dl-delay-notes'].forEach(id=>document.getElementById(id).value='');
   ['dl-plan-start','dl-plan-submit','dl-actual-done'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('dl-dis').value='Architecture';
-  document.getElementById('dl-type').value='Plan';
+  document.getElementById('dl-type').value='GA Plan — General Arrangement';
   document.getElementById('dl-sta').value='Preliminary';
   document.getElementById('dl-stage').value=stageKey;
   document.getElementById('dl-delay-reason').value='';
@@ -2455,7 +2473,7 @@ function editDrawing(id){
   document.getElementById('dl-num').value=d.num;
   document.getElementById('dl-title').value=d.title;
   document.getElementById('dl-dis').value=d.dis;
-  document.getElementById('dl-type').value=d.type||'Plan';
+  document.getElementById('dl-type').value=d.type||'GA Plan — General Arrangement';
   document.getElementById('dl-scale').value=d.scale||'';
   document.getElementById('dl-rev').value=d.rev||'';
   document.getElementById('dl-sta').value=d.sta;
@@ -3023,7 +3041,7 @@ function _buildXLSX(data){
 
   // ── Sheet 1: Summary ──────────────────────────────────────
   const summaryRows = [
-    ['ASTERWIX BIM PROJECT HUB — WEEKLY PROGRESS REPORT'],
+    ['ASTERWIX BIM HUB — ISO 19650 WEEKLY PROGRESS REPORT'],
     [`Week: ${data.weekLabel}`],
     [`Generated by: ${data.generatedBy}  |  Date: ${data.generatedAt}`],
     [],
