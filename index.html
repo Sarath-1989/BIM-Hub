@@ -2473,11 +2473,8 @@ You have been assigned a task in the Asterwix BIM Project Hub:
 
 // ── Request browser notification permission on app load ──────
 function requestNotifPermission(){
-  if('Notification' in window && Notification.permission === 'default'){
-    setTimeout(() => {
-      Notification.requestPermission();
-    }, 3000); // ask 3 seconds after login
-  }
+  // Don't auto-request on mobile - causes overlay conflict
+  // Permission is requested only when user taps the bell icon
 }
 
 // ════════════════════════════════════════════════════════════
