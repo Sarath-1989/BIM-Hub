@@ -480,14 +480,14 @@ input[type=range]{width:100%;accent-color:#ffffff;}
             <select id="tflt" onchange="renderTasks()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--t2);font-family:'Nunito Sans',sans-serif;font-size:11px;padding:6px 9px;outline:none;">
               <option value="">All Status</option><option>Not Started</option><option>In Progress</option><option>On Hold</option><option>Completed</option><option>Delayed</option>
             </select>
-            <select id="ttype" onchange="renderTasks()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--t2);font-family:'Nunito Sans',sans-serif;font-size:11px;padding:6px 9px;outline:none;">
+            <select id="ttype" onchange="renderTasks();updateAddBtnLabel()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--t2);font-family:'Nunito Sans',sans-serif;font-size:11px;padding:6px 9px;outline:none;">
               <option value="">All Types</option>
               <option value="task">Tasks</option>
               <option value="model">BIM Models</option>
               <option value="sheet">Sheets</option>
             </select>
           </div>
-          <button class="btn btn-p btn-sm" onclick="openTaskModal()">+ Add Task</button>
+          <button class="btn btn-p btn-sm" onclick="openSmartAddModal()" id="addtaskbtn">+ Add</button>
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
           <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
@@ -1754,6 +1754,31 @@ function renderDetail(pid){
 function dTab(n,el){document.querySelectorAll(".ptab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".ptab-c").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.getElementById("dtab-"+n).classList.add("active");if(n==="timeline")renderGantt("dtimeline",tasks[CPJ]||[],new Date().getFullYear());}
 
 // TASKS TABLE
+
+// ── Smart Add button — opens correct modal based on type filter ──
+function openSmartAddModal(){
+  var tp = document.getElementById("ttype")?.value || "";
+  if(tp === "model"){
+    if(!can("modelLog")){toast("⚠ Team Lead or above required");return;}
+    openModelModal();
+  } else if(tp === "sheet"){
+    if(!can("drawingLog")){toast("⚠ Team Lead or above required");return;}
+    openDrawingModal();
+  } else {
+    openTaskModal();
+  }
+}
+
+// ── Update Add button label when type changes ─────────────────
+function updateAddBtnLabel(){
+  var tp = document.getElementById("ttype")?.value || "";
+  var btn = document.getElementById("addtaskbtn");
+  if(!btn) return;
+  if(tp === "model") btn.textContent = "+ Add Model";
+  else if(tp === "sheet") btn.textContent = "+ Add Sheet";
+  else btn.textContent = "+ Add Task";
+}
+
 function renderTasks(){
   const s=(document.getElementById("tsrch")?.value||"").toLowerCase();
   const f=document.getElementById("tflt")?.value||"";
@@ -2564,12 +2589,12 @@ function saveModel(){if(!can("modelLog")){toast("⚠ No permission for model log
   // Auto-open this stage
   if(!window._openModelStages) window._openModelStages=[];
   if(!window._openModelStages.includes(stageKey)) window._openModelStages.push(stageKey);
-  closeM('mlm'); renderModelLog(); toast('Model entry saved ✓');
+  closeM('mlm'); renderModelLog(); renderTasks(); saveData(); toast('Model entry saved ✓');
 }
 function delModel(){
   if(!confirm('Delete this model entry?'))return;
   modelLogs[CPJ]=(modelLogs[CPJ]||[]).filter(m=>m.id!==EML);
-  closeM('mlm'); renderModelLog();
+  closeM('mlm'); renderModelLog(); renderTasks(); saveData();
 }
 
 // ─── DRAWING MODAL ────────────────────────────────────────────
@@ -2653,12 +2678,12 @@ function saveDrawing(){if(!can("drawingLog")){toast("⚠ No permission for drawi
   else drawingLogs[CPJ]=[...pl,obj];
   if(!window._openDrawStages) window._openDrawStages=[];
   if(!window._openDrawStages.includes(stageKey)) window._openDrawStages.push(stageKey);
-  closeM('dlm'); renderDrawingLog(); toast('Drawing sheet saved ✓');
+  closeM('dlm'); renderDrawingLog(); renderTasks(); saveData(); toast('Sheet saved ✓');
 }
 function delDrawing(){
   if(!confirm('Delete this drawing sheet entry?'))return;
   drawingLogs[CPJ]=(drawingLogs[CPJ]||[]).filter(d=>d.id!==EDL);
-  closeM('dlm'); renderDrawingLog();
+  closeM('dlm'); renderDrawingLog(); renderTasks(); saveData();
 }
 
 // ════════════════════════════════════════════════════════════
