@@ -1026,13 +1026,13 @@ const ROLE_COLORS = {
 };
 
 const ROLE_PERMS = {
-  //                   Project──────────  Task───────────────  Team──────────────  Logs──────────────  System──────
-  //                   create edit delete create edit  delete  manage assignRoles  model  drawing  reports settings
+  // Protocol: Admin/BIM Manager=full | Coordinator=tasks | TeamLead/Sr=log+progress | Jr=view
+  //                    Projects─────────────  Tasks────────────────  Team──────────────  Logs───────────────  System───
   "Admin":           { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
   "BIM Manager":     { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
   "Coordinator":     { createProject:0, editProject:0, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
-  "Team Lead":       { createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
-  "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
+  "Team Lead":       { createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
+  "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
   "Jr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:0, modelLog:0, drawingLog:0, settings:0 }
 };
 
@@ -1736,7 +1736,10 @@ function renderTasks(){
         <td>${sbadge(t.sta)}</td>
         <td><div class="pmini"><div class="pmt"><div class="pmf" style="width:${t.prog}%;background:${t.prog===100?"var(--ok)":c}"></div></div><span style="font-size:10px;color:var(--muted);width:26px">${t.prog}%</span></div></td>
         <td style="white-space:nowrap">${teamsBtn}</td>
-        <td><button class="btn btn-g btn-sm" onclick="editTask(${t.id})">Edit</button></td>
+        ${can("editTask") ? `<td style="white-space:nowrap;display:flex;gap:5px;align-items:center;">
+          ${can("createTask") ? `<button class="btn btn-g btn-sm" onclick="editTask(${t.id})">Edit</button>` : ""}
+          ${t.sta !== "Completed" ? `<button onclick="markTaskDone(${t.id})" style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;" title="Mark as completed">✓ Done</button>` : `<span style="font-size:11px;color:var(--ok);font-weight:700;">✓ Done</span>`}
+        </td>` : ""}
       </tr>`;
     });
   });
@@ -1813,7 +1816,7 @@ function delProject(){if(!confirm("Delete project and all tasks?"))return;projec
 
 // TASK MODAL
 function openTaskModal(){if(!can("createTask")){toast("⚠ Only Coordinator or above can manage tasks");return;}ETK=null;document.getElementById("tmtitle").textContent="New Task";["tm-name","tm-notes"].forEach(id=>document.getElementById(id).value="");document.getElementById("tm-ph").value="LOD 300 — Design Dev";document.getElementById("tm-dis").value="Architecture";document.getElementById("tm-sta").value="Not Started";document.getElementById("tm-pri").value="High";document.getElementById("tm-prog").value=0;document.getElementById("tplab").textContent="0";document.getElementById("tm-st").value="";document.getElementById("tm-en").value="";document.getElementById("tmdel").style.display="none";fillAss(null);openM("tm");}
-function editTask(id){const t=allT().find(x=>x.id===id);if(!t)return;ETK=id;document.getElementById("tmtitle").textContent="Edit Task";document.getElementById("tm-name").value=t.name;document.getElementById("tm-ph").value=t.ph;document.getElementById("tm-dis").value=t.dis;document.getElementById("tm-st").value=t.start||"";document.getElementById("tm-en").value=t.end||"";document.getElementById("tm-sta").value=t.sta;document.getElementById("tm-pri").value=t.pri;document.getElementById("tm-prog").value=t.prog;document.getElementById("tplab").textContent=t.prog;document.getElementById("tm-notes").value=t.notes||"";document.getElementById("tmdel").style.display="inline-flex";fillAss(t.aid);openM("tm");}
+function editTask(id){if(!can("editTask")){toast("⚠ No permission to edit tasks");return;}const t=allT().find(x=>x.id===id);if(!t)return;ETK=id;document.getElementById("tmtitle").textContent="Edit Task";document.getElementById("tm-name").value=t.name;document.getElementById("tm-ph").value=t.ph;document.getElementById("tm-dis").value=t.dis;document.getElementById("tm-st").value=t.start||"";document.getElementById("tm-en").value=t.end||"";document.getElementById("tm-sta").value=t.sta;document.getElementById("tm-pri").value=t.pri;document.getElementById("tm-prog").value=t.prog;document.getElementById("tplab").textContent=t.prog;document.getElementById("tm-notes").value=t.notes||"";document.getElementById("tmdel").style.display=can("deleteTask")?"inline-flex":"none";fillAss(t.aid);openM("tm");}
 function fillAss(sel){document.getElementById("tm-ass").innerHTML=members.map(m=>`<option value="${m.id}" ${m.id===sel?"selected":""}>${m.name} — ${m.role}</option>`).join("");}
 function saveTask(){
   const n=document.getElementById("tm-name").value.trim();
@@ -1830,6 +1833,82 @@ function saveTask(){
   if(isNewAssign) notifyAssignee(obj);
 }
 function delTask(){if(!confirm("Delete task?"))return;tasks[CPJ]=(tasks[CPJ]||[]).filter(t=>t.id!==ETK);closeM("tm");renderTasks();}
+
+// ── Mark task as Done (for Team Lead + Sr. Modeller) ──────
+function markTaskDone(taskId){
+  if(!can("editTask")){toast("⚠ No permission");return;}
+  // Find task across all projects
+  var found = null, foundPid = null;
+  Object.keys(tasks).forEach(function(pid){
+    var t = (tasks[pid]||[]).find(function(x){return x.id===taskId;});
+    if(t){ found=t; foundPid=parseInt(pid); }
+  });
+  if(!found) return;
+  if(found.sta === "Completed"){toast("Task already completed ✓");return;}
+  if(!confirm("Mark \""+found.name+"\" as Completed?")){return;}
+  // Update task
+  found.sta = "Completed";
+  found.prog = 100;
+  // Update project progress
+  var pid = foundPid || CPJ;
+  var projTasks = tasks[pid]||[];
+  if(projTasks.length){
+    projects = projects.map(function(p){
+      return p.id===pid ? Object.assign({},p,{prog:Math.round(projTasks.reduce(function(a,t){return a+t.prog;},0)/projTasks.length)}) : p;
+    });
+  }
+  saveData();
+  renderTasks();
+  renderDash();
+  toast("✅ Task marked as Completed!");
+  // Send completion notification
+  notifyTaskCompleted(found, pid);
+}
+
+// ── Notify manager when task is completed ─────────────────
+function notifyTaskCompleted(task, pid){
+  var proj = projects.find(function(p){return p.id===pid;});
+  var projName = proj ? proj.name : "Project";
+  var completedBy = CU ? CU.name : "Team member";
+  var completedAt = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+
+  // Browser notification
+  if("Notification" in window && Notification.permission === "granted"){
+    var n = new Notification("✅ Task Completed — Asterwix BIM Hub", {
+      body: completedBy+" completed:\n\""+task.name+"\"\nProject: "+projName+"\nTime: "+completedAt,
+      icon: "https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/2mGPFiAcp9jMKod1/asterwix-logo-gwJ4PqcQrbcbbtRJ.png",
+      tag: "done-"+task.id
+    });
+    n.onclick = function(){ window.focus(); n.close(); };
+  }
+
+  // Email notification to BIM Manager / Admin
+  var managerEmail = "";
+  var staffList = typeof STAFF !== "undefined" ? STAFF : [];
+  var manager = staffList.find(function(s){ return s.perm==="Admin"||s.perm==="BIM Manager"; });
+  if(manager) managerEmail = manager.email;
+  if(!managerEmail) return;
+
+  var subject = encodeURIComponent("[Asterwix BIM Hub] ✅ Task Completed: "+task.name);
+  var body = encodeURIComponent(
+    "Task Completion Report\n"+
+    "─────────────────────\n"+
+    "Task:        "+task.name+"\n"+
+    "Project:     "+projName+"\n"+
+    "Completed by: "+completedBy+"\n"+
+    "Date/Time:   "+completedAt+"\n"+
+    "Priority:    "+task.pri+"\n\n"+
+    "Please review and update project status if needed.\n\n"+
+    "— Asterwix BIM Hub"
+  );
+  // Open email client silently (no popup)
+  var link = document.createElement("a");
+  link.href = "mailto:"+managerEmail+"?subject="+subject+"&body="+body;
+  link.style.display = "none";
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
 
 // MEMBER MODAL
 function editMember(id){
