@@ -474,19 +474,40 @@ input[type=range]{width:100%;accent-color:#ffffff;}
         <div class="ptab" onclick="dTab('files',this)">Files</div>
       </div>
       <div class="ptab-c active" id="dtab-tasks">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-          <div style="display:flex;gap:9px;">
-            <input id="tsrch" placeholder="Search tasks…" oninput="renderTasks()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Nunito Sans',sans-serif;font-size:12px;padding:6px 11px;outline:none;width:150px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input id="tsrch" placeholder="Search…" oninput="renderTasks()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-family:'Nunito Sans',sans-serif;font-size:12px;padding:6px 11px;outline:none;width:120px;">
             <select id="tflt" onchange="renderTasks()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--t2);font-family:'Nunito Sans',sans-serif;font-size:11px;padding:6px 9px;outline:none;">
-              <option value="">All</option><option>Not Started</option><option>In Progress</option><option>On Hold</option><option>Completed</option><option>Delayed</option>
+              <option value="">All Status</option><option>Not Started</option><option>In Progress</option><option>On Hold</option><option>Completed</option><option>Delayed</option>
+            </select>
+            <select id="ttype" onchange="renderTasks()" style="background:var(--surface);border:1.5px solid var(--border);border-radius:6px;color:var(--t2);font-family:'Nunito Sans',sans-serif;font-size:11px;padding:6px 9px;outline:none;">
+              <option value="">All Types</option>
+              <option value="task">Tasks</option>
+              <option value="model">BIM Models</option>
+              <option value="sheet">Sheets</option>
             </select>
           </div>
           <button class="btn btn-p btn-sm" onclick="openTaskModal()">+ Add Task</button>
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <table><thead><tr><th>#</th><th>Task</th><th>Phase</th><th>Assignee</th><th>Dates</th><th>Priority</th><th>Status</th><th>Progress</th><th>Notify</th><th></th></tr></thead>
-          <tbody id="ttbody"></tbody></table>
-          <div id="tempty" style="display:none;text-align:center;padding:36px;color:var(--muted);font-size:13px;">No tasks yet.</div>
+          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
+          <table style="min-width:780px;width:100%;">
+            <thead><tr>
+              <th style="width:32px;"></th>
+              <th>Task Name</th>
+              <th style="width:80px;">Type</th>
+              <th>Assigned to</th>
+              <th style="width:90px;">Start</th>
+              <th style="width:90px;">Finish</th>
+              <th style="width:80px;">Priority</th>
+              <th style="width:110px;">Status</th>
+              <th style="width:100px;">% Complete</th>
+              <th></th>
+            </tr></thead>
+            <tbody id="ttbody"></tbody>
+          </table>
+          </div>
+          <div id="tempty" style="display:none;text-align:center;padding:36px;color:var(--muted);font-size:13px;">No items found.</div>
         </div>
       </div>
       <div class="ptab-c" id="dtab-timeline"><div class="gwrap" id="dtimeline"></div></div>
@@ -1734,33 +1755,129 @@ function dTab(n,el){document.querySelectorAll(".ptab").forEach(t=>t.classList.re
 
 // TASKS TABLE
 function renderTasks(){
-  const pt=tasks[CPJ]||[],s=document.getElementById("tsrch")?.value.toLowerCase()||"",f=document.getElementById("tflt")?.value||"";
-  let fil=pt.filter(t=>(!s||t.name.toLowerCase().includes(s)||(gm(t.aid)?.name||"").toLowerCase().includes(s))&&(!f||t.sta===f));
-  if(!fil.length){document.getElementById("ttbody").innerHTML="";document.getElementById("tempty").style.display="block";return;}
+  const s=(document.getElementById("tsrch")?.value||"").toLowerCase();
+  const f=document.getElementById("tflt")?.value||"";
+  const typeF=document.getElementById("ttype")?.value||"";
+
+  // ── 1. Collect project TASKS ──────────────────────────────
+  var rows=[];
+  (tasks[CPJ]||[]).forEach(function(t){
+    if(typeF==="model"||typeF==="sheet") return;
+    const m=gm(t.aid);
+    const name=(t.name||"").toLowerCase();
+    const aname=(m?m.name:"").toLowerCase();
+    if(s&&!name.includes(s)&&!aname.includes(s)) return;
+    if(f&&t.sta!==f) return;
+    rows.push({type:"task",id:t.id,name:t.name,dis:t.dis||"",member:m,
+      start:t.start,end:t.end,pri:t.pri,sta:t.sta,prog:t.prog,ref:t});
+  });
+
+  // ── 2. Collect BIM MODEL entries ─────────────────────────
+  if(typeF!=="task"&&typeF!=="sheet"){
+    (modelLogs[CPJ]||[]).forEach(function(m){
+      const auth=gm(m.auth);
+      const name=(m.name||"").toLowerCase();
+      const aname=(auth?auth.name:"").toLowerCase();
+      if(s&&!name.includes(s)&&!aname.includes(s)) return;
+      // map model status to task status for filter
+      const staMap={wip:"In Progress",shared:"In Progress",published:"Completed",
+        forreview:"In Progress",forconstruct:"In Progress",forissue:"Completed"};
+      const mappedSta=staMap[m.sta]||"Not Started";
+      if(f&&mappedSta!==f) return;
+      rows.push({type:"model",id:"M-"+m.id,name:m.name||"Unnamed Model",
+        dis:m.dis||"",member:auth,start:m.planStart||m.date||"",
+        end:m.planSubmit||"",pri:"Medium",sta:mappedSta,prog:mappedSta==="Completed"?100:50,ref:m});
+    });
+  }
+
+  // ── 3. Collect SHEET entries ──────────────────────────────
+  if(typeF!=="task"&&typeF!=="model"){
+    (drawingLogs[CPJ]||[]).forEach(function(d){
+      const auth=gm(d.auth);
+      const name=((d.num||"")+" "+(d.title||"")).toLowerCase();
+      const aname=(auth?auth.name:"").toLowerCase();
+      if(s&&!name.includes(s)&&!aname.includes(s)) return;
+      const staMap={wip:"In Progress",forreview:"In Progress",forconstruct:"In Progress",
+        shopdrg:"In Progress",gfc:"Completed",forissue:"Completed"};
+      const mappedSta=staMap[d.sta]||"Not Started";
+      if(f&&mappedSta!==f) return;
+      rows.push({type:"sheet",id:"S-"+d.id,name:(d.num?(d.num+" — "):"")+(d.title||"Unnamed Sheet"),
+        dis:d.dis||"",member:auth,start:d.planStart||d.date||"",
+        end:d.planSubmit||"",pri:"Medium",sta:mappedSta,prog:mappedSta==="Completed"?100:40,ref:d});
+    });
+  }
+
+  if(!rows.length){
+    document.getElementById("ttbody").innerHTML="";
+    document.getElementById("tempty").style.display="block";
+    return;
+  }
   document.getElementById("tempty").style.display="none";
-  const phs=[...new Set(fil.map(t=>t.ph))];
+
+  // ── 4. Group by type ──────────────────────────────────────
+  const typeOrder=["task","model","sheet"];
+  const typeLabel={task:"📋 Tasks",model:"🏗️ BIM Models",sheet:"📄 Sheets"};
+  const typeColor={task:"var(--accent)",model:"#3b82f6",sheet:"#8b5cf6"};
+
   let h="";
-  phs.forEach(ph=>{
-    const c=phBg(ph);
-    h+=`<tr class="phrow"><td colspan="10" style="border-left:3px solid ${c};padding-left:11px">${ph}</td></tr>`;
-    fil.filter(t=>t.ph===ph).forEach(t=>{
-      const m=gm(t.aid);
-      const proj=projects.find(p=>p.id===t.pid);
-      const teamsBtn=m?`<button onclick="openTeamsChat(${t.id})" title="Message ${m.name} in Teams" style="background:#5558af;border:none;color:#fff;padding:4px 8px;border-radius:5px;font-size:10px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;white-space:nowrap;transition:background .15s;" onmouseover="this.style.background='#444791'" onmouseout="this.style.background='#5558af'"><svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><path d="M19.95 4.05A6.975 6.975 0 0 0 15 2a7 7 0 0 0-6.95 7.8A9.965 9.965 0 0 0 2 18v2h10a10 10 0 0 0 9.97-9.22 7.018 7.018 0 0 0-2.02-6.73zM15 4a5 5 0 1 1 0 10A5 5 0 0 1 15 4z"/></svg>Teams</button>`:'';
-      h+=`<tr>
-        <td style="color:var(--muted);font-family:JetBrains Mono,monospace;font-size:10px">${t.id}</td>
-        <td style="font-weight:500">${t.name}</td>
-        <td style="font-size:10px;color:${c};font-weight:600">${ph.split("—")[0].trim()}</td>
-        <td>${m?`<div style="display:flex;align-items:center;gap:6px"><div style="width:20px;height:20px;border-radius:50%;background:${m.col};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0">${m.ini}</div><span style="font-size:11px">${m.name}</span></div>`:"—"}</td>
-        <td style="font-size:11px;color:var(--muted)">${fd(t.start)}–${fd(t.end)}</td>
-        <td>${pbadge(t.pri)}</td>
-        <td>${sbadge(t.sta)}</td>
-        <td><div class="pmini"><div class="pmt"><div class="pmf" style="width:${t.prog}%;background:${t.prog===100?"var(--ok)":c}"></div></div><span style="font-size:10px;color:var(--muted);width:26px">${t.prog}%</span></div></td>
-        <td style="white-space:nowrap">${teamsBtn}</td>
-        ${can("editTask") ? `<td style="white-space:nowrap;display:flex;gap:5px;align-items:center;">
-          ${can("createTask") ? `<button class="btn btn-g btn-sm" onclick="editTask(${t.id})">Edit</button>` : ""}
-          ${t.sta !== "Completed" ? `<button onclick="markTaskDone(${t.id})" style="padding:5px 10px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:11px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;" title="Mark as completed">✓ Done</button>` : `<span style="font-size:11px;color:var(--ok);font-weight:700;">✓ Done</span>`}
-        </td>` : ""}
+  typeOrder.forEach(function(tp){
+    const group=rows.filter(function(r){return r.type===tp;});
+    if(!group.length) return;
+    h+=`<tr style="background:var(--surface);">
+      <td colspan="10" style="padding:8px 14px;font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:${typeColor[tp]};border-left:3px solid ${typeColor[tp]}">
+        ${typeLabel[tp]} <span style="font-weight:400;opacity:.6">(${group.length})</span>
+      </td>
+    </tr>`;
+    group.forEach(function(row){
+      const m=row.member;
+      const prog=row.prog||0;
+      const progColor=prog===100?"var(--ok)":typeColor[row.type];
+      // done circle
+      const isDone=row.sta==="Completed";
+      const circle=`<div onclick="${row.type==="task"?`markTaskDone(${row.ref.id})`:""}"
+        style="width:18px;height:18px;border-radius:50%;border:2px solid ${isDone?"var(--ok)":"var(--border)"};
+        background:${isDone?"var(--ok)":"transparent"};display:flex;align-items:center;justify-content:center;
+        cursor:${row.type==="task"&&!isDone?"pointer":"default"};flex-shrink:0;transition:all .2s;">
+        ${isDone?`<svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`:""}
+      </div>`;
+      // assignee
+      const assignee=m?`<div style="display:flex;align-items:center;gap:6px;">
+        <div style="width:22px;height:22px;border-radius:50%;background:${m.col||"#888"};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0;">${m.ini}</div>
+        <span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;">${m.name}</span>
+      </div>`:"<span style='color:var(--muted);font-size:11px;'>Unassigned</span>";
+      // progress bar
+      const progBar=`<div style="display:flex;align-items:center;gap:6px;">
+        <div style="flex:1;height:5px;background:var(--border);border-radius:3px;min-width:50px;">
+          <div style="width:${prog}%;height:100%;background:${progColor};border-radius:3px;transition:width .3s;"></div>
+        </div>
+        <span style="font-size:10px;color:var(--muted);width:28px;text-align:right;">${prog}%</span>
+      </div>`;
+      // action button
+      let actionBtn="";
+      if(row.type==="task"&&can("editTask")){
+        actionBtn=`<div style="display:flex;gap:4px;align-items:center;">
+          ${can("createTask")?`<button class="btn btn-g btn-sm" onclick="editTask(${row.ref.id})" style="font-size:10px;padding:4px 8px;">Edit</button>`:""}
+          ${!isDone?`<button onclick="markTaskDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`:""}
+        </div>`;
+      }
+      h+=`<tr style="transition:background .15s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
+        <td style="padding:10px 12px;">${circle}</td>
+        <td style="padding:10px 12px;">
+          <div style="font-weight:500;font-size:13px;${isDone?"text-decoration:line-through;opacity:.5;":""}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px;" title="${row.name}">${row.name}</div>
+          ${row.dis?`<div style="font-size:10px;color:var(--muted);margin-top:2px;">${row.dis.split("(")[1]?row.dis.match(/\(([^)]+)\)/)?.[1]||row.dis:row.dis}</div>`:""}
+        </td>
+        <td style="padding:10px 12px;">
+          <span style="font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:${typeColor[row.type]}18;color:${typeColor[row.type]};white-space:nowrap;">
+            ${row.type==="task"?"TASK":row.type==="model"?"MODEL":"SHEET"}
+          </span>
+        </td>
+        <td style="padding:10px 12px;">${assignee}</td>
+        <td style="padding:10px 12px;font-size:11px;color:var(--muted);white-space:nowrap;">${fd(row.start)||"—"}</td>
+        <td style="padding:10px 12px;font-size:11px;color:var(--muted);white-space:nowrap;">${fd(row.end)||"—"}</td>
+        <td style="padding:10px 12px;">${pbadge(row.pri)}</td>
+        <td style="padding:10px 12px;">${sbadge(row.sta)}</td>
+        <td style="padding:10px 12px;">${progBar}</td>
+        <td style="padding:10px 12px;">${actionBtn}</td>
       </tr>`;
     });
   });
