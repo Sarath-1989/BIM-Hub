@@ -2551,7 +2551,7 @@ const _origShowNotifToast = showNotifToast;
 // NOTIFICATION BELL
 function toggleNotifStatus(){
   if(!('Notification' in window)){
-    alert("Browser notifications are not supported in this browser.\nEmail notifications will still work when you assign tasks.");
+    toast('Notifications not supported in this browser');
     return;
   }
   if(Notification.permission === 'granted'){
@@ -2559,7 +2559,7 @@ function toggleNotifStatus(){
     toast("🔔 Browser notifications are ON");
   } else if(Notification.permission === 'denied'){
     document.getElementById('notif-dot').style.display = 'block';
-    alert("Browser notifications are blocked.\n\nTo enable:\n• Chrome: Click the 🔒 lock icon in the address bar → Notifications → Allow\n• Edge: Same as Chrome\n• Firefox: Preferences → Privacy & Security → Notifications\n\nEmail notifications will still work automatically.");
+    toast('🔕 Notifications blocked — enable in browser Settings → Site Settings');
   } else {
     Notification.requestPermission().then(p => {
       if(p === 'granted'){
