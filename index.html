@@ -47,16 +47,12 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 /* ── MOBILE BASE ─────────────────────────────────────────── */
 @media(max-width:768px){
   :root{--sw:0px;}
-
-  /* Sidebar slide */
   .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:300;}
   .sidebar.mob-open{transform:translateX(0);}
   .main{margin-left:0!important;}
   .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:299;}
   .mob-overlay.show{display:block;}
   #mob-menu-btn{display:flex!important;}
-
-  /* Grids → single column */
   .kgrid{grid-template-columns:1fr 1fr!important;}
   .dgrid{grid-template-columns:1fr!important;}
   .pgrid{grid-template-columns:1fr!important;}
@@ -65,82 +61,28 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
   .fg3{grid-template-columns:1fr!important;}
   .sgrid{grid-template-columns:1fr!important;}
   .phdr-stats{grid-template-columns:repeat(2,1fr)!important;}
-
-  /* Topbar & pages */
+  .wstats{gap:14px!important;flex-wrap:wrap!important;}
   .topbar{padding:0 12px!important;height:52px!important;}
   .page{padding:12px!important;}
   .ptitle{font-size:13px!important;}
-
-  /* Welcome banner */
   .wban{flex-direction:column!important;align-items:flex-start!important;gap:14px!important;padding:18px!important;}
-  .wstats{gap:14px!important;flex-wrap:wrap!important;}
   .wstat .wn{font-size:22px!important;}
   .wt{font-size:16px!important;}
-
-  /* KPI cards */
   .kc{padding:14px!important;}
   .kv{font-size:24px!important;}
-
-  /* Tables — horizontal scroll */
-  .table-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch;}
-  table{font-size:11px;min-width:520px;}
+  table{font-size:11px;}
   thead th,tbody td{padding:7px 8px!important;white-space:nowrap;}
-
-  /* Topbar right buttons — hide labels, show icons only */
-  .tright .btn span.btn-label{display:none!important;}
-  .tright{gap:6px!important;}
+  .gwrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;}
   .btn{padding:6px 10px!important;font-size:11px!important;}
-
-  /* Project header */
-  .phdr{flex-direction:column!important;align-items:flex-start!important;gap:10px!important;}
-  .phdr-actions{width:100%!important;justify-content:flex-start!important;flex-wrap:wrap!important;}
-
-  /* Tab bar horizontal scroll */
-  .tab-bar{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;flex-wrap:nowrap!important;padding-bottom:2px!important;}
-  .tab-bar::-webkit-scrollbar{height:2px;}
-  .tab{white-space:nowrap!important;font-size:11px!important;padding:8px 12px!important;}
-
-  /* Forms */
-  .fg2,.fg3,.fg4{grid-template-columns:1fr!important;}
-  .form-row{flex-direction:column!important;gap:10px!important;}
   .modal-box{width:96vw!important;max-width:96vw!important;max-height:90vh!important;overflow-y:auto!important;padding:18px!important;}
-  .modal-box h3{font-size:15px!important;}
-
-  /* Cards */
   .card{padding:14px!important;}
-  .ctitle{font-size:12px!important;}
-
-  /* Sync status bar */
-  .spbar{font-size:10px!important;padding:5px 12px!important;}
-
-  /* Login box */
-  .lbox{padding:28px 20px!important;width:100%!important;border-radius:12px!important;}
-
-  /* Timeline */
-  .tl-row{flex-direction:column!important;gap:4px!important;}
-
-  /* Report page */
-  .rpt-hdr{flex-direction:column!important;gap:10px!important;}
-  .rpt-actions{flex-wrap:wrap!important;gap:8px!important;}
-
-  /* Project list cards */
-  .pcard{padding:14px!important;}
-  .pcard-hdr{flex-direction:column!important;align-items:flex-start!important;gap:8px!important;}
-
-  /* Team cards */
-  .tmcard{padding:14px!important;}
+  .lbox{padding:28px 20px!important;}
 }
-
-/* ── EXTRA SMALL (phones < 420px) ───────────────────────── */
 @media(max-width:420px){
   .kgrid{grid-template-columns:1fr!important;}
   .tgrid{grid-template-columns:1fr!important;}
   .wstats{flex-direction:column!important;gap:8px!important;}
   .phdr-stats{grid-template-columns:1fr 1fr!important;}
-  .topbar{padding:0 10px!important;}
-  .page{padding:10px!important;}
-  table{min-width:440px;}
-  .modal-box{padding:14px!important;}
 }
 
 /* LOGIN */
@@ -425,7 +367,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     </button>
     <div class="ldiv">or sign in with email</div>
     <div class="lfield"><label>Email</label><input id="demail" type="email" placeholder="your@asterwix.com" onkeydown="if(event.key==='Enter')loginStaff()" autocomplete="email" autocapitalize="none" inputmode="email"></div>
-    <div class="lfield"><label>Password</label><input id="dpass" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')loginStaff()" autocomplete="current-password"></div>
+    <div class="lfield"><label>Password</label><input id="dpass" type="password" placeholder="••••••••"></div>
     <div id="lerror" style="display:none;color:#b91c1c;font-size:11px;margin-bottom:10px;text-align:center;padding:8px;background:#fdf1f1;border-radius:6px;border:1px solid #f0c0c0;">Incorrect email or password.</div>
     <button class="demo-btn" onclick="loginStaff()" style="background:#1a1a1a;color:#fff;border-color:#1a1a1a;font-weight:700;">Sign In</button>
     <div class="lnote" style="margin-top:14px;">🔒 This system is for <strong>Asterwix staff only</strong>. Unauthorised access is prohibited.</div>
@@ -544,10 +486,8 @@ input[type=range]{width:100%;accent-color:#ffffff;}
           <button class="btn btn-p btn-sm" onclick="openTaskModal()">+ Add Task</button>
         </div>
         <div style="border:1px solid var(--border);border-radius:8px;overflow:hidden;">
-          <div style="overflow-x:auto;-webkit-overflow-scrolling:touch;">
-          <table style="min-width:680px;"><thead><tr><th>#</th><th>Task</th><th>Phase</th><th>Assignee</th><th>Dates</th><th>Priority</th><th>Status</th><th>Progress</th><th>Notify</th><th></th></tr></thead>
+          <table><thead><tr><th>#</th><th>Task</th><th>Phase</th><th>Assignee</th><th>Dates</th><th>Priority</th><th>Status</th><th>Progress</th><th>Notify</th><th></th></tr></thead>
           <tbody id="ttbody"></tbody></table>
-          </div>
           <div id="tempty" style="display:none;text-align:center;padding:36px;color:var(--muted);font-size:13px;">No tasks yet.</div>
         </div>
       </div>
@@ -664,7 +604,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
         <strong>How roles work:</strong> Assign a system role to each team member below. 
         Changes are saved to SharePoint BIMMembers list automatically. 
         Next time the user logs in, they will get the correct permissions.
-        <br><strong>Your email (<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="caa9a5a4a4afa9be8aabb9beafb8bda3b2e4a9a5a7">[email&#160;protected]</a>) is always Admin.</strong>
+        <br><strong>Your email (<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="086b6766666d6b7c48697b7c6d7a7f6170266b6765">[email&#160;protected]</a>) is always Admin.</strong>
       </div>
       <div id="role-mgmt-list"></div>
     </div>  <!-- WEEKLY REPORTS PAGE -->
@@ -1036,8 +976,9 @@ const STAFF = [
 
 function loginStaff(){
   const btn = document.querySelector('.demo-btn');
+  const origText = btn ? btn.textContent : 'Sign In';
   if(btn){ btn.textContent='Signing in...'; btn.disabled=true; }
-  setTimeout(()=>{
+  setTimeout(function(){
     const email = document.getElementById("demail").value.trim().toLowerCase();
     const pass  = document.getElementById("dpass").value;
     const err   = document.getElementById("lerror");
@@ -1045,7 +986,7 @@ function loginStaff(){
     if(!staff){
       err.style.display="block";
       document.getElementById("dpass").value="";
-      if(btn){ btn.textContent='Sign In'; btn.disabled=false; }
+      if(btn){ btn.textContent=origText; btn.disabled=false; }
       return;
     }
     err.style.display="none";
@@ -2979,13 +2920,7 @@ function _buildXLSX(data){
   });
   const wsDelays = XLSX.utils.aoa_to_sheet(delayRows);
   wsDelays['!cols'] = [{wch:25},{wch:35},{wch:10},{wch:14},{wch:12},{wch:10},{wch:28},{wch:35}];
-  XLSX.utils.book_append_sheet(wb, wsDelays, 'Delays');
-
-  XLSX.writeFile(wb, fname);
-  toast('Excel report downloaded ✓');
-}
-
-// ── CSV export ────────────────────────────────────────────
+  XLSX.utils.bo────────────
 function exportReportCSV(data){
   const rows = [];
   const q = v => `"${String(v||'').replace(/"/g,'""')}"`;
@@ -3028,4 +2963,7 @@ function exportReportCSV(data){
 // MOBILE MENU
 function toggleMobMenu(){document.querySelector('.sidebar').classList.toggle('mob-open');document.getElementById('mob-overlay').classList.toggle('show');}
 function closeMobMenu(){document.querySelector('.sidebar').classList.remove('mob-open');document.getElementById('mob-overlay').classList.remove('show');}
-document.getElement
+document.getElementById("dpass").addEventListener("keydown",e=>{if(e.key==="Enter")loginStaff();});
+document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");}));
+</script>
+</body></html>
