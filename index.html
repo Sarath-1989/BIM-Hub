@@ -1066,10 +1066,10 @@ const ROLE_PERMS = {
   // Full key: createProject editProject deleteProject createTask editTask deleteTask
   //           manageTeam assignRoles viewReports modelLog drawingLog settings
   //           editModelEntry editSheetEntry markDone
-  "Admin":           { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1, editModelEntry:1, editSheetEntry:1, markDone:1 },
-  "BIM Manager":     { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1, editModelEntry:1, editSheetEntry:1, markDone:1 },
-  "Coordinator":     { createProject:0, editProject:0, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:1, editSheetEntry:1, markDone:1 },
-  "Team Lead":       { createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:0, editSheetEntry:0, markDone:1 },
+  "Admin":           { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1, editModelEntry:1, editSheetEntry:1, markDone:1, reviewItem:1 },
+  "BIM Manager":     { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1, editModelEntry:1, editSheetEntry:1, markDone:1, reviewItem:1 },
+  "Coordinator":     { createProject:0, editProject:0, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:1, editSheetEntry:1, markDone:1, reviewItem:1 },
+  "Team Lead":       { createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:0, editSheetEntry:0, markDone:1, reviewItem:1 },
   "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:0, editSheetEntry:0, markDone:1 },
   "Jr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:0, drawingLog:0, settings:0, editModelEntry:0, editSheetEntry:0, markDone:1 }
 };
@@ -1893,14 +1893,21 @@ function renderTasks(){
       // action button
       let actionBtn="";
       if(row.type==="task"&&can("editTask")){
-        actionBtn=`<div style="display:flex;gap:4px;align-items:center;">
+        actionBtn=`<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;">
           ${can("createTask")?`<button class="btn btn-g btn-sm" onclick="editTask(${row.ref.id})" style="font-size:10px;padding:4px 8px;">Edit</button>`:""}
           ${!isDone?`<button onclick="markTaskDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`:""}
+          ${isDone&&can("reviewItem")?`<button onclick="returnTask(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">↩ Return</button>`:""}
         </div>`;
-      } else if(row.type==="model"&&can("modelLog")&&!isDone){
-        actionBtn=`<button onclick="markModelDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`;
-      } else if(row.type==="sheet"&&can("drawingLog")&&!isDone){
-        actionBtn=`<button onclick="markSheetDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`;
+      } else if(row.type==="model"&&can("modelLog")){
+        actionBtn=`<div style="display:flex;gap:4px;">
+          ${!isDone?`<button onclick="markModelDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`:""}
+          ${can("reviewItem")?`<button onclick="returnModel(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">↩ Return</button>`:""}
+        </div>`;
+      } else if(row.type==="sheet"&&can("drawingLog")){
+        actionBtn=`<div style="display:flex;gap:4px;">
+          ${!isDone?`<button onclick="markSheetDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`:""}
+          ${can("reviewItem")?`<button onclick="returnSheet(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">↩ Return</button>`:""}
+        </div>`;
       }
       h+=`<tr style="transition:background .15s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
         <td style="padding:10px 12px;">${circle}</td>
@@ -2019,6 +2026,160 @@ function delTask(){if(!confirm("Delete task?"))return;tasks[CPJ]=(tasks[CPJ]||[]
 
 // ── Mark Model as Done ────────────────────────────────────────
 
+
+
+// ── Return for Rework System ──────────────────────────────────
+var _pendingReturnCallback = null;
+
+function showReturnModal(itemName, onConfirm){
+  document.getElementById("return-modal-subtitle").textContent = itemName;
+  document.getElementById("return-reason-select").value = "";
+  document.getElementById("return-reason-notes").value = "";
+  document.getElementById("return-modal").style.display = "flex";
+  _pendingReturnCallback = onConfirm;
+}
+function closeReturnModal(){
+  document.getElementById("return-modal").style.display = "none";
+  _pendingReturnCallback = null;
+}
+function confirmReturn(){
+  var reason = document.getElementById("return-reason-select").value;
+  var notes  = document.getElementById("return-reason-notes").value.trim();
+  if(!reason){
+    document.getElementById("return-reason-select").style.borderColor="#b91c1c";
+    toast("Please select a return reason");
+    return;
+  }
+  if(!notes){
+    document.getElementById("return-reason-notes").style.border="1.5px solid #b91c1c";
+    toast("Please add review comments");
+    return;
+  }
+  document.getElementById("return-reason-select").style.borderColor="";
+  document.getElementById("return-reason-notes").style.border="";
+  closeReturnModal();
+  if(_pendingReturnCallback) _pendingReturnCallback(reason, notes);
+}
+
+// Return a TASK for rework
+function returnTask(taskId){
+  if(!can("reviewItem")){toast("No permission to review");return;}
+  var found=null, foundPid=null;
+  Object.keys(tasks).forEach(function(pid){
+    var t=(tasks[pid]||[]).find(function(x){return x.id===taskId;});
+    if(t){found=t;foundPid=parseInt(pid);}
+  });
+  if(!found) return;
+  showReturnModal(found.name, function(reason, notes){
+    found.sta = "In Progress";
+    found.prog = found.prog > 0 ? Math.max(found.prog - 20, 0) : 0;
+    found.returnReason = reason;
+    found.returnNotes = notes;
+    found.returnedBy = CU ? CU.name : "Reviewer";
+    found.returnedAt = new Date().toISOString().slice(0,10);
+    saveData(); renderTasks(); renderDash();
+    toast("Returned for rework — assignee notified");
+    notifyReturnToAssignee(found.aid, found.name, "task", reason, notes, foundPid);
+  });
+}
+
+// Return a MODEL for rework
+function returnModel(entryId){
+  if(!can("reviewItem")){toast("No permission to review");return;}
+  var entry=null;
+  (modelLogs[CPJ]||[]).forEach(function(m){if(m.id===entryId) entry=m;});
+  if(!entry) return;
+  showReturnModal(entry.name, function(reason, notes){
+    entry.sta = "wip";
+    entry.actualDone = "";
+    entry.returnReason = reason;
+    entry.returnNotes = notes;
+    entry.returnedBy = CU ? CU.name : "Reviewer";
+    entry.returnedAt = new Date().toISOString().slice(0,10);
+    saveData(); renderModelLog(); renderTasks();
+    toast("Model returned for rework — assignee notified");
+    notifyReturnToAssignee(entry.auth, entry.name, "model", reason, notes, CPJ);
+  });
+}
+
+// Return a SHEET for rework
+function returnSheet(entryId){
+  if(!can("reviewItem")){toast("No permission to review");return;}
+  var entry=null;
+  (drawingLogs[CPJ]||[]).forEach(function(d){if(d.id===entryId) entry=d;});
+  if(!entry) return;
+  var name=(entry.num||"")+" — "+(entry.title||"");
+  showReturnModal(name, function(reason, notes){
+    entry.sta = "wip";
+    entry.actualDone = "";
+    entry.returnReason = reason;
+    entry.returnNotes = notes;
+    entry.returnedBy = CU ? CU.name : "Reviewer";
+    entry.returnedAt = new Date().toISOString().slice(0,10);
+    saveData(); renderDrawingLog(); renderTasks();
+    toast("Sheet returned for rework — assignee notified");
+    notifyReturnToAssignee(entry.auth, (entry.num||"")+" — "+(entry.title||""), "sheet", reason, notes, CPJ);
+  });
+}
+
+// Notify assignee when item is returned for rework
+function notifyReturnToAssignee(assigneeId, itemName, itemType, reason, notes, pid){
+  var proj = projects.find(function(p){return p.id===pid;});
+  var projName = proj ? proj.name : "Project";
+  var reviewer = CU ? CU.name : "Reviewer";
+  var typeLabel = itemType==="task"?"Task":itemType==="model"?"BIM Model":"Drawing Sheet";
+  var today = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+
+  // Browser notification
+  if("Notification" in window && Notification.permission==="granted"){
+    new Notification("Returned for rework — "+typeLabel,{
+      body: itemName+" returned by "+reviewer+" | Reason: "+reason,
+      icon:"https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/2mGPFiAcp9jMKod1/asterwix-logo-gwJ4PqcQrbcbbtRJ.png",
+      tag:"return-"+itemType+"-"+Date.now()
+    });
+  }
+
+  // Teams message to assignee
+  var assignee = members.find(function(m){return m.id===assigneeId;});
+  if(assignee && assignee.email){
+    var msg = "Your "+typeLabel+" has been returned for rework.\n"
+      +"Item: "+itemName+"\n"
+      +"Project: "+projName+"\n"
+      +"Returned by: "+reviewer+"\n"
+      +"Reason: "+reason+"\n"
+      +"Comments: "+notes+"\n"
+      +"Date: "+today;
+    var url = "https://teams.microsoft.com/l/chat/0/0?users="+encodeURIComponent(assignee.email)+"&message="+encodeURIComponent(msg);
+    window.open(url,"_blank");
+  }
+
+  // Email to assignee + reporting chain
+  var chain = getReportingChain(assigneeId);
+  var toEmails = [];
+  if(assignee && assignee.email) toEmails.push(assignee.email);
+  chain.forEach(function(m){ if(m.email) toEmails.push(m.email); });
+  if(!toEmails.length) return;
+
+  var subj = encodeURIComponent("[Asterwix BIM Hub] Returned for rework: "+itemName);
+  var bodyLines = [
+    typeLabel+" Returned for Rework",
+    "Project: "+projName,
+    "Item: "+itemName,
+    "Returned by: "+reviewer,
+    "Date: "+today,
+    "Reason: "+reason,
+    "Comments: "+notes,
+    "",
+    "Please rework and resubmit.",
+    "— Asterwix BIM Hub"
+  ];
+  var a=document.createElement("a");
+  a.href="mailto:"+toEmails.join(",")+"?subject="+subj+"&body="+encodeURIComponent(bodyLines.join("\n"));
+  a.style.display="none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 // ── HIERARCHY NOTIFICATION SYSTEM ────────────────────────────
 // Roles ordered by seniority (lower index = more senior)
@@ -2587,6 +2748,7 @@ function renderModelLog(){
             ${mlBadge(entry.sta)}
             <div style="display:flex;gap:5px;">
               ${entry.sta!=='published'&&entry.sta!=='forissue'?`<button onclick="markModelDone(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">✓ Done</button>`:`<span style="font-size:10px;color:var(--ok);font-weight:700;">✓ Completed</span>`}
+              ${can("reviewItem")?`<button onclick="returnModel(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">↩ Return</button>`:""}
               ${can("editModelEntry")?`<button class="btn btn-g btn-sm" onclick="editModel(${entry.id})" style="font-size:10px;">Edit</button>`:""}
             </div>
           </div>
@@ -2689,6 +2851,7 @@ function renderDrawingLog(){
             ${dlBadge(entry.sta)}
             <div style="display:flex;gap:5px;margin-top:4px;">
               ${entry.sta!=='gfc'&&entry.sta!=='forissue'?`<button onclick="markSheetDone(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">✓ Done</button>`:`<span style="font-size:10px;color:var(--ok);font-weight:700;">✓ Completed</span>`}
+              ${can("reviewItem")?`<button onclick="returnSheet(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid #fca5a5;background:#fef2f2;color:#b91c1c;font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">↩ Return</button>`:""}
               ${can("editSheetEntry")?`<button class="btn btn-g btn-sm" onclick="editDrawing(${entry.id})" style="font-size:10px;">Edit</button>`:""}
             </div>
           </div>
@@ -3650,4 +3813,78 @@ function closeMobMenu(){
 document.getElementById("dpass").addEventListener("keydown",e=>{if(e.key==="Enter")loginStaff();});
 document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");}));
 </script>
+
+<!-- DELAY REASON MODAL -->
+<div id="delay-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:var(--color-background-primary);border-radius:14px;padding:28px;width:440px;max-width:94vw;box-shadow:0 24px 60px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:#fffbeb;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#92400e;font-weight:700;">!</div>
+      <div>
+        <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;color:#92400e;">Delayed completion</div>
+        <div id="delay-modal-subtitle" style="font-size:11px;color:#b45309;margin-top:2px;"></div>
+      </div>
+    </div>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;margin:14px 0;font-size:12px;color:#92400e;">
+      This item is being completed <strong id="delay-days-text"></strong> after the planned submit date. A delay reason is required.
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:6px;">Delay reason <span style="color:#b91c1c;">*</span></label>
+      <select id="delay-reason-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--color-border-secondary);border-radius:7px;font-family:'Nunito Sans',sans-serif;font-size:13px;outline:none;background:var(--color-background-secondary);color:var(--color-text-primary);margin-bottom:10px;box-sizing:border-box;">
+        <option value="">— Select reason —</option>
+        <option value="Client changes">Client design changes</option>
+        <option value="Late information">Late information from client / consultant</option>
+        <option value="Clash resolution">Clash resolution required additional time</option>
+        <option value="Resource unavailability">Resource unavailability</option>
+        <option value="Technical complexity">Technical complexity underestimated</option>
+        <option value="Approval delay">Approval / review delay</option>
+        <option value="Scope change">Scope change / additional work</option>
+        <option value="External dependency">External dependency (survey, permit, etc.)</option>
+        <option value="Other">Other</option>
+      </select>
+      <input id="delay-reason-notes" placeholder="Additional notes (optional)…" style="width:100%;padding:9px 12px;border:1.5px solid var(--color-border-secondary);border-radius:7px;font-family:'Nunito Sans',sans-serif;font-size:13px;outline:none;background:var(--color-background-secondary);color:var(--color-text-primary);box-sizing:border-box;">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeDelayModal()" style="padding:9px 18px;border-radius:7px;border:1.5px solid var(--color-border-secondary);background:var(--color-background-primary);font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--color-text-primary);">Cancel</button>
+      <button onclick="confirmDelayedDone()" style="padding:9px 20px;border-radius:7px;border:none;background:#1e1e1e;color:#fff;font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;">Confirm done</button>
+    </div>
+  </div>
+</div>
+
+<!-- RETURN FOR REWORK MODAL -->
+<div id="return-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center;">
+  <div style="background:var(--color-background-primary);border-radius:14px;padding:28px;width:460px;max-width:94vw;box-shadow:0 24px 60px rgba(0,0,0,.3);">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
+      <div style="width:36px;height:36px;border-radius:8px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#b91c1c;font-weight:700;">x</div>
+      <div>
+        <div style="font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;color:#b91c1c;">Return for rework</div>
+        <div id="return-modal-subtitle" style="font-size:11px;color:var(--color-text-secondary);margin-top:2px;"></div>
+      </div>
+    </div>
+    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:11px 14px;margin:14px 0;font-size:12px;color:#b91c1c;">
+      This item will be returned to the assignee. They will receive a Teams message and email with your review comments.
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--color-text-secondary);margin-bottom:6px;">Return reason <span style="color:#b91c1c;">*</span></label>
+      <select id="return-reason-select" style="width:100%;padding:9px 12px;border:1.5px solid var(--color-border-secondary);border-radius:7px;font-family:'Nunito Sans',sans-serif;font-size:13px;outline:none;background:var(--color-background-secondary);color:var(--color-text-primary);margin-bottom:10px;box-sizing:border-box;">
+        <option value="">— Select reason —</option>
+        <option value="Incomplete work">Incomplete work — missing elements</option>
+        <option value="Clash not resolved">Clash not resolved</option>
+        <option value="Wrong revision">Wrong revision submitted</option>
+        <option value="Does not meet LOD">Does not meet required LOD</option>
+        <option value="Naming convention error">Naming convention error</option>
+        <option value="Coordination issue">Coordination issue with other disciplines</option>
+        <option value="Client comment not addressed">Client comment not addressed</option>
+        <option value="Quality check failed">Quality check failed</option>
+        <option value="Requires additional detail">Requires additional detail</option>
+        <option value="Other">Other</option>
+      </select>
+      <textarea id="return-reason-notes" placeholder="Review comments (required)…" rows="3" style="width:100%;padding:9px 12px;border:1.5px solid var(--color-border-secondary);border-radius:7px;font-family:'Nunito Sans',sans-serif;font-size:13px;outline:none;resize:vertical;box-sizing:border-box;background:var(--color-background-secondary);color:var(--color-text-primary);"></textarea>
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;">
+      <button onclick="closeReturnModal()" style="padding:9px 18px;border-radius:7px;border:1.5px solid var(--color-border-secondary);background:var(--color-background-primary);font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--color-text-primary);">Cancel</button>
+      <button onclick="confirmReturn()" style="padding:9px 20px;border-radius:7px;border:none;background:#b91c1c;color:#fff;font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;">Return for rework</button>
+    </div>
+  </div>
+</div>
+
 </body></html>
