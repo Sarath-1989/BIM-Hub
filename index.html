@@ -2035,7 +2035,7 @@ function showReturnModal(itemName, onConfirm){
   document.getElementById("return-modal-subtitle").textContent = itemName;
   document.getElementById("return-reason-select").value = "";
   document.getElementById("return-reason-notes").value = "";
-  document.getElementById("return-modal").style.display = "flex";
+  var rm=document.getElementById("return-modal"); rm.style.display="flex"; rm.style.alignItems="center"; rm.style.justifyContent="center";
   _pendingReturnCallback = onConfirm;
 }
 function closeReturnModal(){
@@ -2299,7 +2299,7 @@ function showDelayModal(itemName, delayDays, onConfirm){
   document.getElementById("delay-days-text").textContent = delayDays+" day"+(delayDays===1?"":"s");
   document.getElementById("delay-reason-select").value = "";
   document.getElementById("delay-reason-notes").value = "";
-  document.getElementById("delay-modal").style.display = "flex";
+  var dm=document.getElementById("delay-modal"); dm.style.display="flex"; dm.style.alignItems="center"; dm.style.justifyContent="center";
   _pendingDoneCallback = onConfirm;
 }
 
@@ -3815,7 +3815,7 @@ document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if
 </script>
 
 <!-- DELAY REASON MODAL -->
-<div id="delay-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
+<div id="delay-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:10000;align-items:center;justify-content:center;">
   <div style="background:var(--color-background-primary);border-radius:14px;padding:28px;width:440px;max-width:94vw;box-shadow:0 24px 60px rgba(0,0,0,.3);">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       <div style="width:36px;height:36px;border-radius:8px;background:#fffbeb;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#92400e;font-weight:700;">!</div>
@@ -3851,7 +3851,7 @@ document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if
 </div>
 
 <!-- RETURN FOR REWORK MODAL -->
-<div id="return-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10001;align-items:center;justify-content:center;">
+<div id="return-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;width:100%;height:100%;background:rgba(0,0,0,.55);z-index:10001;align-items:center;justify-content:center;">
   <div style="background:var(--color-background-primary);border-radius:14px;padding:28px;width:460px;max-width:94vw;box-shadow:0 24px 60px rgba(0,0,0,.3);">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">
       <div style="width:36px;height:36px;border-radius:8px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;color:#b91c1c;font-weight:700;">x</div>
