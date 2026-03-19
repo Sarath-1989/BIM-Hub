@@ -495,13 +495,14 @@ input[type=range]{width:100%;accent-color:#ffffff;}
             <thead><tr>
               <th style="width:32px;"></th>
               <th>Task Name</th>
-              <th style="width:80px;">Type</th>
+              <th style="width:75px;">Type</th>
               <th>Assigned to</th>
-              <th style="width:90px;">Start</th>
-              <th style="width:90px;">Finish</th>
-              <th style="width:80px;">Priority</th>
-              <th style="width:110px;">Status</th>
-              <th style="width:100px;">% Complete</th>
+              <th style="width:110px;">Reports To</th>
+              <th style="width:82px;">Start</th>
+              <th style="width:82px;">Finish</th>
+              <th style="width:72px;">Priority</th>
+              <th style="width:105px;">Status</th>
+              <th style="width:90px;">% Complete</th>
               <th></th>
             </tr></thead>
             <tbody id="ttbody"></tbody>
@@ -926,7 +927,8 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     </div>
     <div class="fg2">
       <div class="field"><label>Department</label><select id="mm-dept"><option>Architecture</option><option>Structure</option><option>MEP</option><option>Civil</option><option>BIM Management</option><option>Survey</option></select></div>
-      <div class="field"><label>System Role</label><select id="mm-perm"><option>Admin</option><option>Coordinator</option><option>Team Lead</option><option>Sr. BIM Modeller</option><option>Jr. BIM Modeller</option></select></div>
+      <div class="field"><label>System Role</label><select id="mm-perm"><option>Admin</option><option>BIM Manager</option><option>Coordinator</option><option>Team Lead</option><option>Sr. BIM Modeller</option><option>Jr. BIM Modeller</option></select></div>
+      <div class="field"><label>Reports To</label><select id="mm-reports-to" style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:'Nunito Sans',sans-serif;font-size:13px;outline:none;background:var(--surface);color:var(--text);"><option value="">— None (Top level) —</option></select></div>
     </div>
     <div class="ff"><div class="field"><label>Color</label><select id="mm-col"><option value="#00b899">Teal</option><option value="#5a4fff">Purple</option><option value="#ff6b35">Orange</option><option value="#c98b00">Gold</option><option value="#d93a52">Red</option><option value="#1a1d2e">Dark</option></select></div></div>
     <div class="mf">
@@ -979,12 +981,12 @@ let tasks={
   ],
 };
 let members=[
-  {id:1,name:"Ahmed Al-Rashid",ini:"AA",email:"ahmed@asterwix.com",role:"BIM Manager",dept:"BIM Management",perm:"BIM Manager",col:"#00b899"},
-  {id:2,name:"Sara Mohammed",ini:"SM",email:"sara@asterwix.com",role:"Architect",dept:"Architecture",perm:"Team Lead",col:"#5a4fff"},
-  {id:3,name:"Khaled Ibrahim",ini:"KI",email:"khaled@asterwix.com",role:"Structural Engineer",dept:"Structure",perm:"Team Lead",col:"#ff6b35"},
-  {id:4,name:"Hassan Abdullah",ini:"HA",email:"hassan@asterwix.com",role:"Surveyor",dept:"Survey",perm:"Member",col:"#c98b00"},
-  {id:5,name:"Nour Farouk",ini:"NF",email:"nour@asterwix.com",role:"MEP Engineer",dept:"MEP",perm:"Member",col:"#d93a52"},
-  {id:6,name:"Yusuf Lawal",ini:"YL",email:"yusuf@asterwix.com",role:"MEP Engineer",dept:"MEP",perm:"Member",col:"#1a1d2e"},
+  {id:1,name:"Ahmed Al-Rashid",ini:"AA",email:"ahmed@asterwix.com",role:"BIM Manager",dept:"BIM Management",perm:"BIM Manager",col:"#00b899",reportsTo:null},
+  {id:2,name:"Sara Mohammed",ini:"SM",email:"sara@asterwix.com",role:"Architect",dept:"Architecture",perm:"Team Lead",col:"#5a4fff",reportsTo:1},
+  {id:3,name:"Khaled Ibrahim",ini:"KI",email:"khaled@asterwix.com",role:"Structural Engineer",dept:"Structure",perm:"Team Lead",col:"#ff6b35",reportsTo:1},
+  {id:4,name:"Hassan Abdullah",ini:"HA",email:"hassan@asterwix.com",role:"Surveyor",dept:"Survey",perm:"Member",col:"#c98b00",reportsTo:2},
+  {id:5,name:"Nour Farouk",ini:"NF",email:"nour@asterwix.com",role:"MEP Engineer",dept:"MEP",perm:"Member",col:"#d93a52",reportsTo:3},
+  {id:6,name:"Yusuf Lawal",ini:"YL",email:"yusuf@asterwix.com",role:"MEP Engineer",dept:"MEP",perm:"Member",col:"#1a1d2e",reportsTo:3},
 ];
 
 // LOGIN
@@ -1061,14 +1063,15 @@ const ROLE_COLORS = {
 };
 
 const ROLE_PERMS = {
-  // Protocol: Admin/BIM Manager=full | Coordinator=tasks | TeamLead/Sr=log+progress | Jr=view
-  //                    Projects─────────────  Tasks────────────────  Team──────────────  Logs───────────────  System───
-  "Admin":           { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
-  "BIM Manager":     { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
-  "Coordinator":     { createProject:0, editProject:0, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
-  "Team Lead":       { createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
-  "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
-  "Jr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:0, modelLog:0, drawingLog:0, settings:0 }
+  // Full key: createProject editProject deleteProject createTask editTask deleteTask
+  //           manageTeam assignRoles viewReports modelLog drawingLog settings
+  //           editModelEntry editSheetEntry markDone
+  "Admin":           { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1, editModelEntry:1, editSheetEntry:1, markDone:1 },
+  "BIM Manager":     { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1, editModelEntry:1, editSheetEntry:1, markDone:1 },
+  "Coordinator":     { createProject:0, editProject:0, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:1, editSheetEntry:1, markDone:1 },
+  "Team Lead":       { createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:0, editSheetEntry:0, markDone:1 },
+  "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0, editModelEntry:0, editSheetEntry:0, markDone:1 },
+  "Jr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:0, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:0, drawingLog:0, settings:0, editModelEntry:0, editSheetEntry:0, markDone:1 }
 };
 
 function getCURole(){
@@ -1866,6 +1869,16 @@ function renderTasks(){
         ${isDone?`<svg width="9" height="9" viewBox="0 0 10 10"><path d="M1.5 5l2.5 2.5 4.5-4.5" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`:""}
       </div>`;
       // assignee
+      // Reporting person
+      var reporter = m && m.reportsTo ? members.find(function(x){ return x.id===m.reportsTo; }) : null;
+      // Fallback: find highest BIM Manager/Admin if no direct reporter
+      if(!reporter && m){
+        reporter = members.find(function(x){ return x.perm==="BIM Manager"||x.perm==="Admin"; })||null;
+      }
+      const reportingPerson = reporter ? `<div style="display:flex;align-items:center;gap:5px;">
+        <div style="width:20px;height:20px;border-radius:50%;background:${reporter.col||"#888"};display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:700;color:#fff;flex-shrink:0;">${reporter.ini}</div>
+        <span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:90px;">${reporter.name.split(" ")[0]}</span>
+      </div>` : `<span style="font-size:10px;color:var(--muted);">—</span>`;
       const assignee=m?`<div style="display:flex;align-items:center;gap:6px;">
         <div style="width:22px;height:22px;border-radius:50%;background:${m.col||"#888"};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;color:#fff;flex-shrink:0;">${m.ini}</div>
         <span style="font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px;">${m.name}</span>
@@ -1901,6 +1914,7 @@ function renderTasks(){
           </span>
         </td>
         <td style="padding:10px 12px;">${assignee}</td>
+        <td style="padding:10px 12px;">${reportingPerson}</td>
         <td style="padding:10px 12px;font-size:11px;color:var(--muted);white-space:nowrap;">${fd(row.start)||"—"}</td>
         <td style="padding:10px 12px;font-size:11px;color:var(--muted);white-space:nowrap;">${fd(row.end)||"—"}</td>
         <td style="padding:10px 12px;">${pbadge(row.pri)}</td>
@@ -2005,6 +2019,117 @@ function delTask(){if(!confirm("Delete task?"))return;tasks[CPJ]=(tasks[CPJ]||[]
 
 // ── Mark Model as Done ────────────────────────────────────────
 
+
+// ── HIERARCHY NOTIFICATION SYSTEM ────────────────────────────
+// Roles ordered by seniority (lower index = more senior)
+var ROLE_HIERARCHY = ["Admin","BIM Manager","Coordinator","Team Lead","Sr. BIM Modeller","Jr. BIM Modeller"];
+
+function getRoleLevel(perm){
+  var idx = ROLE_HIERARCHY.indexOf(perm);
+  return idx === -1 ? 99 : idx;
+}
+
+// Get reporting chain: direct reporter → coordinator → BIM Manager → Admin
+function getReportingChain(memberId){
+  var chain = [];
+  var visited = {};
+  var current = members.find(function(m){ return m.id===memberId; });
+  if(!current) return chain;
+  
+  // Direct reporter
+  if(current.reportsTo){
+    var reporter = members.find(function(m){ return m.id===current.reportsTo; });
+    if(reporter && !visited[reporter.id]){ chain.push(reporter); visited[reporter.id]=true; }
+  }
+  
+  // Always include BIM Manager and Admin
+  members.forEach(function(m){
+    if((m.perm==="BIM Manager"||m.perm==="Admin") && !visited[m.id]){
+      chain.push(m); visited[m.id]=true;
+    }
+  });
+  
+  return chain;
+}
+
+// Open Teams message to reporting person
+function sendTeamsToReporter(assigneeId, message, itemName){
+  var assignee = members.find(function(m){ return m.id===assigneeId; });
+  if(!assignee) return;
+  
+  var reporter = null;
+  if(assignee.reportsTo){
+    reporter = members.find(function(m){ return m.id===assignee.reportsTo; });
+  }
+  if(!reporter){
+    // fallback to BIM Manager
+    reporter = members.find(function(m){ return m.perm==="BIM Manager"||m.perm==="Admin"; });
+  }
+  if(!reporter || !reporter.email) return;
+  
+  var teamsMsg = encodeURIComponent(message);
+  var teamsUrl = "https://teams.microsoft.com/l/chat/0/0?users="+encodeURIComponent(reporter.email)+"&message="+teamsMsg;
+  window.open(teamsUrl, "_blank");
+}
+
+// Unified done notification — sends to hierarchy chain
+function notifyDoneToHierarchy(assigneeId, itemName, itemType, projName, isDelayed, delayReason){
+  var completedBy = CU ? CU.name : "Team member";
+  var today = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  var typeLabel = itemType==="task"?"Task":itemType==="model"?"BIM Model":"Drawing Sheet";
+  var chain = getReportingChain(assigneeId || (CU ? CU.id : null));
+  
+  // Browser notification
+  if("Notification" in window && Notification.permission==="granted"){
+    new Notification("Completed: "+typeLabel+" — Asterwix BIM Hub",{
+      body: completedBy+" completed: "+itemName+" | "+projName+(isDelayed?" | ⚠ Delayed: "+delayReason:""),
+      icon:"https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/2mGPFiAcp9jMKod1/asterwix-logo-gwJ4PqcQrbcbbtRJ.png",
+      tag:"done-"+itemType+"-"+Date.now()
+    });
+  }
+
+  // Build Teams message
+  var teamsMsg = "✅ "+typeLabel+" Completed\n"
+    +"Item: "+itemName+"\n"
+    +"Project: "+projName+"\n"
+    +"Completed by: "+completedBy+"\n"
+    +"Date: "+today
+    +(isDelayed?"\n⚠️ Delayed — Reason: "+delayReason:"");
+
+  // Auto-open Teams to direct reporting person
+  var assignee = members.find(function(m){ return m.id===assigneeId; });
+  var reporter = null;
+  if(assignee && assignee.reportsTo){
+    reporter = members.find(function(m){ return m.id===assignee.reportsTo; });
+  }
+  if(!reporter){
+    reporter = members.find(function(m){ return m.perm==="BIM Manager"||m.perm==="Admin"; });
+  }
+  if(reporter && reporter.email){
+    var url = "https://teams.microsoft.com/l/chat/0/0?users="+encodeURIComponent(reporter.email)+"&message="+encodeURIComponent(teamsMsg);
+    window.open(url,"_blank");
+  }
+
+  // Email to full chain
+  if(!chain.length) return;
+  var to = chain.map(function(m){ return m.email; }).filter(Boolean).join(",");
+  var subj = encodeURIComponent("[Asterwix BIM Hub] "+typeLabel+" Completed: "+itemName+(isDelayed?" [DELAYED]":""));
+  var bodyLines = [
+    typeLabel+" Completion Report",
+    "Project: "+projName,
+    "Item: "+itemName,
+    "Completed by: "+completedBy,
+    "Date: "+today,
+    isDelayed?"Status: DELAYED — "+delayReason:"Status: On Time"
+  ];
+  var a=document.createElement("a");
+  a.href="mailto:"+to+"?subject="+subj+"&body="+encodeURIComponent(bodyLines.join("\n"));
+  a.style.display="none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 // ── Delay Reason Modal ────────────────────────────────────────
 var _pendingDoneCallback = null;
 
@@ -2058,8 +2183,9 @@ function markModelDone(entryId){
     entry.delayDays = calcDelayDays(entry.planSubmit, today);
     if(reason){ entry.delayReason = reason; entry.delayNotes = notes||""; }
     saveData(); renderModelLog(); renderTasks();
+    var proj2=projects.find(function(p){return p.id===CPJ;});
     toast("✅ Model marked as Completed!"+(reason?" — Delay logged":""));
-    notifyHierarchyModelDone(entry, "model");
+    notifyDoneToHierarchy(entry.auth,"model",entry.name,proj2?proj2.name:"Project",!!reason,reason||"");
   }
   checkDelayAndDo(entry.planSubmit,
     function(days, today){
@@ -2083,8 +2209,9 @@ function markSheetDone(entryId){
     entry.delayDays = calcDelayDays(entry.planSubmit, today);
     if(reason){ entry.delayReason = reason; entry.delayNotes = notes||""; }
     saveData(); renderDrawingLog(); renderTasks();
+    var proj3=projects.find(function(p){return p.id===CPJ;});
     toast("✅ Sheet marked as Completed!"+(reason?" — Delay logged":""));
-    notifyHierarchyModelDone(entry, "sheet");
+    notifyDoneToHierarchy(entry.auth,"sheet",(entry.num||"")+" — "+(entry.title||""),proj3?proj3.name:"Project",!!reason,reason||"");
   }
   checkDelayAndDo(entry.planSubmit,
     function(days, today){
@@ -2138,7 +2265,7 @@ function notifyHierarchyModelDone(entry, type){
 }
 
 function markTaskDone(taskId){
-  if(!can("editTask")){toast("⚠ No permission");return;}
+  if(!can("markDone")){toast("⚠ No permission");return;}
   // Find task across all projects
   var found = null, foundPid = null;
   Object.keys(tasks).forEach(function(pid){
@@ -2159,8 +2286,9 @@ function markTaskDone(taskId){
       });
     }
     saveData(); renderTasks(); renderDash();
+    var proj4=projects.find(function(p){return p.id===pid2;});
     toast("✅ Task marked as Completed!"+(reason?" — Delay logged":""));
-    notifyTaskCompleted(found, pid2);
+    notifyDoneToHierarchy(found.aid,"task",found.name,proj4?proj4.name:"Project",!!reason,reason||"");
   }
   checkDelayAndDo(found.end,
     function(days, today){
@@ -2225,10 +2353,10 @@ function editMember(id){
   document.getElementById("mm-em").value=m.email||"";
   document.getElementById("mm-role").value=m.role||"BIM Modeller";
   document.getElementById("mm-dept").value=m.dept||"Architecture";
-  document.getElementById("mm-perm").value=m.perm||"Member";
+  document.getElementById("mm-perm").value=m.perm||"Sr. BIM Modeller";
   document.getElementById("mm-col").value=m.col||"#00b899";
-  // Store editing id
   window._editMemberId = id;
+  fillReportsToDropdown(m.reportsTo||null);
   document.getElementById("mmtitle") && (document.getElementById("mmtitle").textContent="Edit Member");
   openM("mm");
 }
@@ -2241,13 +2369,36 @@ function deleteMember(id){
   renderTeam();renderSidebar();saveData();
   toast("🗑 "+m.name+" removed");
 }
-function openMemModal(){window._editMemberId=null;["mm-name","mm-ini","mm-em"].forEach(id=>document.getElementById(id).value="");document.getElementById("mm-role").value="BIM Modeller";document.getElementById("mm-dept").value="Architecture";document.getElementById("mm-perm").value="Member";document.getElementById("mm-col").value="#00b899";openM("mm");}
+function openMemModal(){
+  window._editMemberId=null;
+  ["mm-name","mm-ini","mm-em"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("mm-role").value="BIM Modeller";
+  document.getElementById("mm-dept").value="Architecture";
+  document.getElementById("mm-perm").value="Sr. BIM Modeller";
+  document.getElementById("mm-col").value="#00b899";
+  fillReportsToDropdown(null);
+  openM("mm");
+}
+function fillReportsToDropdown(selectedId){
+  var sel = document.getElementById("mm-reports-to");
+  if(!sel) return;
+  sel.innerHTML = '<option value="">— None (Top level) —</option>';
+  members.forEach(function(m){
+    if(m.id === window._editMemberId) return;
+    var opt = document.createElement("option");
+    opt.value = m.id;
+    opt.textContent = m.name + " — " + (m.perm||m.role);
+    if(selectedId && parseInt(selectedId)===m.id) opt.selected=true;
+    sel.appendChild(opt);
+  });
+}
 function saveMem(){
   if(!can("manageTeam")){toast("⚠ Admin only — cannot manage team");return;}
   const n=document.getElementById("mm-name").value.trim();
   if(!n){alert("Name required");return;}
   const ini=document.getElementById("mm-ini").value.toUpperCase()||n.split(" ").map(w=>w[0]).join("").slice(0,2);
-  const obj={name:n,ini,email:document.getElementById("mm-em").value.trim(),role:document.getElementById("mm-role").value,dept:document.getElementById("mm-dept").value,perm:document.getElementById("mm-perm").value,col:document.getElementById("mm-col").value};
+  var rto = document.getElementById("mm-reports-to").value;
+  const obj={name:n,ini,email:document.getElementById("mm-em").value.trim(),role:document.getElementById("mm-role").value,dept:document.getElementById("mm-dept").value,perm:document.getElementById("mm-perm").value,col:document.getElementById("mm-col").value,reportsTo:rto?parseInt(rto):null};
   if(window._editMemberId){
     members=members.map(m=>m.id===window._editMemberId?{...m,...obj}:m);
     window._editMemberId=null;
@@ -2436,7 +2587,7 @@ function renderModelLog(){
             ${mlBadge(entry.sta)}
             <div style="display:flex;gap:5px;">
               ${entry.sta!=='published'&&entry.sta!=='forissue'?`<button onclick="markModelDone(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">✓ Done</button>`:`<span style="font-size:10px;color:var(--ok);font-weight:700;">✓ Completed</span>`}
-              <button class="btn btn-g btn-sm" onclick="editModel(${entry.id})" style="font-size:10px;">Edit</button>
+              ${can("editModelEntry")?`<button class="btn btn-g btn-sm" onclick="editModel(${entry.id})" style="font-size:10px;">Edit</button>`:""}
             </div>
           </div>
         </div>
@@ -2538,7 +2689,7 @@ function renderDrawingLog(){
             ${dlBadge(entry.sta)}
             <div style="display:flex;gap:5px;margin-top:4px;">
               ${entry.sta!=='gfc'&&entry.sta!=='forissue'?`<button onclick="markSheetDone(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">✓ Done</button>`:`<span style="font-size:10px;color:var(--ok);font-weight:700;">✓ Completed</span>`}
-              <button class="btn btn-g btn-sm" onclick="editDrawing(${entry.id})" style="font-size:10px;">Edit</button>
+              ${can("editSheetEntry")?`<button class="btn btn-g btn-sm" onclick="editDrawing(${entry.id})" style="font-size:10px;">Edit</button>`:""}
             </div>
           </div>
         </div>
