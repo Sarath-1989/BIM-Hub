@@ -1492,16 +1492,13 @@ function saveData(){ spSaveAll(); }
 // LOGIN WITH MICROSOFT
 // ══════════════════════════════════════════════════════════
 async function loginMS() {
-  // Show loading state on button
   const btn = document.querySelector(".ms-btn");
   const origHTML = btn ? btn.innerHTML : "";
-  if (btn) btn.innerHTML = "⏳ Connecting to Microsoft…";
-
+  if(btn) btn.innerHTML = "⏳ Connecting to Microsoft…";
   try {
-    // Check if MSAL library loaded
     if (typeof msal === "undefined") {
-      if (btn) btn.innerHTML = origHTML;
-      alert("Microsoft login library failed to load.\n\nPlease check your internet connection and refresh the page.");
+      if(btn) btn.innerHTML = origHTML;
+      alert("Microsoft login is not available right now.\nPlease use Email + Password login below.");
       return;
     }
 
@@ -2965,5 +2962,45 @@ function toggleMobMenu(){document.querySelector('.sidebar').classList.toggle('mo
 function closeMobMenu(){document.querySelector('.sidebar').classList.remove('mob-open');document.getElementById('mob-overlay').classList.remove('show');}
 document.getElementById("dpass").addEventListener("keydown",e=>{if(e.key==="Enter")loginStaff();});
 document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");}));
+</script>
+<script>
+// ── RUNTIME SAFETY NET ────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function(){
+  // Safety: if functions not defined, show useful error
+  if(typeof loginStaff !== 'function'){
+    console.error('CRITICAL: loginStaff not defined - JS parse error likely');
+    document.querySelectorAll('.demo-btn, .ms-btn').forEach(b=>{
+      b.onclick = function(){ alert('Login system error. Please hard refresh: Ctrl+Shift+R'); };
+    });
+    return;
+  }
+  
+  // Re-attach button events safely (belt and suspenders)
+  var signInBtn = document.querySelector('.demo-btn');
+  if(signInBtn){
+    signInBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      loginStaff();
+    });
+  }
+  
+  var msBtn = document.querySelector('.ms-btn');
+  if(msBtn){
+    msBtn.addEventListener('click', function(e){
+      e.preventDefault();
+      loginMS();
+    });
+    if(typeof msal === 'undefined'){
+      msBtn.style.opacity = '0.5';
+      msBtn.title = 'Microsoft login unavailable - use email login below';
+    }
+  }
+
+  // Enter key on both fields
+  ['demail','dpass'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.addEventListener('keydown', function(e){ if(e.key==='Enter') loginStaff(); });
+  });
+});
 </script>
 </body></html>
