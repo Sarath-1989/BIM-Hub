@@ -1756,9 +1756,9 @@ function renderDetail(pid){
   document.querySelectorAll(".ptab-c").forEach(t=>t.classList.remove("active"));
   document.querySelectorAll(".ptab")[0].classList.add("active");
   document.getElementById("dtab-tasks").classList.add("active");
-  renderTasks();renderDTeam(pid);renderGantt("dtimeline",tasks[pid]||[],new Date().getFullYear());renderFiles(p);
+  renderTasks();renderModelLog();renderDrawingLog();renderDTeam(pid);renderGantt("dtimeline",tasks[pid]||[],new Date().getFullYear());renderFiles(p);
 }
-function dTab(n,el){document.querySelectorAll(".ptab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".ptab-c").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.getElementById("dtab-"+n).classList.add("active");if(n==="timeline")renderGantt("dtimeline",tasks[CPJ]||[],new Date().getFullYear());}
+function dTab(n,el){document.querySelectorAll(".ptab").forEach(t=>t.classList.remove("active"));document.querySelectorAll(".ptab-c").forEach(t=>t.classList.remove("active"));el.classList.add("active");document.getElementById("dtab-"+n).classList.add("active");if(n==="timeline")renderGantt("dtimeline",tasks[CPJ]||[],new Date().getFullYear());if(n==="tasks")setTimeout(renderTasks,30);if(n==="models")setTimeout(renderModelLog,30);if(n==="drawings")setTimeout(renderDrawingLog,30);}
 
 // TASKS TABLE
 
@@ -1806,36 +1806,41 @@ function renderTasks(){
 
   // ── 2. Collect BIM MODEL entries ─────────────────────────
   if(typeF!=="task"&&typeF!=="sheet"){
-    (modelLogs[CPJ]||[]).forEach(function(m){
+    var mList=(modelLogs[CPJ]||modelLogs[String(CPJ)]||[]);
+    mList.forEach(function(m){
       const auth=gm(m.auth);
       const name=(m.name||"").toLowerCase();
       const aname=(auth?auth.name:"").toLowerCase();
       if(s&&!name.includes(s)&&!aname.includes(s)) return;
-      // map model status to task status for filter
       const staMap={wip:"In Progress",shared:"In Progress",published:"Completed",
-        forreview:"In Progress",forconstruct:"In Progress",forissue:"Completed"};
+        forreview:"In Progress",forconstruct:"In Progress",forissue:"Completed","":"Not Started"};
       const mappedSta=staMap[m.sta]||"Not Started";
       if(f&&mappedSta!==f) return;
+      var subs=m.subtasks||[];
+      var subProg=subs.length?Math.round(subs.filter(function(x){return x.done;}).length/subs.length*100):(mappedSta==="Completed"?100:mappedSta==="In Progress"?50:0);
       rows.push({type:"model",id:"M-"+m.id,name:m.name||"Unnamed Model",
         dis:m.dis||"",member:auth,start:m.planStart||m.date||"",
-        end:m.planSubmit||"",pri:"Medium",sta:mappedSta,prog:mappedSta==="Completed"?100:50,ref:m});
+        end:m.planSubmit||"",pri:"Medium",sta:mappedSta,prog:subProg,ref:m});
     });
   }
 
   // ── 3. Collect SHEET entries ──────────────────────────────
   if(typeF!=="task"&&typeF!=="model"){
-    (drawingLogs[CPJ]||[]).forEach(function(d){
+    var dList=(drawingLogs[CPJ]||drawingLogs[String(CPJ)]||[]);
+    dList.forEach(function(d){
       const auth=gm(d.auth);
       const name=((d.num||"")+" "+(d.title||"")).toLowerCase();
       const aname=(auth?auth.name:"").toLowerCase();
       if(s&&!name.includes(s)&&!aname.includes(s)) return;
       const staMap={wip:"In Progress",forreview:"In Progress",forconstruct:"In Progress",
-        shopdrg:"In Progress",gfc:"Completed",forissue:"Completed"};
+        shopdrg:"In Progress",gfc:"Completed",forissue:"Completed","":"Not Started"};
       const mappedSta=staMap[d.sta]||"Not Started";
       if(f&&mappedSta!==f) return;
-      rows.push({type:"sheet",id:"S-"+d.id,name:(d.num?(d.num+" — "):"")+(d.title||"Unnamed Sheet"),
+      var subs=d.subtasks||[];
+      var subProg=subs.length?Math.round(subs.filter(function(x){return x.done;}).length/subs.length*100):(mappedSta==="Completed"?100:mappedSta==="In Progress"?40:0);
+      rows.push({type:"sheet",id:"S-"+d.id,name:(d.num?(d.num+" — "):"")+( d.title||"Unnamed Sheet"),
         dis:d.dis||"",member:auth,start:d.planStart||d.date||"",
-        end:d.planSubmit||"",pri:"Medium",sta:mappedSta,prog:mappedSta==="Completed"?100:40,ref:d});
+        end:d.planSubmit||"",pri:"Medium",sta:mappedSta,prog:subProg,ref:d});
     });
   }
 
