@@ -1859,7 +1859,7 @@ function renderTasks(){
       const progColor=prog===100?"var(--ok)":typeColor[row.type];
       // done circle
       const isDone=row.sta==="Completed";
-      const circle=`<div onclick="${row.type==="task"?`markTaskDone(${row.ref.id})`:""}"
+      const circle=`<div onclick="${row.type==="task"?`markTaskDone(${row.ref.id})`:row.type==="model"?`markModelDone(${row.ref.id})`:row.type==="sheet"?`markSheetDone(${row.ref.id})`:""}"
         style="width:18px;height:18px;border-radius:50%;border:2px solid ${isDone?"var(--ok)":"var(--border)"};
         background:${isDone?"var(--ok)":"transparent"};display:flex;align-items:center;justify-content:center;
         cursor:${row.type==="task"&&!isDone?"pointer":"default"};flex-shrink:0;transition:all .2s;">
@@ -1884,6 +1884,10 @@ function renderTasks(){
           ${can("createTask")?`<button class="btn btn-g btn-sm" onclick="editTask(${row.ref.id})" style="font-size:10px;padding:4px 8px;">Edit</button>`:""}
           ${!isDone?`<button onclick="markTaskDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`:""}
         </div>`;
+      } else if(row.type==="model"&&can("modelLog")&&!isDone){
+        actionBtn=`<button onclick="markModelDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`;
+      } else if(row.type==="sheet"&&can("drawingLog")&&!isDone){
+        actionBtn=`<button onclick="markSheetDone(${row.ref.id})" style="padding:4px 8px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap;touch-action:manipulation;">✓ Done</button>`;
       }
       h+=`<tr style="transition:background .15s;" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background=''">
         <td style="padding:10px 12px;">${circle}</td>
@@ -1998,6 +2002,141 @@ function saveTask(){
 function delTask(){if(!confirm("Delete task?"))return;tasks[CPJ]=(tasks[CPJ]||[]).filter(t=>t.id!==ETK);closeM("tm");renderTasks();}
 
 // ── Mark task as Done (for Team Lead + Sr. Modeller) ──────
+
+// ── Mark Model as Done ────────────────────────────────────────
+
+// ── Delay Reason Modal ────────────────────────────────────────
+var _pendingDoneCallback = null;
+
+function showDelayModal(itemName, delayDays, onConfirm){
+  document.getElementById("delay-modal-subtitle").textContent = itemName;
+  document.getElementById("delay-days-text").textContent = delayDays+" day"+(delayDays===1?"":"s");
+  document.getElementById("delay-reason-select").value = "";
+  document.getElementById("delay-reason-notes").value = "";
+  document.getElementById("delay-modal").style.display = "flex";
+  _pendingDoneCallback = onConfirm;
+}
+
+function closeDelayModal(){
+  document.getElementById("delay-modal").style.display = "none";
+  _pendingDoneCallback = null;
+}
+
+function confirmDelayedDone(){
+  var reason = document.getElementById("delay-reason-select").value;
+  if(!reason){ 
+    document.getElementById("delay-reason-select").style.borderColor="#b91c1c";
+    toast("⚠ Please select a delay reason");
+    return; 
+  }
+  document.getElementById("delay-reason-select").style.borderColor="#d1d5db";
+  var notes = document.getElementById("delay-reason-notes").value.trim();
+  closeDelayModal();
+  if(_pendingDoneCallback) _pendingDoneCallback(reason, notes);
+}
+
+// ── Check if delayed and route to modal or direct done ────────
+function checkDelayAndDo(planSubmit, onDelayed, onTime){
+  var today = new Date().toISOString().slice(0,10);
+  if(planSubmit && today > planSubmit){
+    var days = calcDelayDays(planSubmit, today);
+    onDelayed(days, today);
+  } else {
+    onTime(today);
+  }
+}
+
+function markModelDone(entryId){
+  if(!can("modelLog")){toast("⚠ No permission");return;}
+  var entry=null;
+  (modelLogs[CPJ]||[]).forEach(function(m){ if(m.id===entryId) entry=m; });
+  if(!entry) return;
+  if(entry.sta==="published"||entry.sta==="forissue"){toast("Already completed ✓");return;}
+  function doComplete(reason, notes, today){
+    entry.sta = "forissue";
+    entry.actualDone = today;
+    entry.delayDays = calcDelayDays(entry.planSubmit, today);
+    if(reason){ entry.delayReason = reason; entry.delayNotes = notes||""; }
+    saveData(); renderModelLog(); renderTasks();
+    toast("✅ Model marked as Completed!"+(reason?" — Delay logged":""));
+    notifyHierarchyModelDone(entry, "model");
+  }
+  checkDelayAndDo(entry.planSubmit,
+    function(days, today){
+      showDelayModal(entry.name, days, function(reason, notes){ doComplete(reason, notes, today); });
+    },
+    function(today){ doComplete("","", today); }
+  );
+}
+
+// ── Mark Sheet as Done ────────────────────────────────────────
+function markSheetDone(entryId){
+  if(!can("drawingLog")){toast("⚠ No permission");return;}
+  var entry=null;
+  (drawingLogs[CPJ]||[]).forEach(function(d){ if(d.id===entryId) entry=d; });
+  if(!entry) return;
+  if(entry.sta==="gfc"||entry.sta==="forissue"){toast("Already completed ✓");return;}
+  var entryName = (entry.num||"")+" — "+(entry.title||"");
+  function doComplete(reason, notes, today){
+    entry.sta = "gfc";
+    entry.actualDone = today;
+    entry.delayDays = calcDelayDays(entry.planSubmit, today);
+    if(reason){ entry.delayReason = reason; entry.delayNotes = notes||""; }
+    saveData(); renderDrawingLog(); renderTasks();
+    toast("✅ Sheet marked as Completed!"+(reason?" — Delay logged":""));
+    notifyHierarchyModelDone(entry, "sheet");
+  }
+  checkDelayAndDo(entry.planSubmit,
+    function(days, today){
+      showDelayModal(entryName, days, function(reason, notes){ doComplete(reason, notes, today); });
+    },
+    function(today){ doComplete("","", today); }
+  );
+}
+
+// ── Notify hierarchy when Model/Sheet is done ─────────────────
+function notifyHierarchyModelDone(entry, type){
+  var proj = projects.find(function(p){ return p.id===CPJ; });
+  var projName = proj ? proj.name : "Project";
+  var completedBy = CU ? CU.name : "Team member";
+  var today = new Date().toLocaleDateString("en-GB",{day:"numeric",month:"short",year:"numeric"});
+  var entryName = type==="model" ? entry.name : ((entry.num||"")+" - "+(entry.title||""));
+  var typeLabel = type==="model" ? "BIM Model" : "Drawing Sheet";
+
+  if("Notification" in window && Notification.permission==="granted"){
+    new Notification("Completed: "+typeLabel+" - Asterwix BIM Hub",{
+      body: completedBy+" completed: "+entryName+" | Project: "+projName+" | Date: "+today,
+      icon:"https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/2mGPFiAcp9jMKod1/asterwix-logo-gwJ4PqcQrbcbbtRJ.png",
+      tag:"done-"+type+"-"+entry.id
+    });
+  }
+
+  var managers = typeof STAFF!=="undefined" ? STAFF.filter(function(s){
+    return s.perm==="Admin"||s.perm==="BIM Manager";
+  }) : [];
+  if(!managers.length) return;
+
+  var to = managers.map(function(m){ return m.email; }).join(",");
+  var subjectTxt = "[Asterwix BIM Hub] Completed: "+typeLabel+": "+entryName;
+  var bodyLines = [
+    typeLabel+" Completion Report",
+    "Project: "+projName,
+    (type==="model"?"Model: ":"Sheet: ")+entryName,
+    "Completed by: "+completedBy,
+    "Date: "+today,
+    "Status: "+(type==="model"?"Published / For Issue":"Good for Construction (GFC)"),
+    "",
+    "Please review and update project status if required.",
+    "— Asterwix BIM Hub"
+  ];
+  var a=document.createElement("a");
+  a.href="mailto:"+to+"?subject="+encodeURIComponent(subjectTxt)+"&body="+encodeURIComponent(bodyLines.join("\n"));
+  a.style.display="none";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
 function markTaskDone(taskId){
   if(!can("editTask")){toast("⚠ No permission");return;}
   // Find task across all projects
@@ -2008,24 +2147,27 @@ function markTaskDone(taskId){
   });
   if(!found) return;
   if(found.sta === "Completed"){toast("Task already completed ✓");return;}
-  if(!confirm("Mark \""+found.name+"\" as Completed?")){return;}
-  // Update task
-  found.sta = "Completed";
-  found.prog = 100;
-  // Update project progress
-  var pid = foundPid || CPJ;
-  var projTasks = tasks[pid]||[];
-  if(projTasks.length){
-    projects = projects.map(function(p){
-      return p.id===pid ? Object.assign({},p,{prog:Math.round(projTasks.reduce(function(a,t){return a+t.prog;},0)/projTasks.length)}) : p;
-    });
+  function doTaskDone(reason, notes, today){
+    found.sta = "Completed";
+    found.prog = 100;
+    if(reason){ found.delayReason = reason; found.delayNotes = notes||""; }
+    var pid2 = foundPid || CPJ;
+    var projTasks = tasks[pid2]||[];
+    if(projTasks.length){
+      projects = projects.map(function(p){
+        return p.id===pid2 ? Object.assign({},p,{prog:Math.round(projTasks.reduce(function(a,t){return a+t.prog;},0)/projTasks.length)}) : p;
+      });
+    }
+    saveData(); renderTasks(); renderDash();
+    toast("✅ Task marked as Completed!"+(reason?" — Delay logged":""));
+    notifyTaskCompleted(found, pid2);
   }
-  saveData();
-  renderTasks();
-  renderDash();
-  toast("✅ Task marked as Completed!");
-  // Send completion notification
-  notifyTaskCompleted(found, pid);
+  checkDelayAndDo(found.end,
+    function(days, today){
+      showDelayModal(found.name, days, function(reason, notes){ doTaskDone(reason, notes, today); });
+    },
+    function(today){ doTaskDone("","", today); }
+  );
 }
 
 // ── Notify manager when task is completed ─────────────────
@@ -2290,9 +2432,12 @@ function renderModelLog(){
             ${(entry.planStart||entry.planSubmit||entry.actualDone)?`<div style="font-size:11px;margin-top:4px;display:flex;gap:8px;flex-wrap:wrap;align-items:center">${dateLine(entry.planStart,entry.planSubmit,entry.actualDone,entry.delayDays||0)} ${entry.delayDays>0?delayBadge(entry.delayDays,entry.delayReason):''}</div>`:''}
             ${entry.delayReason?`<div style="font-size:10px;color:#b45309;margin-top:3px;padding:3px 7px;background:rgba(180,83,9,.07);border-radius:4px;display:inline-block;">Delay: ${entry.delayReason}${entry.delayNotes?' — '+entry.delayNotes:''}</div>`:''}
           </div>
-          <div class="prep-entry-actions">
+          <div class="prep-entry-actions" style="display:flex;flex-direction:column;gap:5px;align-items:flex-end;">
             ${mlBadge(entry.sta)}
-            <button class="btn btn-g btn-sm" onclick="editModel(${entry.id})" style="font-size:10px;">Edit</button>
+            <div style="display:flex;gap:5px;">
+              ${entry.sta!=='published'&&entry.sta!=='forissue'?`<button onclick="markModelDone(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">✓ Done</button>`:`<span style="font-size:10px;color:var(--ok);font-weight:700;">✓ Completed</span>`}
+              <button class="btn btn-g btn-sm" onclick="editModel(${entry.id})" style="font-size:10px;">Edit</button>
+            </div>
           </div>
         </div>
         <div class="prep-subtasks">
@@ -2391,7 +2536,10 @@ function renderDrawingLog(){
           </div>
           <div class="prep-entry-actions">
             ${dlBadge(entry.sta)}
-            <button class="btn btn-g btn-sm" onclick="editDrawing(${entry.id})" style="font-size:10px;">Edit</button>
+            <div style="display:flex;gap:5px;margin-top:4px;">
+              ${entry.sta!=='gfc'&&entry.sta!=='forissue'?`<button onclick="markSheetDone(${entry.id})" style="padding:4px 9px;border-radius:6px;border:1.5px solid var(--ok);background:rgba(42,96,65,.07);color:var(--ok);font-family:'Nunito Sans',sans-serif;font-size:10px;font-weight:700;cursor:pointer;touch-action:manipulation;white-space:nowrap;">✓ Done</button>`:`<span style="font-size:10px;color:var(--ok);font-weight:700;">✓ Completed</span>`}
+              <button class="btn btn-g btn-sm" onclick="editDrawing(${entry.id})" style="font-size:10px;">Edit</button>
+            </div>
           </div>
         </div>
         <div class="prep-subtasks">
