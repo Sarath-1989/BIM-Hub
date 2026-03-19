@@ -1572,6 +1572,8 @@ async function loginMS() {
 function doLogin(){
   document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="block";
+  // Push initial history state so back doesn't exit app
+  history.pushState({page:"dash",proj:null}, "", "#dash");
   document.getElementById("uav").textContent=CU.ini;
   document.getElementById("uav").style.background=CU.col||"#2d6a4f";
   document.getElementById("uname").textContent=CU.name;
@@ -1604,7 +1606,7 @@ function initApp(){
 }
 
 // NAV
-function pg(id,el){
+function pg(id,el,noHistory){
   document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
   document.querySelectorAll(".ni").forEach(n=>n.classList.remove("active"));
   document.getElementById("page-"+id)?.classList.add("active");
@@ -1615,6 +1617,10 @@ function pg(id,el){
   if(id==="projects")renderProjects();
   if(id==="team")renderTeam();
   if(id==="timeline")renderMasterTimeline();
+  // Push history so back button works on mobile
+  if(!noHistory && CU){
+    history.pushState({page:id,proj:CPJ||null}, "", "#"+id);
+  }
 }
 function openDetail(pid){
   CPJ=pid;
@@ -1624,6 +1630,7 @@ function openDetail(pid){
   document.getElementById("tptitle").textContent=projects.find(p=>p.id===pid)?.name||"";
   renderDetail(pid);
   document.querySelectorAll(".pni").forEach(n=>n.classList.toggle("active",parseInt(n.dataset.id)===pid));
+  history.pushState({page:"detail",proj:pid}, "", "#detail-"+pid);
 }
 
 // SIDEBAR
@@ -2962,6 +2969,43 @@ function exportReportCSV(data){
 }
 
 // MOBILE MENU
+
+// ── BACK BUTTON HANDLER ───────────────────────────────────
+window.addEventListener('popstate', function(e){
+  // If not logged in, do nothing
+  if(!CU){
+    // Push a dummy state to prevent exiting
+    history.pushState(null, "", window.location.href);
+    return;
+  }
+  if(e.state && e.state.page){
+    var id = e.state.page;
+    if(id === 'detail' && e.state.proj){
+      CPJ = e.state.proj;
+      document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+      document.getElementById("page-detail")?.classList.add("active");
+      renderDetail(CPJ);
+    } else {
+      // Find nav element by page id
+    var navEl = null;
+    document.querySelectorAll('.ni').forEach(function(n){
+      if(n.getAttribute('onclick') && n.getAttribute('onclick').indexOf("'"+id+"'") > -1) navEl = n;
+    });
+    pg(id, navEl, true);
+    }
+    closeMobMenu();
+  } else {
+    // No state = going back past login, stay in app
+    history.pushState({page:"dash",proj:null}, "", "#dash");
+    pg("dash", document.querySelector(".ni"), true);
+  }
+});
+
+// Prevent back-to-login on first load
+window.addEventListener('load', function(){
+  if(CU){ history.pushState({page:"dash",proj:null}, "", "#dash"); }
+});
+
 function toggleMobMenu(){
   var sb=document.querySelector('.sidebar');
   var ov=document.getElementById('mob-overlay');
