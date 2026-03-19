@@ -47,10 +47,10 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 /* -- MOBILE BASE ----------------------------------------- */
 @media(max-width:768px){
   :root{--sw:0px;}
-  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:300;}
+  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:400;}
   .sidebar.mob-open{transform:translateX(0);}
   .main{margin-left:0!important;}
-  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:299;}
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:350;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   .mob-overlay.show{display:block;}
   #mob-menu-btn{display:flex!important;}
   .kgrid{grid-template-columns:1fr 1fr!important;}
@@ -131,7 +131,7 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 .out-btn:hover{border-color:var(--danger);color:var(--danger);}
 
 /* MOBILE MENU BUTTON */
-#mob-menu-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;}
+#mob-menu-btn{display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 
 /* MAIN */
 .main{margin-left:260px;min-height:100vh;}
@@ -378,7 +378,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 
 <!-- APP -->
 <div id="app" style="display:none">
-<div class="mob-overlay" id="mob-overlay" onclick="closeMobMenu()"></div>
+<div class="mob-overlay" id="mob-overlay" onclick="closeMobMenu()" ontouchstart="closeMobMenu()"></div>
 
 <!-- SIDEBAR -->
 <div class="sidebar">
@@ -387,15 +387,15 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     <div class="stag">PROJECT HUB</div>
   </div>
   <div class="nsec">Main</div>
-  <div class="ni active" onclick="pg('dash',this)"><span class="ni-icon">⊞</span>Dashboard</div>
-  <div class="ni" onclick="pg('projects',this)"><span class="ni-icon">◈</span>All Projects<span class="ni-badge" id="pnav">0</span></div>
-  <div class="ni" onclick="pg('team',this)"><span class="ni-icon">◎</span>Team<span class="ni-badge" id="tnav">0</span></div>
-  <div class="ni" onclick="pg('timeline',this)"><span class="ni-icon">▤</span>Master Timeline</div>
+  <div class="ni active" onclick="pg('dash',this);closeMobMenu()"><span class="ni-icon">⊞</span>Dashboard</div>
+  <div class="ni" onclick="pg('projects',this);closeMobMenu()"><span class="ni-icon">◈</span>All Projects<span class="ni-badge" id="pnav">0</span></div>
+  <div class="ni" onclick="pg('team',this);closeMobMenu()"><span class="ni-icon">◎</span>Team<span class="ni-badge" id="tnav">0</span></div>
+  <div class="ni" onclick="pg('timeline',this);closeMobMenu()"><span class="ni-icon">▤</span>Master Timeline</div>
   <div class="nsec">Projects</div>
   <div id="sproj"></div>
   <div class="nsec">System</div>
-  <div class="ni" onclick="pg('reports',this)"><span class="ni-icon">📊</span>Weekly Reports</div>
-  <div class="ni" onclick="pg('settings',this)"><span class="ni-icon">⚙</span>SharePoint Config</div>
+  <div class="ni" onclick="pg('reports',this);closeMobMenu()"><span class="ni-icon">📊</span>Weekly Reports</div>
+  <div class="ni" onclick="pg('settings',this);closeMobMenu()"><span class="ni-icon">⚙</span>SharePoint Config</div>
   <div class="sbot">
     <div class="upill">
       <div class="uav" id="uav">A</div>
@@ -2962,8 +2962,17 @@ function exportReportCSV(data){
 }
 
 // MOBILE MENU
-function toggleMobMenu(){document.querySelector('.sidebar').classList.toggle('mob-open');document.getElementById('mob-overlay').classList.toggle('show');}
-function closeMobMenu(){document.querySelector('.sidebar').classList.remove('mob-open');document.getElementById('mob-overlay').classList.remove('show');}
+function toggleMobMenu(){
+  var sb=document.querySelector('.sidebar');
+  var ov=document.getElementById('mob-overlay');
+  var isOpen=sb.classList.contains('mob-open');
+  if(isOpen){ sb.classList.remove('mob-open'); ov.classList.remove('show'); }
+  else { sb.classList.add('mob-open'); ov.classList.add('show'); }
+}
+function closeMobMenu(){
+  document.querySelector('.sidebar').classList.remove('mob-open');
+  document.getElementById('mob-overlay').classList.remove('show');
+}
 document.getElementById("dpass").addEventListener("keydown",e=>{if(e.key==="Enter")loginStaff();});
 document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");}));
 </script>
