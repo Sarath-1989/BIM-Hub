@@ -1026,6 +1026,7 @@ const ROLE_COLORS = {
 
 const ROLE_PERMS = {
   "Admin":           { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
+  "BIM Manager":     { createProject:1, editProject:1, deleteProject:1, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:1, viewReports:1, modelLog:1, drawingLog:1, settings:1 },
   "Coordinator":     { createProject:1, editProject:1, deleteProject:0, createTask:1, editTask:1, deleteTask:1, manageTeam:1, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
   "Team Lead":       { createProject:0, editProject:1, deleteProject:0, createTask:1, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
   "Sr. BIM Modeller":{ createProject:0, editProject:0, deleteProject:0, createTask:0, editTask:1, deleteTask:0, manageTeam:0, assignRoles:0, viewReports:1, modelLog:1, drawingLog:1, settings:0 },
@@ -1749,7 +1750,28 @@ function renderMasterTimeline(){
 // TEAM
 function renderTeam(){
   document.getElementById("tmsub").textContent=`${members.length} members`;
-  document.getElementById("tgrid").innerHTML=members.map(m=>{const mt=allT().filter(t=>t.aid===m.id),mp=[...new Set(mt.map(t=>t.pid))].length;return`<div class="tcard"><div class="tavlg" style="background:${ROLE_COLORS[m.perm]||m.col||'#2d6a4f'}">${m.ini}</div><div class="tcname">${m.name}</div><div class="tcrole">${m.role}</div><div style="margin:3px 0 5px;"><span style="background:${ROLE_COLORS[m.perm||'Jr. BIM Modeller']||'#555'};color:#fff;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:700;">${m.perm||'Jr. BIM Modeller'}</span></div><div style="margin-bottom:8px">${sbadge(m.perm)}</div><div class="tcstats"><div class="tcs"><div class="tcsv">${mp}</div><div class="tcsl">Projects</div></div><div class="tcs"><div class="tcsv">${mt.length}</div><div class="tcsl">Tasks</div></div><div class="tcs"><div class="tcsv">${mt.filter(t=>t.sta==="Completed").length}</div><div class="tcsl">Done</div></div></div><div style="margin-top:10px;font-size:11px;color:var(--muted)">${m.email}</div></div>`;}).join("");
+  const isAdmin = can("manageTeam");
+  document.getElementById("tgrid").innerHTML=members.map(m=>{
+    const mt=allT().filter(t=>t.aid===m.id),mp=[...new Set(mt.map(t=>t.pid))].length;
+    const adminBtns = isAdmin ? `<div style="display:flex;gap:6px;margin-top:10px;">
+      <button onclick="editMember(${m.id})" style="flex:1;padding:6px;border-radius:5px;border:1.5px solid var(--border);background:#fff;font-size:11px;font-weight:600;cursor:pointer;touch-action:manipulation;">✏️ Edit</button>
+      <button onclick="deleteMember(${m.id})" style="flex:1;padding:6px;border-radius:5px;border:1.5px solid #fca5a5;background:#fff5f5;color:#b91c1c;font-size:11px;font-weight:600;cursor:pointer;touch-action:manipulation;">🗑 Remove</button>
+    </div>` : '';
+    return `<div class="tcard">
+      <div class="tavlg" style="background:${ROLE_COLORS[m.perm]||m.col||'#2d6a4f'}">${m.ini}</div>
+      <div class="tcname">${m.name}</div>
+      <div class="tcrole">${m.role}</div>
+      <div style="margin:3px 0 5px;"><span style="background:${ROLE_COLORS[m.perm||'Jr. BIM Modeller']||'#555'};color:#fff;padding:1px 7px;border-radius:3px;font-size:9px;font-weight:700;">${m.perm||'Jr. BIM Modeller'}</span></div>
+      <div style="margin-bottom:8px">${sbadge(m.perm)}</div>
+      <div class="tcstats">
+        <div class="tcs"><div class="tcsv">${mp}</div><div class="tcsl">Projects</div></div>
+        <div class="tcs"><div class="tcsv">${mt.length}</div><div class="tcsl">Tasks</div></div>
+        <div class="tcs"><div class="tcsv">${mt.filter(t=>t.sta==="Completed").length}</div><div class="tcsl">Done</div></div>
+      </div>
+      <div style="margin-top:8px;font-size:11px;color:var(--muted)">${m.email}</div>
+      ${adminBtns}
+    </div>`;
+  }).join("");
 }
 function renderDTeam(pid){
   const p=projects.find(x=>x.id===pid),ids=p?.tids||[];
@@ -1788,8 +1810,49 @@ function saveTask(){
 function delTask(){if(!confirm("Delete task?"))return;tasks[CPJ]=(tasks[CPJ]||[]).filter(t=>t.id!==ETK);closeM("tm");renderTasks();}
 
 // MEMBER MODAL
-function openMemModal(){["mm-name","mm-ini","mm-em"].forEach(id=>document.getElementById(id).value="");document.getElementById("mm-role").value="BIM Modeller";document.getElementById("mm-dept").value="Architecture";document.getElementById("mm-perm").value="Member";document.getElementById("mm-col").value="#00b899";openM("mm");}
-function saveMem(){if(!can("manageTeam")){toast("⚠ No permission to manage team");return;}const n=document.getElementById("mm-name").value.trim();if(!n){alert("Name required");return;}const ini=document.getElementById("mm-ini").value.toUpperCase()||n.split(" ").map(w=>w[0]).join("").slice(0,2);members.push({id:members.length?Math.max(...members.map(m=>m.id))+1:1,name:n,ini,email:document.getElementById("mm-em").value.trim(),role:document.getElementById("mm-role").value,dept:document.getElementById("mm-dept").value,perm:document.getElementById("mm-perm").value,col:document.getElementById("mm-col").value});closeM("mm");renderTeam();renderSidebar();saveData();toast("Member added ✓");}
+function editMember(id){
+  if(!can("manageTeam")){toast("⚠ Admin only");return;}
+  const m=members.find(x=>x.id===id);
+  if(!m)return;
+  document.getElementById("mm-name").value=m.name;
+  document.getElementById("mm-ini").value=m.ini;
+  document.getElementById("mm-em").value=m.email||"";
+  document.getElementById("mm-role").value=m.role||"BIM Modeller";
+  document.getElementById("mm-dept").value=m.dept||"Architecture";
+  document.getElementById("mm-perm").value=m.perm||"Member";
+  document.getElementById("mm-col").value=m.col||"#00b899";
+  // Store editing id
+  window._editMemberId = id;
+  document.getElementById("mmtitle") && (document.getElementById("mmtitle").textContent="Edit Member");
+  openM("mm");
+}
+function deleteMember(id){
+  if(!can("manageTeam")){toast("⚠ Admin only");return;}
+  const m=members.find(x=>x.id===id);
+  if(!m)return;
+  if(!confirm("Remove "+m.name+" from the team?"))return;
+  members=members.filter(x=>x.id!==id);
+  renderTeam();renderSidebar();saveData();
+  toast("🗑 "+m.name+" removed");
+}
+function openMemModal(){window._editMemberId=null;["mm-name","mm-ini","mm-em"].forEach(id=>document.getElementById(id).value="");document.getElementById("mm-role").value="BIM Modeller";document.getElementById("mm-dept").value="Architecture";document.getElementById("mm-perm").value="Member";document.getElementById("mm-col").value="#00b899";openM("mm");}
+function saveMem(){
+  if(!can("manageTeam")){toast("⚠ Admin only — cannot manage team");return;}
+  const n=document.getElementById("mm-name").value.trim();
+  if(!n){alert("Name required");return;}
+  const ini=document.getElementById("mm-ini").value.toUpperCase()||n.split(" ").map(w=>w[0]).join("").slice(0,2);
+  const obj={name:n,ini,email:document.getElementById("mm-em").value.trim(),role:document.getElementById("mm-role").value,dept:document.getElementById("mm-dept").value,perm:document.getElementById("mm-perm").value,col:document.getElementById("mm-col").value};
+  if(window._editMemberId){
+    members=members.map(m=>m.id===window._editMemberId?{...m,...obj}:m);
+    window._editMemberId=null;
+    toast("Member updated ✓");
+  } else {
+    obj.id=members.length?Math.max(...members.map(m=>m.id))+1:1;
+    members.push(obj);
+    toast("Member added ✓");
+  }
+  closeM("mm");renderTeam();renderSidebar();saveData();
+}
 
 // SP
 async function testSP(){const r=document.getElementById("spres");r.style.display="flex";r.textContent="⏳ Testing SharePoint connection…";try{const siteId=await getSiteId();if(siteId){r.innerHTML=`<span style="color:var(--ok)">✓ Connected to SharePoint — Site verified. Lists ready for sync.</span>`;document.getElementById("spbar").className="spbar ok";document.getElementById("spbar-txt").textContent="✓ Connected to SharePoint — Live sync active";toast("SharePoint connected ✓");}else{r.innerHTML="<span style='color:var(--danger)'>⚠ Could not connect. Make sure you are logged in with Microsoft.</span>";}}catch(e){r.innerHTML="<span style='color:var(--danger)'>⚠ Connection error: "+e.message+"</span>";}}
