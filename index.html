@@ -373,6 +373,17 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 .return-banner-meta{color:#991b1b;font-size:10px;margin-top:2px;}
 .return-banner-comment{color:#b91c1c;font-size:11px;margin-top:4px;font-style:italic;line-height:1.5;}
 .return-banner-dismiss{background:none;border:none;color:#fca5a5;cursor:pointer;font-size:12px;padding:0;flex-shrink:0;}
+/* MS365 CONNECTING OVERLAY */
+#ms-connect-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:10000;display:none;align-items:center;justify-content:center;}
+#ms-connect-overlay.show{display:flex;}
+.ms-connect-box{background:#f5f5f5;border-radius:20px;padding:52px 48px 44px;width:420px;max-width:92vw;display:flex;flex-direction:column;align-items:center;}
+.ms-connect-logo{height:44px;object-fit:contain;margin-bottom:28px;}
+.ms-connect-spinner{width:36px;height:36px;border:3px solid #d4d4d4;border-top-color:#1e1e1e;border-radius:50%;animation:msspin .75s linear infinite;margin-bottom:20px;}
+@keyframes msspin{to{transform:rotate(360deg);}}
+.ms-connect-title{font-family:'Nunito Sans',sans-serif;font-size:18px;font-weight:800;color:#1e1e1e;margin-bottom:6px;text-align:center;}
+.ms-connect-sub{font-family:'Nunito Sans',sans-serif;font-size:12px;color:#888;text-align:center;margin-bottom:28px;min-height:18px;}
+.ms-connect-cancel{width:100%;padding:13px;border-radius:10px;border:1.5px solid #d4d4d4;background:#fff;font-family:'Nunito Sans',sans-serif;font-size:14px;font-weight:600;color:#555;cursor:pointer;transition:all .2s;}
+.ms-connect-cancel:hover{border-color:#999;color:#1e1e1e;}
 #toast{position:fixed;bottom:22px;right:22px;background:var(--sidebar-bg);color:#fff;padding:10px 18px;border-radius:8px;font-size:12px;font-weight:500;z-index:9000;opacity:0;transition:opacity .3s;pointer-events:none;border-left:3px solid #ffffff;box-shadow:0 8px 24px rgba(0,0,0,.2);}
 
 .bim-overlay{position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,.6);z-index:9999;display:none;align-items:center;justify-content:center;}
@@ -461,6 +472,21 @@ input[type=range]{width:100%;accent-color:#ffffff;}
   </div>
 </div>
 <div id="toast"></div>
+
+<!-- MS365 CONNECTING OVERLAY -->
+<div id="ms-connect-overlay">
+  <div class="ms-connect-box">
+    <img class="ms-connect-logo"
+      src="https://assets.zyrosite.com/cdn-cgi/image/format=auto,w=768,fit=crop/2mGPFiAcp9jMKod1/asterwix-logo-gwJ4PqcQrbcbbtRJ.png"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='block'"
+      alt="Asterwix">
+    <div style="display:none;font-family:'Nunito Sans',sans-serif;font-size:22px;font-weight:900;color:#1e1e1e;margin-bottom:28px;">Asterwix</div>
+    <div class="ms-connect-spinner"></div>
+    <div class="ms-connect-title">Connecting to Microsoft 365</div>
+    <div class="ms-connect-sub" id="ms-connect-sub">Verifying Asterwix tenant…</div>
+    <button class="ms-connect-cancel" onclick="cancelMSLogin()">Cancel</button>
+  </div>
+</div>
 
 <!-- APP -->
 <div id="app" style="display:none">
@@ -1753,28 +1779,47 @@ function saveData(){ spSaveAll(); }
 // ══════════════════════════════════════════════════════════
 // LOGIN WITH MICROSOFT
 // ══════════════════════════════════════════════════════════
+var _msLoginCancelled = false;
+
+function showMSOverlay(msg) {
+  _msLoginCancelled = false;
+  document.getElementById('ms-connect-sub').textContent = msg || 'Verifying Asterwix tenant…';
+  document.getElementById('ms-connect-overlay').classList.add('show');
+}
+function updateMSOverlay(msg) {
+  document.getElementById('ms-connect-sub').textContent = msg;
+}
+function hideMSOverlay() {
+  document.getElementById('ms-connect-overlay').classList.remove('show');
+}
+function cancelMSLogin() {
+  _msLoginCancelled = true;
+  hideMSOverlay();
+  toast('Microsoft login cancelled.');
+}
+
 async function loginMS() {
-  // Show loading state on button
   const btn = document.querySelector(".ms-btn");
   const origHTML = btn ? btn.innerHTML : "";
-  if (btn) btn.innerHTML = "⏳ Connecting to Microsoft…";
+
+  showMSOverlay('Verifying Asterwix tenant…');
 
   try {
-    // Check if MSAL library loaded
     if (typeof msal === "undefined") {
+      hideMSOverlay();
       if (btn) btn.innerHTML = origHTML;
       alert("Microsoft login library failed to load.\n\nPlease check your internet connection and refresh the page.");
       return;
     }
 
+    updateMSOverlay('Initialising Microsoft identity platform…');
     initMSAL();
+    if (_msLoginCancelled) return;
 
-    // Handle redirect response first (in case of redirect flow)
-    try {
-      await msalInstance.handleRedirectPromise();
-    } catch(e) { /* ignore */ }
+    try { await msalInstance.handleRedirectPromise(); } catch(e) { /* ignore */ }
+    if (_msLoginCancelled) return;
 
-    // Try popup login
+    updateMSOverlay('Opening Microsoft sign-in window…');
     let response;
     try {
       response = await msalInstance.loginPopup({
@@ -1782,20 +1827,22 @@ async function loginMS() {
         prompt: "select_account"
       });
     } catch(popupErr) {
-      // If popup blocked, try redirect
+      hideMSOverlay();
+      if (btn) btn.innerHTML = origHTML;
       if (popupErr.errorCode === "popup_window_error" || popupErr.errorCode === "empty_window_error") {
-        if (btn) btn.innerHTML = origHTML;
         alert("Popup was blocked by your browser.\n\nPlease allow popups for hub.asterwix.com and try again.\n\n(Click the popup blocked icon in your browser address bar)");
         return;
       }
-      if (popupErr.errorCode === "user_cancelled") {
-        if (btn) btn.innerHTML = origHTML;
+      if (popupErr.errorCode === "user_cancelled" || _msLoginCancelled) {
         toast("Login cancelled.");
         return;
       }
       throw popupErr;
     }
 
+    if (_msLoginCancelled) { hideMSOverlay(); return; }
+
+    updateMSOverlay('Verifying account & loading profile…');
     const account = response.account;
     if (account) {
       spToken = response.accessToken;
@@ -1809,24 +1856,31 @@ async function loginMS() {
         ini: ini,
         col: "#555555"
       };
-      if (btn) btn.innerHTML = origHTML;
-      doLogin();
-      toast("Welcome, " + CU.name + " — loading role…");
-      // Fetch role
+
+      updateMSOverlay('Fetching role & permissions…');
       const role = await fetchAzureRole();
       CU.role = role || "Jr. BIM Modeller";
-      CU.perm = CU.role; // sync perm with role
+      CU.perm = CU.role;
       CU.col = ROLE_COLORS[CU.role] || "#555555";
+
+      updateMSOverlay('Loading your workspace…');
+      await new Promise(r => setTimeout(r, 400)); // brief visual pause
+
+      hideMSOverlay();
+      if (btn) btn.innerHTML = origHTML;
+      doLogin();
       document.getElementById("uav").style.background = CU.col;
       document.getElementById("urole").textContent = CU.role;
       applyRoleUI();
-      renderTeam(); // re-render to show/hide edit/delete buttons
+      renderTeam();
       toast("Welcome, " + CU.name + " (" + CU.role + ") ✓");
     } else {
+      hideMSOverlay();
       if (btn) btn.innerHTML = origHTML;
       toast("Login failed — no account returned.");
     }
   } catch (err) {
+    hideMSOverlay();
     if (btn) btn.innerHTML = origHTML;
     console.error("Microsoft login error:", err);
     const msg = err.message || err.errorCode || "Unknown error";
