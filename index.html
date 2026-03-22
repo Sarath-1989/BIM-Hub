@@ -101,6 +101,13 @@ img{max-width:100%;height:auto;}
   .field label{font-size:9px!important;}
   .field input,.field select,.field textarea{font-size:14px!important;} /* prevents iOS zoom */
   .lbox{padding:28px 20px 24px!important;border-radius:16px!important;}
+  /* Settings page mobile fixes */
+  .spcfg{padding:14px!important;}
+  .sgrid{grid-template-columns:1fr!important;}
+  .sp-btn-row{flex-direction:column!important;}
+  .sp-btn-row .btn{width:100%!important;text-align:center!important;}
+  .role-table-wrap{border-radius:6px!important;}
+  .page#page-settings .field input,.page#page-settings .field select{font-size:14px!important;}
 }
 @media(max-width:420px){
   .kgrid{grid-template-columns:1fr!important;}
@@ -125,6 +132,9 @@ img{max-width:100%;height:auto;}
   .ni{font-size:12px!important;padding:9px 14px!important;}
   .nsec{padding:14px 14px 5px!important;}
   .slogo img{height:24px!important;}
+  /* Settings tablet */
+  .sgrid{grid-template-columns:repeat(2,1fr)!important;}
+  .role-table-wrap{overflow-x:auto;}
 }
 
 /* LOGIN */
@@ -328,6 +338,15 @@ tbody td{padding:10px 12px;font-size:12px;vertical-align:middle;}
 /* SETTINGS */
 .spcfg{background:#ffffff;border:1px solid var(--border);border-radius:12px;padding:22px;margin-bottom:18px;box-shadow:0 1px 4px rgba(0,0,0,.05);}
 .spct{font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:7px;}
+/* Role table responsive wrapper */
+.role-table-wrap{width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px;border:1px solid var(--border);}
+.role-table-wrap table{width:100%;min-width:520px;border-collapse:collapse;}
+/* User role management list */
+.role-mgmt-row{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);}
+.role-mgmt-row:last-child{border-bottom:none;}
+.role-mgmt-hdr{display:grid;grid-template-columns:1fr 1fr auto;gap:10px;padding:6px 0 8px;border-bottom:2px solid var(--border);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
+/* Settings connection button row */
+.sp-btn-row{display:flex;gap:9px;margin-bottom:14px;flex-wrap:wrap;}
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px;margin-bottom:13px;}
 .sstep{display:flex;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);}
 .sstep:last-child{border-bottom:none;}
@@ -749,7 +768,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
         <div class="field"><label>Projects List Name</label><input id="sppl" value="BIMProjects" placeholder="BIMProjects"></div>
       </div>
       <div class="field ff"><label>Tasks List Name</label><input id="sptl" value="BIMTasks" placeholder="BIMTasks" style="max-width:280px;"></div>
-      <div style="display:flex;gap:9px;margin-bottom:14px;">
+      <div class="sp-btn-row">
         <button class="btn btn-p" onclick="testSP()">Test Connection</button>
         <button class="btn btn-g" onclick="saveSP()">Save Config</button>
       </div>
@@ -767,23 +786,25 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     </div>
     <div class="spcfg">
       <div class="spct"><span>👥</span>Role Permissions</div>
+      <div class="role-table-wrap">
       <table style="width:100%;font-size:12px;border-collapse:collapse;">
         <thead><tr>
-          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Role</th>
-          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Projects</th>
-          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Tasks</th>
-          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Team</th>
-          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Logs</th>
-          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Reports</th>
+          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Role</th>
+          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Projects</th>
+          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Tasks</th>
+          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Team</th>
+          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Logs</th>
+          <th style="text-align:left;padding:8px 11px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Reports</th>
         </tr></thead>
         <tbody>
-          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;"><span style="background:#b91c1c;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Admin</span></td><td style="padding:9px 11px;color:var(--ok);font-size:11px;">Create/Edit/Delete</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;">Full control</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;">Manage+Roles</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;">Full access</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;">✓</td></tr>
-          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;"><span style="background:#1e3a8a;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Coordinator</span></td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Create/Edit</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Full control</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Manage (no roles)</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Full access</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">✓</td></tr>
-          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;"><span style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Team Lead</span></td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Edit only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Create/Edit</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">View only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Full access</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">✓</td></tr>
-          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;"><span style="background:#2d6a4f;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Sr. BIM Modeller</span></td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">View only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Edit own tasks</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">View only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">Full access</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">✓</td></tr>
-          <tr><td style="padding:9px 11px;"><span style="background:#555;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Jr. BIM Modeller</span></td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">View only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">Own progress only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">View only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">View only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">✗</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;white-space:nowrap;"><span style="background:#b91c1c;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Admin</span></td><td style="padding:9px 11px;color:var(--ok);font-size:11px;white-space:nowrap;">Create/Edit/Delete</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;white-space:nowrap;">Full control</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;white-space:nowrap;">Manage+Roles</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;white-space:nowrap;">Full access</td><td style="padding:9px 11px;color:var(--ok);font-size:11px;">✓</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;white-space:nowrap;"><span style="background:#1e3a8a;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Coordinator</span></td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Create/Edit</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Full control</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Manage (no roles)</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Full access</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">✓</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;white-space:nowrap;"><span style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Team Lead</span></td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Edit only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Create/Edit</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;white-space:nowrap;">View only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Full access</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">✓</td></tr>
+          <tr style="border-bottom:1px solid var(--border);"><td style="padding:9px 11px;white-space:nowrap;"><span style="background:#2d6a4f;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Sr. BIM Modeller</span></td><td style="padding:9px 11px;color:var(--muted);font-size:11px;white-space:nowrap;">View only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Edit own tasks</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;white-space:nowrap;">View only</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;white-space:nowrap;">Full access</td><td style="padding:9px 11px;color:var(--t2);font-size:11px;">✓</td></tr>
+          <tr><td style="padding:9px 11px;white-space:nowrap;"><span style="background:#555;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Jr. BIM Modeller</span></td><td style="padding:9px 11px;color:var(--muted);font-size:11px;white-space:nowrap;">View only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;white-space:nowrap;">Own progress only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;white-space:nowrap;">View only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;white-space:nowrap;">View only</td><td style="padding:9px 11px;color:var(--muted);font-size:11px;">✗</td></tr>
         </tbody>
       </table>
+      </div>
     </div>
     <div class="spcfg" id="role-mgmt-section" style="display:none;">
       <div class="spct"><span>🔑</span>User Role Management <span style="font-size:10px;color:var(--muted);font-weight:400;">(Admin only)</span></div>
@@ -1501,28 +1522,28 @@ function renderRoleMgmt() {
     return;
   }
   const roleOpts = Object.keys(ROLE_PERMS).map(r => `<option>${r}</option>`).join("");
-  el.innerHTML = `<table style="width:100%;font-size:12px;border-collapse:collapse;">
+  el.innerHTML = `<div class="role-table-wrap"><table style="width:100%;min-width:460px;font-size:12px;border-collapse:collapse;">
     <thead><tr>
-      <th style="text-align:left;padding:7px 10px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Member</th>
-      <th style="text-align:left;padding:7px 10px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">Email</th>
-      <th style="text-align:left;padding:7px 10px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);">System Role</th>
+      <th style="text-align:left;padding:7px 10px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Member</th>
+      <th style="text-align:left;padding:7px 10px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">Email</th>
+      <th style="text-align:left;padding:7px 10px;background:var(--surface);font-size:8px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);white-space:nowrap;">System Role</th>
       <th style="padding:7px 10px;background:var(--surface);"></th>
     </tr></thead>
     <tbody>${members.map(m=>`
       <tr style="border-bottom:1px solid var(--border);">
-        <td style="padding:8px 10px;font-weight:600;">${m.name}</td>
-        <td style="padding:8px 10px;color:var(--muted);font-size:11px;">${m.email||"—"}</td>
-        <td style="padding:8px 10px;">
-          <select onchange="updateMemberRole(${m.id},this.value)" style="border:1.5px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;font-family:'Nunito Sans',sans-serif;background:#fff;">
+        <td style="padding:8px 10px;font-weight:600;white-space:nowrap;">${m.name}</td>
+        <td style="padding:8px 10px;color:var(--muted);font-size:11px;min-width:140px;">${m.email||"—"}</td>
+        <td style="padding:8px 10px;white-space:nowrap;">
+          <select onchange="updateMemberRole(${m.id},this.value)" style="border:1.5px solid var(--border);border-radius:5px;padding:4px 8px;font-size:11px;font-family:'Nunito Sans',sans-serif;background:#fff;max-width:150px;width:100%;">
             ${Object.keys(ROLE_PERMS).map(r=>`<option${r===(m.perm||m.role)?" selected":""}>${r}</option>`).join("")}
           </select>
         </td>
-        <td style="padding:8px 10px;">
+        <td style="padding:8px 10px;white-space:nowrap;">
           <span style="font-size:11px;padding:2px 8px;border-radius:4px;background:${ROLE_COLORS[m.perm||"Jr. BIM Modeller"]||"#555"};color:#fff;font-weight:700;">${m.perm||"Jr. BIM Modeller"}</span>
         </td>
       </tr>`).join("")}
     </tbody>
-  </table>`;
+  </table></div>`;
 }
 
 // Admin: Update a member role
