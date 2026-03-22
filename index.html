@@ -3584,6 +3584,7 @@ function getDrawingTypeValue() {
   return sel.value;
 }
 
+function openDrawingModal(){if(!can("drawingLog")){toast("⚠ Team Lead or above required for drawing log");return;} openDrawingModalForStage('preliminary'); }
 function openDrawingModalForStage(stageKey){
   EDL=null;
   document.getElementById('dlmtitle').textContent='Add Drawing Sheet';
