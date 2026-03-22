@@ -829,22 +829,25 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     </div>
     <div class="fg3">
       <div class="field"><label>Discipline</label>
-        <select id="dl-dis">
+        <select id="dl-dis" onchange="updateDrawingTypes()">
           <option>Architecture (ARCH)</option><option>Structure (STRU)</option>
           <option>MEP — Mechanical (MECH)</option><option>MEP — Electrical (ELEC)</option>
-          <option>MEP — Plumbing (PLMB)</option><option>Civil Engineering (CIVL)</option>
-          <option>Survey & Geomatics (SURV)</option><option>Landscape (LAND)</option>
-          <option>Interior Design (INTR)</option><option>Facade (FACD)</option>
-          <option>BIM Coordination (CORD)</option><option>Geotechnical (GETO)</option>
+          <option>MEP — Plumbing (PLMB)</option><option>MEP — Fire Protection (FIRE)</option>
+          <option>Civil Engineering (CIVL)</option><option>Survey & Geomatics (SURV)</option>
+          <option>Landscape (LAND)</option><option>Interior Design (INTR)</option>
+          <option>Facade (FACD)</option><option>BIM Coordination (CORD)</option>
+          <option>Geotechnical (GETO)</option><option>Acoustic (ACST)</option>
+          <option>Lighting Design (LGTS)</option><option>Traffic & Transport (TRAF)</option>
+          <option>Environmental (ENVR)</option>
         </select>
       </div>
       <div class="field"><label>Drawing Type</label>
-        <select id="dl-type">
-          <option>GA Plan — General Arrangement</option><option>GA Section</option><option>GA Elevation</option>
-          <option>Detail Drawing</option><option>Assembly Drawing</option><option>Schedule / Specification</option>
-          <option>3D View / Render</option><option>Site Plan</option><option>As-Built / Record</option>
-          <option>Shop Drawing</option><option>Coordination Drawing</option>
+        <select id="dl-type" onchange="toggleCustomDrawingType()">
+          <option>GA Plan — General Arrangement</option>
         </select>
+        <input id="dl-type-custom" placeholder="Enter custom drawing type…"
+          style="display:none;margin-top:6px;width:100%;background:#f4f4f4;border:1.5px solid transparent;border-radius:8px;color:#1e1e1e;font-family:'Nunito Sans',sans-serif;font-size:14px;padding:10px 12px;outline:none;box-sizing:border-box;"
+          onfocus="this.style.borderColor='#1e1e1e'" onblur="this.style.borderColor='transparent'">
       </div>
       <div class="field"><label>Scale</label><input id="dl-scale" placeholder="e.g. 1:100" maxlength="12"></div>
     </div>
@@ -3243,14 +3246,353 @@ function delModel(){
 }
 
 // ─── DRAWING MODAL ────────────────────────────────────────────
-function openDrawingModal(){if(!can("drawingLog")){toast("⚠ Team Lead or above required for drawing log");return;} openDrawingModalForStage('preliminary'); }
+// ══════════════════════════════════════════════════════════
+// DISCIPLINE → DRAWING TYPE MAP  (ISO 19650 / AIA / NBS)
+// ══════════════════════════════════════════════════════════
+const DISC_DRAWING_TYPES = {
+  "Architecture (ARCH)": [
+    "GA Plan — General Arrangement",
+    "GA Section",
+    "GA Elevation",
+    "Roof Plan",
+    "Basement / Podium Plan",
+    "Reflected Ceiling Plan (RCP)",
+    "Floor Finish Plan",
+    "Door & Window Schedule",
+    "Room Data Sheet",
+    "Stair & Ramp Detail",
+    "Wall Section Detail",
+    "Facade Detail",
+    "Toilet / Wet Area Layout",
+    "Accessibility / Mobility Plan",
+    "Fire Escape / Egress Plan",
+    "3D View / Axonometric",
+    "Render / Visualisation",
+    "Assembly Drawing",
+    "Shop Drawing",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Structure (STRU)": [
+    "Foundation Layout Plan",
+    "Pile Layout Plan",
+    "Column Layout Plan",
+    "Beam Layout Plan",
+    "Slab / Deck Plan",
+    "Shear Wall Plan",
+    "Transfer Slab / Plate Plan",
+    "Structural Section",
+    "Structural Elevation",
+    "Retaining Wall Detail",
+    "Connection Detail",
+    "Reinforcement Detail",
+    "Pre-cast / Pre-stress Detail",
+    "Steel Fabrication Drawing",
+    "Formwork Drawing",
+    "Structural Grid & Setting Out",
+    "Structural Schedule (Column / Beam)",
+    "3D Structural View",
+    "Shop Drawing — Structural Steel",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "MEP — Mechanical (MECH)": [
+    "HVAC Schematic Diagram",
+    "HVAC Ductwork Layout — Floor Plan",
+    "HVAC Ductwork — Sections & Details",
+    "Chilled Water Piping Layout",
+    "AHU / FCU Schedule & Detail",
+    "Cooling Tower & Chiller Layout",
+    "Ventilation & Pressurisation Plan",
+    "Smoke Extraction Layout",
+    "BMS — Building Management System Schematic",
+    "Equipment Room Layout",
+    "Riser Diagram — Mechanical",
+    "3D Coordination View — Mechanical",
+    "Shop Drawing — Mechanical",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "MEP — Electrical (ELEC)": [
+    "Single Line Diagram (SLD)",
+    "Power Distribution Layout — Floor Plan",
+    "Lighting Layout Plan",
+    "Emergency Lighting Plan",
+    "Earthing & Lightning Protection Layout",
+    "Cable Tray / Containment Layout",
+    "Low Voltage (LV) Schematic",
+    "ELV — IT / Data / Telecom Layout",
+    "ELV — CCTV & Security Layout",
+    "ELV — Access Control Layout",
+    "ELV — PA / Audio-Visual Layout",
+    "Panel Schedule / DB Details",
+    "Riser Diagram — Electrical",
+    "Load Schedule",
+    "3D Coordination View — Electrical",
+    "Shop Drawing — Electrical",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "MEP — Plumbing (PLMB)": [
+    "Domestic Cold Water Layout",
+    "Domestic Hot Water Layout",
+    "Sanitary Drainage Layout",
+    "Stormwater / Roof Drainage Layout",
+    "Grease Trap & Waste Layout",
+    "Medical Gas Layout",
+    "Roof Drainage Plan",
+    "Riser Diagram — Plumbing",
+    "Isometric Diagram — Plumbing",
+    "Pump Room Layout & Detail",
+    "Water Tank Layout & Detail",
+    "Fixture Schedule",
+    "3D Coordination View — Plumbing",
+    "Shop Drawing — Plumbing",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "MEP — Fire Protection (FIRE)": [
+    "Sprinkler Layout Plan",
+    "Sprinkler Hydraulic Calculation Drawing",
+    "Fire Hose Reel Layout",
+    "Fire Hydrant Layout",
+    "FM200 / Gaseous Suppression Layout",
+    "Fire Alarm System Layout",
+    "Smoke Detection Layout",
+    "Riser Diagram — Fire Protection",
+    "Fire Pump Room Layout",
+    "Fire Compartmentation Plan",
+    "Passive Fire Protection Detail",
+    "3D Coordination View — Fire",
+    "Shop Drawing — Fire Protection",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Civil Engineering (CIVL)": [
+    "Site Layout / Master Plan",
+    "Road Alignment Plan",
+    "Road Cross-Section",
+    "Road Longitudinal Profile",
+    "Pavement Design Detail",
+    "Kerb, Channel & Gutter Detail",
+    "Earthworks / Grading Plan",
+    "Drainage Layout Plan",
+    "Storm Drain Profile",
+    "Culvert Detail",
+    "Retaining Wall — Civil",
+    "Bridge / Culvert Drawing",
+    "Utility Corridor Plan",
+    "Traffic Signage & Markings Plan",
+    "Setting Out Plan",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Survey & Geomatics (SURV)": [
+    "Topographic Survey Plan",
+    "Boundary Survey Plan",
+    "Setting Out Plan",
+    "Cadastral / Title Plan",
+    "Point Cloud Registration Drawing",
+    "UAV / Drone Survey Map",
+    "Cross-Section Survey",
+    "Longitudinal Survey Profile",
+    "Hydrographic Survey Plan",
+    "Site Monitoring Plan",
+    "Datum & Control Point Plan",
+    "As-Built Survey Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Landscape (LAND)": [
+    "Hardscape Plan",
+    "Softscape / Planting Plan",
+    "Tree Plan",
+    "Furniture & Site Equipment Plan",
+    "Irrigation Layout Plan",
+    "Lighting — Landscape Plan",
+    "Grading & Drainage — Landscape",
+    "Paving Pattern & Detail",
+    "Water Feature / Pool Detail",
+    "Pergola & Shade Structure Detail",
+    "Boundary Wall & Fence Detail",
+    "Signage & Wayfinding Plan",
+    "Play Area Layout",
+    "Roof Garden / Podium Landscape Plan",
+    "Landscape Section & Elevation",
+    "Planting Schedule",
+    "3D Landscape Visualisation",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Interior Design (INTR)": [
+    "Space Planning Layout",
+    "Furniture Layout Plan",
+    "Floor Finish Plan",
+    "Wall Finish / Elevation",
+    "Reflected Ceiling Plan (RCP)",
+    "Joinery Detail — Built-in",
+    "Millwork / Casework Drawing",
+    "Kitchen & Pantry Layout",
+    "Bathroom / Wet Area Detail",
+    "Signage & Branding Plan",
+    "FF&E Schedule",
+    "Material Board / Sample Layout",
+    "3D Perspective / Render",
+    "Lighting Concept Plan",
+    "Acoustic Treatment Plan",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Facade (FACD)": [
+    "Facade Elevation",
+    "Facade Section",
+    "Facade Detail — Typical Bay",
+    "Curtain Wall System Drawing",
+    "Window & Glazing Schedule",
+    "Cladding Layout Plan",
+    "Rainscreen Cladding Detail",
+    "Stone / GRC Panel Detail",
+    "Aluminium Composite Panel (ACP) Detail",
+    "Spandrel & Parapet Detail",
+    "Sealant & Gasket Joint Detail",
+    "Thermal & Acoustic Performance Drawing",
+    "Structural Sealant Glazing (SSG) Detail",
+    "Louvre & Sunshade Detail",
+    "Facade 3D Exploded View",
+    "Mock-Up / Sample Panel Drawing",
+    "Shop Drawing — Facade",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "BIM Coordination (CORD)": [
+    "BIM Coordination Plan",
+    "Clash Detection Report Drawing",
+    "Composite Coordination Drawing",
+    "LOD Matrix Drawing",
+    "Spatial Coordination Plan",
+    "Zone / Volume Allocation Plan",
+    "CDE Workflow Diagram",
+    "BIM Execution Plan Diagram",
+    "4D Sequence Drawing",
+    "3D Federated Model View",
+    "Services Routing Coordination Drawing",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Geotechnical (GETO)": [
+    "Borehole Location Plan",
+    "Soil Investigation Report Drawing",
+    "Geological Section",
+    "Foundation Recommendation Drawing",
+    "Piling Specification Drawing",
+    "Ground Improvement Layout",
+    "Dewatering Plan",
+    "Ground Settlement Monitoring Plan",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Acoustic (ACST)": [
+    "Acoustic Zoning Plan",
+    "Sound Insulation Detail",
+    "Room Acoustic Treatment Layout",
+    "Noise Contour Map",
+    "Vibration Isolation Detail",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Lighting Design (LGTS)": [
+    "Lighting Concept Plan",
+    "Exterior Lighting Layout",
+    "Interior Lighting Layout",
+    "Emergency Lighting Plan",
+    "Lighting Control Schematic",
+    "Luminaire Schedule",
+    "Photometric Calculation Drawing",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Traffic & Transport (TRAF)": [
+    "Traffic Flow Plan",
+    "Parking Layout Plan",
+    "Traffic Signage Plan",
+    "Road Marking Plan",
+    "Pedestrian Circulation Plan",
+    "Turning Movement Plan",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Environmental (ENVR)": [
+    "Environmental Impact Layout",
+    "Noise & Vibration Assessment Drawing",
+    "Air Quality Monitoring Plan",
+    "Ecological Survey Plan",
+    "Waste Management Layout",
+    "LEED / BREEAM Assessment Drawing",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ]
+};
+
+// Populate Drawing Type dropdown based on selected Discipline
+function updateDrawingTypes(keepVal) {
+  var dis   = document.getElementById('dl-dis').value;
+  var sel   = document.getElementById('dl-type');
+  var prev  = keepVal || sel.value;
+  var types = DISC_DRAWING_TYPES[dis] || ["GA Plan — General Arrangement", "GA Section", "GA Elevation",
+    "Detail Drawing", "Schedule / Specification", "3D View / Render", "As-Built / Record Drawing", "Shop Drawing", "Custom…"];
+  sel.innerHTML = types.map(function(t){
+    return '<option value="'+t+'"'+(t===prev?' selected':'')+'>'+t+'</option>';
+  }).join('');
+  // If saved value not in new list, default to first
+  if (!types.includes(prev)) sel.value = types[0];
+}
+
+function toggleCustomDrawingType() {
+  var sel = document.getElementById('dl-type');
+  var inp = document.getElementById('dl-type-custom');
+  if (sel.value === 'Custom…') {
+    inp.style.display = 'block';
+    inp.focus();
+  } else {
+    inp.style.display = 'none';
+    inp.value = '';
+  }
+}
+
+function getDrawingTypeValue() {
+  var sel = document.getElementById('dl-type');
+  if (sel.value === 'Custom…') {
+    var custom = document.getElementById('dl-type-custom').value.trim();
+    return custom || 'Custom';
+  }
+  return sel.value;
+}
+
 function openDrawingModalForStage(stageKey){
   EDL=null;
   document.getElementById('dlmtitle').textContent='Add Drawing Sheet';
   ['dl-num','dl-title','dl-scale','dl-rev','dl-link','dl-notes','dl-delay-notes'].forEach(id=>document.getElementById(id).value='');
   ['dl-plan-start','dl-plan-submit','dl-actual-done'].forEach(id=>document.getElementById(id).value='');
-  document.getElementById('dl-dis').value='Architecture';
-  document.getElementById('dl-type').value='GA Plan — General Arrangement';
+  document.getElementById('dl-dis').value='Architecture (ARCH)';
+  updateDrawingTypes('GA Plan — General Arrangement');
+  document.getElementById('dl-type-custom').style.display='none';
+  document.getElementById('dl-type-custom').value='';
   document.getElementById('dl-sta').value='Preliminary';
   document.getElementById('dl-stage').value=stageKey;
   document.getElementById('dl-delay-reason').value='';
@@ -3267,7 +3609,18 @@ function editDrawing(id){
   document.getElementById('dl-num').value=d.num;
   document.getElementById('dl-title').value=d.title;
   document.getElementById('dl-dis').value=d.dis;
-  document.getElementById('dl-type').value=d.type||'GA Plan — General Arrangement';
+  updateDrawingTypes(d.type||'GA Plan — General Arrangement');
+  // Handle custom drawing types saved previously
+  var typeInList = (DISC_DRAWING_TYPES[d.dis]||[]).includes(d.type);
+  var customInp = document.getElementById('dl-type-custom');
+  if (d.type && !typeInList && d.type !== 'Custom…') {
+    document.getElementById('dl-type').value = 'Custom…';
+    customInp.value = d.type;
+    customInp.style.display = 'block';
+  } else {
+    customInp.style.display = 'none';
+    customInp.value = '';
+  }
   document.getElementById('dl-scale').value=d.scale||'';
   document.getElementById('dl-rev').value=d.rev||'';
   document.getElementById('dl-sta').value=d.sta;
@@ -3302,7 +3655,7 @@ function saveDrawing(){if(!can("drawingLog")){toast("⚠ No permission for drawi
     id:EDL||NDL++, pid:CPJ,
     num:n, title:t,
     dis:document.getElementById('dl-dis').value,
-    type:document.getElementById('dl-type').value,
+    type:getDrawingTypeValue(),
     scale:document.getElementById('dl-scale').value.trim(),
     rev:document.getElementById('dl-rev').value.trim(),
     auth:parseInt(document.getElementById('dl-auth').value)||null,
