@@ -2,7 +2,14 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#1a2332">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta http-equiv="X-Content-Type-Options" content="nosniff">
+<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
+<meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<meta name="robots" content="noindex, nofollow">
+<meta name="description" content="Asterwix BIM Hub — Internal Project Management System">
 <title>Asterwix BIM Hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
@@ -38,7 +45,13 @@
   --sw:260px;
   --glow-teal:0 4px 20px rgba(0,184,153,0.15);
 }
-body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;}
+body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;font-size:14px;line-height:1.5;overflow-x:hidden;-webkit-text-size-adjust:100%;}
+
+/* ── Accessibility: keyboard focus ─────────────────────────────── */
+:focus-visible{outline:2px solid var(--accent)!important;outline-offset:2px!important;}
+*{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
+img{max-width:100%;height:auto;}
+
 
 /* -- MOBILE BASE ----------------------------------------- */
 @media(max-width:768px){
@@ -72,11 +85,46 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
   .modal-box{width:96vw!important;max-width:96vw!important;max-height:90vh!important;overflow-y:auto!important;padding:18px!important;}
   .card{padding:14px!important;}
   /* lbox handled in login css */
+
+  /* ── NEW COMPONENTS MOBILE ── */
+  .prep-stage{border-radius:8px!important;}
+  .prep-stage-hdr{padding:10px 12px!important;}
+  .subtask-row{flex-wrap:wrap!important;gap:6px!important;padding:8px!important;}
+  .subtask-main{min-width:0!important;flex:1!important;}
+  .subtask-prog-bar{width:60px!important;}
+  .return-banner{flex-direction:column!important;gap:6px!important;}
+  .stbadge{font-size:8px!important;padding:1px 5px!important;}
+  .ptab{padding:10px 12px!important;font-size:10px!important;}
+  .phdr-meta{gap:5px!important;}
+  .ms-connect-box{width:90vw!important;padding:28px 20px!important;}
+  .modal{padding:18px!important;border-radius:10px!important;}
+  .field label{font-size:9px!important;}
+  .field input,.field select,.field textarea{font-size:14px!important;} /* prevents iOS zoom */
+  .lbox{padding:28px 20px 24px!important;border-radius:16px!important;}
 }
 @media(max-width:420px){
   .kgrid{grid-template-columns:1fr!important;}
   .tgrid{grid-template-columns:1fr!important;}
   .wstats{flex-direction:column!important;gap:8px!important;}
+}
+
+/* ── TABLET (768px – 1024px) ─────────────────────────────────── */
+@media(min-width:769px) and (max-width:1024px){
+  :root{--sw:220px;}
+  .sidebar{width:220px;}
+  .main{margin-left:220px;}
+  .kgrid{grid-template-columns:repeat(2,1fr)!important;}
+  .pgrid{grid-template-columns:repeat(2,1fr)!important;}
+  .tgrid{grid-template-columns:repeat(2,1fr)!important;}
+  .dgrid{grid-template-columns:1fr!important;}
+  .sgrid{grid-template-columns:1fr!important;}
+  .phdr-stats{grid-template-columns:repeat(2,1fr)!important;}
+  .page{padding:16px!important;}
+  .wban{padding:18px!important;}
+  .kv{font-size:24px!important;}
+  .ni{font-size:12px!important;padding:9px 14px!important;}
+  .nsec{padding:14px 14px 5px!important;}
+  .slogo img{height:24px!important;}
 }
 
 /* LOGIN */
@@ -115,7 +163,7 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 @media(max-width:480px){.lbox{padding:32px 22px 28px;}}
 
 /* SIDEBAR */
-.sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--sidebar-bg);display:flex;flex-direction:column;z-index:200;border-right:1px solid var(--sidebar-border);}
+.sidebar{position:fixed;top:0;left:0;bottom:0;width:260px;background:var(--sidebar-bg);display:flex;flex-direction:column;z-index:200;border-right:1px solid var(--sidebar-border);padding-left:env(safe-area-inset-left);}
 .slogo{padding:22px 18px 18px;border-bottom:1px solid var(--sidebar-border);display:flex;align-items:center;gap:10px;}
 .slogo img{height:28px;object-fit:contain;filter:brightness(0) invert(1);max-width:150px;}
 .slogo-text{font-family:'Nunito Sans',sans-serif;font-size:16px;font-weight:900;color:#ffffff;letter-spacing:-0.3px;}
@@ -146,10 +194,10 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 
 /* MAIN */
 .main{margin-left:260px;min-height:100vh;}
-.topbar{height:58px;background:#ffffff;backdrop-filter:none;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border);}
+.topbar{height:58px;background:#ffffff;backdrop-filter:none;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 24px;padding-right:max(24px,env(safe-area-inset-right));position:sticky;top:0;z-index:100;box-shadow:0 1px 0 var(--border);}
 .ptitle{font-family:'Nunito Sans',sans-serif;font-size:15px;font-weight:800;color:var(--text);}
 .tright{display:flex;align-items:center;gap:9px;}
-.btn{font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 15px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;}
+.btn{font-family:'Nunito Sans',sans-serif;font-size:12px;font-weight:600;padding:7px 15px;border-radius:6px;border:none;cursor:pointer;transition:all .15s;display:inline-flex;align-items:center;gap:6px;min-height:36px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;}
 .btn-p{background:linear-gradient(135deg,#00b899,#009980);color:#fff;box-shadow:0 2px 10px rgba(0,184,153,.25);}
 .btn-p:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,184,153,.35);}
 .btn-g{background:#fff;color:var(--text);border:1.5px solid var(--border);}
@@ -772,7 +820,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 </div></div><!-- /main /app -->
 
 <!-- MODEL LOG MODAL -->
-<div class="mover" id="mlm">
+<div class="mover" id="mlm" role="dialog" aria-modal="true">
   <div class="modal" style="width:640px;">
     <div class="mt" id="mlmtitle">Add Model Entry</div>
     <div class="fg2">
@@ -874,7 +922,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 </div>
 
 <!-- DRAWING SHEET LOG MODAL -->
-<div class="mover" id="dlm">
+<div class="mover" id="dlm" role="dialog" aria-modal="true">
   <div class="modal" style="width:640px;">
     <div class="mt" id="dlmtitle">Add Drawing Sheet</div>
     <div class="fg2">
@@ -977,7 +1025,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 </div>
 
 <!-- PROJECT MODAL -->
-<div class="mover" id="pm">
+<div class="mover" id="pm" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="mt" id="pmtitle">New BIM Project</div>
     <div class="fg2">
@@ -1008,7 +1056,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 </div>
 
 <!-- TASK MODAL -->
-<div class="mover" id="tm">
+<div class="mover" id="tm" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="mt" id="tmtitle">New Task</div>
     <div class="ff"><div class="field"><label>Task Name *</label><input id="tm-name" placeholder="e.g. Clash Detection — MEP vs Structure"></div></div>
@@ -1036,7 +1084,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 </div>
 
 <!-- MEMBER MODAL -->
-<div class="mover" id="mm">
+<div class="mover" id="mm" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="mt">Add Team Member</div>
     <div class="fg2">
@@ -1117,7 +1165,8 @@ let members=[
 // Format: { email, password, name, role, ini, col }
 // col = avatar background colour (any hex)
 // ════════════════════════════════════════════════════════════
-const STAFF = [
+// ⚠ DEMO ONLY — In production, replace with server-side auth. Never expose credentials in client JS.
+  const STAFF = [
   // ── Managers ──────────────────────────────────────────────
   { email:"admin@asterwix.com",       password:"Admin@2025",    name:"Admin",               role:"BIM Manager",       perm:"Admin", ini:"AD", col:"#1a1a1a" },
   // ── BIM Team ──────────────────────────────────────────────
@@ -1130,6 +1179,18 @@ const STAFF = [
   // ── Add more staff below — copy a line and change details ─
   // { email:"name@asterwix.com",     password:"Pass@2025",     name:"Full Name",           role:"Job Title",         ini:"XX", col:"#333333" },
 ];
+// ── Security: HTML sanitizer to prevent XSS ─────────────────────
+function esc(str){
+  if(str===null||str===undefined)return'';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#x27;')
+    .replace(/\//g,'&#x2F;');
+}
+
 // ════════════════════════════════════════════════════════════
 
 function loginStaff(){
@@ -1500,7 +1561,7 @@ function debugMSAL() {
   console.log("Tenant ID:", TENANT_ID);
   console.log("Redirect URI:", MSAL_CONFIG.auth.redirectUri);
   console.log("Current URL:", window.location.href);
-  alert("Check browser console (F12) for debug info");
+  toast("Check browser console (F12) for debug info","info");
 }
 
 // ── Get SharePoint access token ──────────────────────────
@@ -2339,7 +2400,7 @@ function renderFiles(p){
 // PROJECT MODAL
 function openProjModal(){if(!can("createProject")){toast("⚠ Only Admin/BIM Manager can create projects");return;}EPJ=null;document.getElementById("pmtitle").textContent="New BIM Project";["pm-name","pm-cli","pm-loc","pm-desc","pm-lnk"].forEach(id=>document.getElementById(id).value="");document.getElementById("pm-code").value="ASW-"+new Date().getFullYear()+"-"+String(NPI).padStart(3,"0");document.getElementById("pm-sta").value="Planning";document.getElementById("pm-ph").value="LOD 100";document.getElementById("pm-col").value="#00b899";document.getElementById("pmdel").style.display="none";document.getElementById("pm-st").value="";document.getElementById("pm-en").value="";openM("pm");}
 function editProj(id){if(!can("editProject")){toast("⚠ Only Admin/BIM Manager can edit projects");return;}const p=projects.find(x=>x.id===id);if(!p)return;EPJ=id;document.getElementById("pmtitle").textContent="Edit Project";document.getElementById("pm-name").value=p.name;document.getElementById("pm-code").value=p.code;document.getElementById("pm-cli").value=p.client;document.getElementById("pm-loc").value=p.loc||"";document.getElementById("pm-st").value=p.start||"";document.getElementById("pm-en").value=p.end||"";document.getElementById("pm-sta").value=p.status;document.getElementById("pm-ph").value=p.phase;document.getElementById("pm-col").value=p.color;document.getElementById("pm-desc").value=p.desc||"";document.getElementById("pm-lnk").value=p.link||"";document.getElementById("pmdel").style.display=can("deleteProject")?"inline-flex":"none";openM("pm");}
-function savePrj(){if(!can(EPJ?"editProject":"createProject")){toast("⚠ Only Admin/BIM Manager can manage projects");return;}const n=document.getElementById("pm-name").value.trim();if(!n){alert("Name required");return;}const obj={id:EPJ||NPI++,name:n,code:document.getElementById("pm-code").value.trim(),client:document.getElementById("pm-cli").value.trim(),loc:document.getElementById("pm-loc").value.trim(),start:document.getElementById("pm-st").value,end:document.getElementById("pm-en").value,status:document.getElementById("pm-sta").value,phase:document.getElementById("pm-ph").value,color:document.getElementById("pm-col").value,desc:document.getElementById("pm-desc").value.trim(),link:document.getElementById("pm-lnk").value.trim(),prog:EPJ?projects.find(p=>p.id===EPJ).prog:0,tids:EPJ?projects.find(p=>p.id===EPJ).tids:[1]};if(EPJ)projects=projects.map(p=>p.id===EPJ?obj:p);else{projects.push(obj);tasks[obj.id]=[];modelLogs[obj.id]=[];drawingLogs[obj.id]=[];}closeM("pm");renderSidebar();renderProjects();if(EPJ===CPJ)renderDetail(CPJ);saveData();toast("Saved ✓");}
+function savePrj(){if(!can(EPJ?"editProject":"createProject")){toast("⚠ Only Admin/BIM Manager can manage projects");return;}const n=document.getElementById("pm-name").value.trim();if(!n){toast('⚠ Name is required','warn');return;}const obj={id:EPJ||NPI++,name:n,code:document.getElementById("pm-code").value.trim(),client:document.getElementById("pm-cli").value.trim(),loc:document.getElementById("pm-loc").value.trim(),start:document.getElementById("pm-st").value,end:document.getElementById("pm-en").value,status:document.getElementById("pm-sta").value,phase:document.getElementById("pm-ph").value,color:document.getElementById("pm-col").value,desc:document.getElementById("pm-desc").value.trim(),link:document.getElementById("pm-lnk").value.trim(),prog:EPJ?projects.find(p=>p.id===EPJ).prog:0,tids:EPJ?projects.find(p=>p.id===EPJ).tids:[1]};if(EPJ)projects=projects.map(p=>p.id===EPJ?obj:p);else{projects.push(obj);tasks[obj.id]=[];modelLogs[obj.id]=[];drawingLogs[obj.id]=[];}closeM("pm");renderSidebar();renderProjects();if(EPJ===CPJ)renderDetail(CPJ);saveData();toast("Saved ✓");}
 function delProject(){if(!confirm("Delete project and all tasks?"))return;projects=projects.filter(p=>p.id!==EPJ);delete tasks[EPJ];closeM("pm");pg("projects",document.querySelectorAll(".ni")[1]);renderSidebar();renderProjects();}
 
 // TASK MODAL
@@ -2348,7 +2409,7 @@ function editTask(id){if(!can("editTask")){toast("⚠ No permission to edit task
 function fillAss(sel){document.getElementById("tm-ass").innerHTML=members.map(m=>`<option value="${m.id}" ${m.id===sel?"selected":""}>${m.name} — ${m.role}</option>`).join("");}
 function saveTask(){
   const n=document.getElementById("tm-name").value.trim();
-  if(!n){alert("Name required");return;}
+  if(!n){toast('⚠ Name is required','warn');return;}
   const prevAid = ETK ? (allT().find(x=>x.id===ETK)||{}).aid : null;
   const obj={id:ETK||NTI++,pid:CPJ,name:n,ph:document.getElementById("tm-ph").value,dis:document.getElementById("tm-dis").value,aid:parseInt(document.getElementById("tm-ass").value),start:document.getElementById("tm-st").value,end:document.getElementById("tm-en").value,pri:document.getElementById("tm-pri").value,sta:document.getElementById("tm-sta").value,prog:parseInt(document.getElementById("tm-prog").value),notes:document.getElementById("tm-notes").value.trim()};
   const pt=tasks[CPJ]||[];
@@ -2900,7 +2961,7 @@ function fillReportsToDropdown(selectedId){
 function saveMem(){
   if(!can("manageTeam")){toast("⚠ Admin only — cannot manage team");return;}
   const n=document.getElementById("mm-name").value.trim();
-  if(!n){alert("Name required");return;}
+  if(!n){toast('⚠ Name is required','warn');return;}
   const ini=document.getElementById("mm-ini").value.toUpperCase()||n.split(" ").map(w=>w[0]).join("").slice(0,2);
   var rto = document.getElementById("mm-reports-to").value;
   const obj={name:n,ini,email:document.getElementById("mm-em").value.trim(),role:document.getElementById("mm-role").value,dept:document.getElementById("mm-dept").value,perm:document.getElementById("mm-perm").value,col:document.getElementById("mm-col").value,reportsTo:rto?parseInt(rto):null};
@@ -3380,7 +3441,7 @@ function savePrepTask(){
   var stIdRaw = document.getElementById('pt-id').value;
   var stId    = stIdRaw!=='' ? parseInt(stIdRaw) : null;
   var name    = document.getElementById('pt-name').value.trim();
-  if(!name){ alert('Task name is required'); return; }
+  if(!name){ toast('⚠ Task name is required','warn'); return; }
   var store = type==='model' ? modelLogs : drawingLogs;
   var entry = (store[CPJ]||[]).find(e=>e.id===entryId);
   if(!entry) return;
@@ -4532,7 +4593,7 @@ function exportReportPDF(data){
   const win = window.open('','_blank');
   win.document.write(`<!DOCTYPE html><html><head>
     <title>Asterwix Weekly Report — ${data.weekLabel}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
     <style>
       *{margin:0;padding:0;box-sizing:border-box;}
       body{font-family:'Nunito Sans',sans-serif;color:#1a1a1a;background:#fff;font-size:12px;padding:20px;}
@@ -4719,16 +4780,22 @@ function toggleMobMenu(){
   var sb=document.querySelector('.sidebar');
   var ov=document.getElementById('mob-overlay');
   var isOpen=sb.classList.contains('mob-open');
-  if(isOpen){ sb.classList.remove('mob-open'); ov.classList.remove('show'); }
-  else { sb.classList.add('mob-open'); ov.classList.add('show'); }
+  if(isOpen){ sb.classList.remove('mob-open'); ov.classList.remove('show'); document.body.style.overflow=''; }
+  else { sb.classList.add('mob-open'); ov.classList.add('show'); document.body.style.overflow='hidden'; }
 }
 function closeMobMenu(){
-  document.querySelector('.sidebar').classList.remove('mob-open');
+  document.querySelector('.sidebar').classList.remove('mob-open'); document.body.style.overflow='';
   document.getElementById('mob-overlay').classList.remove('show');
 }
-document.getElementById("dpass").addEventListener("keydown",e=>{if(e.key==="Enter")loginStaff();});
-document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");}));
-document.getElementById("ptm").addEventListener("click",e=>{if(e.target===document.getElementById("ptm"))closeM("ptm");});
+document.addEventListener("DOMContentLoaded",function(){
+  var dp=document.getElementById("dpass");
+  if(dp) dp.addEventListener("keydown",function(e){if(e.key==="Enter")loginStaff();});
+  document.querySelectorAll(".mover").forEach(function(o){
+    o.addEventListener("click",function(e){if(e.target===o)o.classList.remove("open");});
+  });
+  var ptm=document.getElementById("ptm");
+  if(ptm) ptm.addEventListener("click",function(e){if(e.target===ptm)closeM("ptm");});
+});
 </script>
 
 <!-- DELAY REASON MODAL -->
@@ -4804,7 +4871,7 @@ document.getElementById("ptm").addEventListener("click",e=>{if(e.target===docume
   </div>
 </div>
 <!-- PREP TASK EDIT MODAL -->
-<div class="mover" id="ptm">
+<div class="mover" id="ptm" role="dialog" aria-modal="true">
   <div class="modal" style="width:520px;">
     <div class="mt">📋 Task Details</div>
     <input type="hidden" id="pt-type">
