@@ -415,10 +415,19 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     <button class="demo-btn" onclick="loginStaff()">Sign In</button>
 
     <!-- Biometric -->
-    <button class="lbio-btn" onclick="doBiometricLogin ? doBiometricLogin() : alert('Biometric login not available on this device.')">
+    <button class="lbio-btn" id="bio-btn" onclick="doBiometricLogin()">
       <span style="font-size:16px">&#128065;</span>
-      Face ID / Biometric Login
+      <span id="bio-btn-label">Face ID / Biometric Login</span>
     </button>
+    <script>
+      (function(){
+        var lbl = document.getElementById('bio-btn-label');
+        if (!lbl) return;
+        lbl.textContent = localStorage.getItem('bim_bio_cred_id')
+          ? 'Sign in with Face ID / Biometrics'
+          : 'Set up Face ID / Biometric Login';
+      })();
+    </script>
 
     <!-- Security notice -->
     <div class="lnote">&#128188; This system is for <strong>Asterwix staff only</strong>. Unauthorised access is prohibited.</div>
@@ -1087,6 +1096,119 @@ function loginStaff(){
   }, 80);
 }
 
+// ── Biometric / Face ID Login (WebAuthn) ──────────────────
+async function doBiometricLogin() {
+  var bioBtn = document.querySelector('.lbio-btn');
+
+  // 1 — Check browser support
+  if (!window.PublicKeyCredential) {
+    toast('Face ID / Biometrics not supported on this browser.');
+    document.getElementById('lerror').textContent = 'This browser does not support biometric login. Please use Chrome, Safari, or Edge on a supported device.';
+    document.getElementById('lerror').style.display = 'block';
+    return;
+  }
+
+  // 2 — Check platform authenticator (Face ID / fingerprint) availability
+  var available = false;
+  try { available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable(); } catch(e) {}
+  if (!available) {
+    document.getElementById('lerror').textContent = 'No Face ID or fingerprint sensor detected on this device.';
+    document.getElementById('lerror').style.display = 'block';
+    return;
+  }
+
+  var savedCredB64  = localStorage.getItem('bim_bio_cred_id');
+  var savedEmail    = localStorage.getItem('bim_bio_email');
+  var rpId          = location.hostname || 'localhost';
+
+  // ── REGISTER (first-time setup) ────────────────────────────
+  if (!savedCredB64 || !savedEmail) {
+    // Require the user to confirm identity with password first
+    var email = document.getElementById('demail').value.trim().toLowerCase();
+    var pass  = document.getElementById('dpass').value;
+    var staff = STAFF.find(function(s){ return s.email.toLowerCase() === email && s.password === pass; });
+
+    if (!staff) {
+      document.getElementById('lerror').textContent = 'Enter your username & password first, then click Face ID to register it for future logins.';
+      document.getElementById('lerror').style.display = 'block';
+      return;
+    }
+
+    if (bioBtn) { bioBtn.disabled = true; bioBtn.innerHTML = '<span style="font-size:16px">⏳</span> Registering…'; }
+    try {
+      var challenge = crypto.getRandomValues(new Uint8Array(32));
+      var userId    = new TextEncoder().encode(staff.email);
+
+      var cred = await navigator.credentials.create({
+        publicKey: {
+          challenge: challenge,
+          rp: { name: 'Asterwix BIM Hub', id: rpId },
+          user: { id: userId, name: staff.email, displayName: staff.name },
+          pubKeyCredParams: [
+            { type: 'public-key', alg: -7   },   // ES256
+            { type: 'public-key', alg: -257 }    // RS256
+          ],
+          authenticatorSelection: { authenticatorAttachment: 'platform', userVerification: 'required' },
+          timeout: 60000
+        }
+      });
+
+      // Persist credential ID (base64) + email
+      var rawId = new Uint8Array(cred.rawId);
+      localStorage.setItem('bim_bio_cred_id', btoa(String.fromCharCode.apply(null, rawId)));
+      localStorage.setItem('bim_bio_email',   staff.email);
+
+      CU = staff;
+      document.getElementById('lerror').style.display = 'none';
+      doLogin();
+      toast('✅ Face ID registered — you can now use it every time.');
+    } catch(e) {
+      if (bioBtn) { bioBtn.disabled = false; bioBtn.innerHTML = '<span style="font-size:16px">&#128065;</span> Face ID / Biometric Login'; }
+      if (e.name !== 'NotAllowedError') {
+        document.getElementById('lerror').textContent = 'Biometric registration failed: ' + e.message;
+        document.getElementById('lerror').style.display = 'block';
+      }
+    }
+    return;
+  }
+
+  // ── AUTHENTICATE (returning user) ──────────────────────────
+  if (bioBtn) { bioBtn.disabled = true; bioBtn.innerHTML = '<span style="font-size:16px">⏳</span> Verifying identity…'; }
+  try {
+    var credIdBytes = Uint8Array.from(atob(savedCredB64), function(c){ return c.charCodeAt(0); });
+    var challenge2  = crypto.getRandomValues(new Uint8Array(32));
+
+    await navigator.credentials.get({
+      publicKey: {
+        challenge: challenge2,
+        allowCredentials: [{ type: 'public-key', id: credIdBytes }],
+        userVerification: 'required',
+        rpId: rpId,
+        timeout: 60000
+      }
+    });
+
+    var staff2 = STAFF.find(function(s){ return s.email.toLowerCase() === savedEmail.toLowerCase(); });
+    if (!staff2) {
+      localStorage.removeItem('bim_bio_cred_id');
+      localStorage.removeItem('bim_bio_email');
+      document.getElementById('lerror').textContent = 'Registered user not found. Please sign in with your username and password.';
+      document.getElementById('lerror').style.display = 'block';
+      if (bioBtn) { bioBtn.disabled = false; bioBtn.innerHTML = '<span style="font-size:16px">&#128065;</span> Face ID / Biometric Login'; }
+      return;
+    }
+
+    CU = staff2;
+    document.getElementById('lerror').style.display = 'none';
+    doLogin();
+  } catch(e) {
+    if (bioBtn) { bioBtn.disabled = false; bioBtn.innerHTML = '<span style="font-size:16px">&#128065;</span> Face ID / Biometric Login'; }
+    if (e.name !== 'NotAllowedError') {
+      document.getElementById('lerror').textContent = 'Biometric authentication failed. Try signing in with your password.';
+      document.getElementById('lerror').style.display = 'block';
+    }
+  }
+}
 // ── Microsoft MSAL Configuration ──────────────────────────
 // ══════════════════════════════════════════════════════════
 // MSAL + SharePoint Configuration
