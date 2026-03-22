@@ -487,55 +487,11 @@ input[type=range]{width:100%;accent-color:#ffffff;}
       Sign in with Microsoft 365
     </button>
 
-    <div class="ldiv">or sign in with username</div>
-
     <!-- Error -->
-    <div class="lerr" id="lerror">Incorrect username or password.</div>
-
-    <!-- Username -->
-    <div class="lfield">
-      <label>Username</label>
-      <input id="demail" type="text" placeholder="e.g. ravi.p" autocomplete="username"
-        onkeydown="if(event.key==='Enter')document.getElementById('dpass').focus()">
-    </div>
-
-    <!-- Password -->
-    <div class="lfield">
-      <label>Password</label>
-      <div class="lpw-wrap">
-        <input id="dpass" type="password" placeholder="&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;&#9679;"
-          autocomplete="current-password"
-          onkeydown="if(event.key==='Enter')loginStaff()">
-        <button class="lpw-eye" type="button"
-          onclick="var i=document.getElementById('dpass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'&#128065;':'&#128064;'">&#128065;</button>
-      </div>
-    </div>
-
-    <!-- Sign In -->
-    <button class="demo-btn" onclick="loginStaff()">Sign In</button>
-
-    <!-- Biometric -->
-    <button class="lbio-btn" id="bio-btn" onclick="doBiometricLogin()">
-      <span style="font-size:16px">&#128065;</span>
-      <span id="bio-btn-label">Face ID / Biometric Login</span>
-    </button>
-    <script>
-      (function(){
-        var lbl = document.getElementById('bio-btn-label');
-        if (!lbl) return;
-        lbl.textContent = localStorage.getItem('bim_bio_cred_id')
-          ? 'Sign in with Face ID / Biometrics'
-          : 'Set up Face ID / Biometric Login';
-      })();
-    </script>
+    <div class="lerr" id="lerror">Login failed. Your Microsoft account is not linked to this system.</div>
 
     <!-- Security notice -->
-    <div class="lnote">&#128188; This system is for <strong>Asterwix staff only</strong>. Unauthorised access is prohibited.</div>
-
-    <!-- Reset -->
-    <div class="llink" onclick="alert('Contact your system admin to reset your password.')">
-      <span>Having trouble? Reset password</span>
-    </div>
+    <div class="lnote">&#128188; This system is for <strong>Asterwix staff only</strong>. Sign in with your Asterwix Microsoft 365 account. Unauthorised access is prohibited.</div>
 
   </div>
 </div>
@@ -1354,7 +1310,7 @@ async function doBiometricLogin() {
 // ══════════════════════════════════════════════════════════
 const SP_SITE   = "https://asterwix007.sharepoint.com";
 const SP_SITE_PATH = ""; // Root site
-const CLIENT_ID = "3288756f-da5c-4177-85ba-b5a29d98da89";
+const CLIENT_ID = "5131ffb0-4953-4aae-9886-97f8a52af3bd";
 const TENANT_ID = "16522c0a-f9da-4e67-ac59-ed6adea4e80e";
 
 const MSAL_CONFIG = {
@@ -1797,59 +1753,11 @@ async function spLoadAll() {
         if (t.pid) { if (!tasks[t.pid]) tasks[t.pid]=[]; tasks[t.pid].push(t); }
       });
     }
-    // Load Members from BIMMembers (local BIM Hub data)
+    // Load Members
     const mItems = await spGetList("BIMMembers");
     if (mItems.length > 0) {
       members = mItems.map(i => JSON.parse(i.fields.BIMData||"{}")).filter(m=>m.id);
     }
-
-    // ── Load Employees from HR Portal shared list ────────────
-    // Merges HR employees into BIM Hub members (BIM-safe fields only)
-    // Salary / Bank details are NOT loaded here (HR only 🔒)
-    try {
-      const empItems = await spGetList("Employees");
-      if (empItems && empItems.length > 0) {
-        empItems.forEach(function(i) {
-          var f = i.fields;
-          if (!f || !f.EmployeeID) return;
-          // Check if already in members (by email or employee ID)
-          var exists = members.find(function(m) {
-            return (m.email && f.Email && m.email.toLowerCase() === f.Email.toLowerCase())
-                || (m.empId && m.empId === f.EmployeeID);
-          });
-          if (!exists) {
-            var newId = members.length ? Math.max.apply(null, members.map(function(m){ return m.id||0; })) + 1 : 1;
-            members.push({
-              id:        newId,
-              empId:     f.EmployeeID   || "",
-              name:      f.FullName     || f.Title || "",
-              ini:       (f.FullName||"").split(" ").map(function(w){ return w[0]; }).join("").slice(0,2).toUpperCase(),
-              email:     f.Email        || "",
-              role:      f.Designation  || f.BIMRole || "BIM Modeller",
-              dept:      f.Department   || "",
-              perm:      f.BIMRole      || "Jr. BIM Modeller",
-              col:       "#00b899",
-              reportsTo: null,
-              fromHR:    true           // flag: came from HR Portal
-              // ❌ BasicSalary / HRA / Transport / BankDetails NOT loaded
-            });
-          } else {
-            // Update safe fields only (no salary/bank)
-            exists.empId    = f.EmployeeID  || exists.empId;
-            exists.name     = f.FullName    || exists.name;
-            exists.email    = f.Email       || exists.email;
-            exists.dept     = f.Department  || exists.dept;
-            exists.role     = f.Designation || exists.role;
-            if (f.BIMRole) exists.perm = f.BIMRole;
-            exists.fromHR   = true;
-          }
-        });
-        console.log("HR Employees synced to BIM Hub members ✓");
-      }
-    } catch(empErr) {
-      console.warn("Employees list load skipped:", empErr.message);
-    }
-    // ────────────────────────────────────────────────────────
     // Load ModelLogs
     const mlItems = await spGetList("BIMModelLogs");
     if (mlItems.length > 0) {
@@ -2452,7 +2360,6 @@ function renderTeam(){
         <div class="tcs"><div class="tcsv">${mt.filter(t=>t.sta==="Completed").length}</div><div class="tcsl">Done</div></div>
       </div>
       <div style="margin-top:8px;font-size:11px;color:var(--muted)">${m.email}</div>
-      ${m.fromHR ? `<div style="margin-top:6px;display:inline-flex;align-items:center;gap:4px;background:rgba(0,184,153,.1);border:1px solid rgba(0,184,153,.3);border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700;color:#009980;letter-spacing:.5px;">🔗 HR SYNCED</div>` : ''}
       ${adminBtns}
     </div>`;
   }).join("");
