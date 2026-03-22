@@ -338,17 +338,31 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 .prep-entry-actions{display:flex;gap:6px;flex-shrink:0;margin-left:12px;}
 
 /* Sub-task rows inside entries */
-.prep-subtasks{background:var(--surface);border-top:1px solid var(--border);padding:10px 18px 10px 36px;}
-.prep-subtask-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.prep-subtasks{background:var(--surface);border-top:1px solid var(--border);padding:10px 18px 12px 18px;}
+.prep-subtask-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
 .prep-subtask-title{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--muted);}
-.subtask-row{display:flex;align-items:center;gap:10px;padding:6px 10px;background:#fff;border:1px solid var(--border);border-radius:6px;margin-bottom:5px;transition:box-shadow .15s;}
-.subtask-row:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);}
-.subtask-check{width:16px;height:16px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.subtask-row{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#fff;border:1px solid var(--border);border-radius:7px;margin-bottom:6px;transition:box-shadow .15s;}
+.subtask-row:hover{box-shadow:0 2px 10px rgba(0,0,0,.07);}
+.subtask-check{width:17px;height:17px;border-radius:4px;border:2px solid var(--border);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
 .subtask-check.done{background:var(--ok);border-color:var(--ok);color:#fff;font-size:10px;}
-.subtask-name{flex:1;font-size:12px;font-weight:500;}
+.subtask-check.in-progress{background:#dbeafe;border-color:#3b82f6;}
+.subtask-main{flex:1;min-width:0;}
+.subtask-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .subtask-name.done{text-decoration:line-through;color:var(--muted);}
+.subtask-meta{display:flex;align-items:center;gap:8px;margin-top:3px;flex-wrap:wrap;}
+.subtask-prog-bar{height:4px;border-radius:2px;background:#e5e7eb;width:70px;overflow:hidden;flex-shrink:0;}
+.subtask-prog-fill{height:100%;border-radius:2px;background:#3b82f6;transition:width .3s;}
+.subtask-prog-fill.done{background:var(--ok);}
+.subtask-prog-fill.overdue{background:var(--danger);}
+.stbadge{font-size:9px;font-weight:700;padding:1px 6px;border-radius:10px;letter-spacing:.3px;white-space:nowrap;}
+.stbadge-ns{background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;}
+.stbadge-ip{background:#dbeafe;color:#1e40af;border:1px solid #bfdbfe;}
+.stbadge-done{background:#dcfce7;color:#15803d;border:1px solid #bbf7d0;}
+.stbadge-overdue{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca;}
+.subtask-date{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.subtask-date.overdue{color:var(--danger);font-weight:700;}
 .subtask-assignee{font-size:10px;color:var(--muted);}
-.subtask-due{font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;}
+.subtask-actions{display:flex;gap:4px;flex-shrink:0;}
 .add-subtask-row{display:flex;gap:7px;margin-top:7px;}
 
 /* TOAST */
@@ -833,12 +847,12 @@ input[type=range]{width:100%;accent-color:#ffffff;}
           <option>Architecture (ARCH)</option><option>Structure (STRU)</option>
           <option>MEP — Mechanical (MECH)</option><option>MEP — Electrical (ELEC)</option>
           <option>MEP — Plumbing (PLMB)</option><option>MEP — Fire Protection (FIRE)</option>
-          <option>Civil Engineering (CIVL)</option><option>Survey & Geomatics (SURV)</option>
-          <option>Landscape (LAND)</option><option>Interior Design (INTR)</option>
-          <option>Facade (FACD)</option><option>BIM Coordination (CORD)</option>
-          <option>Geotechnical (GETO)</option><option>Acoustic (ACST)</option>
-          <option>Lighting Design (LGTS)</option><option>Traffic & Transport (TRAF)</option>
-          <option>Environmental (ENVR)</option>
+          <option>Civil Engineering (CIVL)</option><option>Infrastructure (INFR)</option>
+          <option>Survey & Geomatics (SURV)</option><option>Landscape (LAND)</option>
+          <option>Interior Design (INTR)</option><option>Facade (FACD)</option>
+          <option>BIM Coordination (CORD)</option><option>Geotechnical (GETO)</option>
+          <option>Acoustic (ACST)</option><option>Lighting Design (LGTS)</option>
+          <option>Traffic & Transport (TRAF)</option><option>Environmental (ENVR)</option>
         </select>
       </div>
       <div class="field"><label>Drawing Type</label>
@@ -2946,12 +2960,32 @@ function renderModelLog(){
           </div>
           ${subtasks.map(st => {
             const stAuth = members.find(x=>x.id===st.aid);
+            const today = new Date().toISOString().slice(0,10);
+            const isOverdue = st.due && !st.done && st.due < today;
+            const prog = st.prog||0;
+            const status = st.status || (st.done ? 'Done' : 'Not Started');
+            const badgeCls = status==='Done'?'stbadge-done':status==='In Progress'?'stbadge-ip':isOverdue?'stbadge-overdue':'stbadge-ns';
+            const badgeTxt = isOverdue&&status!=='Done' ? 'Overdue' : status;
+            const priColor = {Critical:'#b91c1c',High:'#d97706',Medium:'#2563eb',Low:'#6b7280'}[st.priority||'Medium']||'#6b7280';
+            const progFillCls = status==='Done'?'done':isOverdue?'overdue':'';
             return `<div class="subtask-row" id="str-${st.id}">
-              <div class="subtask-check ${st.done?'done':''}" onclick="toggleSubtask('model',${entry.id},${st.id})">${st.done?'✓':''}</div>
-              <span class="subtask-name ${st.done?'done':''}">${st.name}</span>
-              ${stAuth?`<span class="subtask-assignee">👤 ${stAuth.name.split(' ')[0]}</span>`:''}
-              ${st.due?`<span class="subtask-due">${st.due}</span>`:''}
-              <button onclick="deletePrepSubtask('model',${entry.id},${st.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 3px;margin-left:4px;" title="Delete">✕</button>
+              <div class="subtask-check ${st.done?'done':prog>0?'in-progress':''}" onclick="toggleSubtask('model',${entry.id},${st.id})" title="${st.done?'Mark incomplete':'Mark complete'}">${st.done?'✓':prog>0?'·':''}</div>
+              <div class="subtask-main">
+                <div class="subtask-name ${st.done?'done':''}">${st.name}${st.priority?`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${priColor};margin-left:5px;vertical-align:middle;" title="${st.priority} priority"></span>`:''}</div>
+                <div class="subtask-meta">
+                  <span class="stbadge ${badgeCls}">${badgeTxt}</span>
+                  <div class="subtask-prog-bar"><div class="subtask-prog-fill ${progFillCls}" style="width:${prog}%"></div></div>
+                  <span style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;">${prog}%</span>
+                  ${stAuth?`<span class="subtask-assignee">👤 ${stAuth.name.split(' ')[0]}</span>`:''}
+                  ${st.due?`<span class="subtask-date ${isOverdue?'overdue':''}">📅 ${st.due}</span>`:''}
+                  ${st.actualDone?`<span class="subtask-date" style="color:var(--ok)">✓ ${st.actualDone}</span>`:''}
+                  ${st.hrs?`<span style="font-size:10px;color:var(--muted)">⏱ ${st.hrs}h</span>`:''}
+                  ${st.notes?`<span style="font-size:10px;color:var(--muted);font-style:italic;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${st.notes}">💬 ${st.notes}</span>`:''}
+                </div>
+              </div>
+              <div class="subtask-actions">
+                <button onclick="openPrepTaskModal('model',${entry.id},${st.id})" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'Nunito Sans',sans-serif;" title="Edit task">Edit</button>
+              </div>
             </div>`;
           }).join('')}
         </div>`;
@@ -3049,12 +3083,32 @@ function renderDrawingLog(){
           </div>
           ${subtasks.map(st => {
             const stAuth = members.find(x=>x.id===st.aid);
+            const today = new Date().toISOString().slice(0,10);
+            const isOverdue = st.due && !st.done && st.due < today;
+            const prog = st.prog||0;
+            const status = st.status || (st.done ? 'Done' : 'Not Started');
+            const badgeCls = status==='Done'?'stbadge-done':status==='In Progress'?'stbadge-ip':isOverdue?'stbadge-overdue':'stbadge-ns';
+            const badgeTxt = isOverdue&&status!=='Done' ? 'Overdue' : status;
+            const priColor = {Critical:'#b91c1c',High:'#d97706',Medium:'#2563eb',Low:'#6b7280'}[st.priority||'Medium']||'#6b7280';
+            const progFillCls = status==='Done'?'done':isOverdue?'overdue':'';
             return `<div class="subtask-row" id="str-${st.id}">
-              <div class="subtask-check ${st.done?'done':''}" onclick="toggleSubtask('drawing',${entry.id},${st.id})">${st.done?'✓':''}</div>
-              <span class="subtask-name ${st.done?'done':''}">${st.name}</span>
-              ${stAuth?`<span class="subtask-assignee">👤 ${stAuth.name.split(' ')[0]}</span>`:''}
-              ${st.due?`<span class="subtask-due">${st.due}</span>`:''}
-              <button onclick="deletePrepSubtask('drawing',${entry.id},${st.id})" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:12px;padding:0 3px;margin-left:4px;" title="Delete">✕</button>
+              <div class="subtask-check ${st.done?'done':prog>0?'in-progress':''}" onclick="toggleSubtask('drawing',${entry.id},${st.id})" title="${st.done?'Mark incomplete':'Mark complete'}">${st.done?'✓':prog>0?'·':''}</div>
+              <div class="subtask-main">
+                <div class="subtask-name ${st.done?'done':''}">${st.name}${st.priority?`<span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:${priColor};margin-left:5px;vertical-align:middle;" title="${st.priority} priority"></span>`:''}</div>
+                <div class="subtask-meta">
+                  <span class="stbadge ${badgeCls}">${badgeTxt}</span>
+                  <div class="subtask-prog-bar"><div class="subtask-prog-fill ${progFillCls}" style="width:${prog}%"></div></div>
+                  <span style="font-size:10px;color:var(--muted);font-family:'JetBrains Mono',monospace;">${prog}%</span>
+                  ${stAuth?`<span class="subtask-assignee">👤 ${stAuth.name.split(' ')[0]}</span>`:''}
+                  ${st.due?`<span class="subtask-date ${isOverdue?'overdue':''}">📅 ${st.due}</span>`:''}
+                  ${st.actualDone?`<span class="subtask-date" style="color:var(--ok)">✓ ${st.actualDone}</span>`:''}
+                  ${st.hrs?`<span style="font-size:10px;color:var(--muted)">⏱ ${st.hrs}h</span>`:''}
+                  ${st.notes?`<span style="font-size:10px;color:var(--muted);font-style:italic;max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${st.notes}">💬 ${st.notes}</span>`:''}
+                </div>
+              </div>
+              <div class="subtask-actions">
+                <button onclick="openPrepTaskModal('drawing',${entry.id},${st.id})" style="background:none;border:1px solid var(--border);border-radius:5px;padding:2px 7px;font-size:10px;color:var(--muted);cursor:pointer;font-family:'Nunito Sans',sans-serif;" title="Edit task">Edit</button>
+              </div>
             </div>`;
           }).join('')}
         </div>`;
@@ -3094,40 +3148,147 @@ function toggleSubtask(type, entryId, stId){
   if(!st) return;
   st.done = !st.done;
   if(st.done){
+    st.status = 'Done';
+    st.prog = 100;
     st.actualDone = new Date().toISOString().slice(0,10);
-    // Check if completed after due date
-    if(st.due && st.actualDone > st.due) st.delayed = true;
+    st.delayed = st.due && st.actualDone > st.due;
+    st.overdue = false;
   } else {
+    st.status = 'In Progress';
+    st.prog = st.prog===100 ? 50 : (st.prog||0);
     st.actualDone = '';
     st.delayed = false;
   }
+  saveData();
   if(type==='model') renderModelLog(); else renderDrawingLog();
   toast(st.done ? '✓ Task completed — ' + st.actualDone : 'Task reopened');
 }
 
-// ─── Add subtask prompt ─────────────────────────────────────
+// ─── Add subtask — open modal ───────────────────────────────
 function addPrepSubtask(type, entryId){
-  const name = prompt('New task name:');
-  if(!name||!name.trim()) return;
-  const due = prompt('Due date (YYYY-MM-DD) — or leave blank:') || '';
-  const store = type==='model' ? modelLogs : drawingLogs;
-  const entries = store[CPJ]||[];
-  const entry = entries.find(e=>e.id===entryId);
+  openPrepTaskModal(type, entryId, null);
+}
+
+// ─── Open prep task modal (add or edit) ─────────────────────
+function openPrepTaskModal(type, entryId, stId){
+  var store = type==='model' ? modelLogs : drawingLogs;
+  var entry = (store[CPJ]||[]).find(e=>e.id===entryId);
+  if(!entry) return;
+  var st = stId!=null ? (entry.subtasks||[]).find(s=>s.id===stId) : null;
+  document.getElementById('pt-type').value = type;
+  document.getElementById('pt-entry-id').value = entryId;
+  document.getElementById('pt-id').value = stId!=null ? stId : '';
+  document.getElementById('pt-name').value = st ? st.name : '';
+  document.getElementById('pt-sta').value = st ? (st.status||'Not Started') : 'Not Started';
+  document.getElementById('pt-pri').value = st ? (st.priority||'Medium') : 'Medium';
+  var prog = st ? (st.prog||0) : 0;
+  document.getElementById('pt-prog').value = prog;
+  document.getElementById('pt-prog-lbl').textContent = prog;
+  document.getElementById('pt-start').value = st ? (st.start||'') : '';
+  document.getElementById('pt-due').value = st ? (st.due||'') : '';
+  document.getElementById('pt-done').value = st ? (st.actualDone||'') : '';
+  document.getElementById('pt-hrs').value = st ? (st.hrs||'') : '';
+  document.getElementById('pt-notes').value = st ? (st.notes||'') : '';
+  // Fill assignee dropdown
+  var authSel = document.getElementById('pt-auth');
+  authSel.innerHTML = '<option value="">— Unassigned —</option>' +
+    members.map(m=>'<option value="'+m.id+'"'+(st&&st.aid===m.id?' selected':'')+'>'+m.name+'</option>').join('');
+  document.getElementById('pt-del-btn').style.display = stId!=null ? 'inline-flex' : 'none';
+  openM('ptm');
+}
+
+// ─── Auto-update status when slider moves ───────────────────
+function autoPtStatus(val){
+  val = parseInt(val);
+  var sta = document.getElementById('pt-sta');
+  if(val===0) sta.value='Not Started';
+  else if(val===100) sta.value='Done';
+  else if(sta.value==='Not Started'||sta.value==='Done') sta.value='In Progress';
+}
+function ptStatusChange(){
+  var sta = document.getElementById('pt-sta').value;
+  var prog = parseInt(document.getElementById('pt-prog').value);
+  if(sta==='Done'){ document.getElementById('pt-prog').value=100; document.getElementById('pt-prog-lbl').textContent='100'; }
+  else if(sta==='Not Started'&&prog===100){ document.getElementById('pt-prog').value=0; document.getElementById('pt-prog-lbl').textContent='0'; }
+  else if(sta==='Cancelled'){ document.getElementById('pt-prog').value=0; document.getElementById('pt-prog-lbl').textContent='0'; }
+}
+
+// ─── Save prep task (add or update) ─────────────────────────
+function savePrepTask(){
+  var type    = document.getElementById('pt-type').value;
+  var entryId = parseInt(document.getElementById('pt-entry-id').value);
+  var stIdRaw = document.getElementById('pt-id').value;
+  var stId    = stIdRaw!=='' ? parseInt(stIdRaw) : null;
+  var name    = document.getElementById('pt-name').value.trim();
+  if(!name){ alert('Task name is required'); return; }
+  var store = type==='model' ? modelLogs : drawingLogs;
+  var entry = (store[CPJ]||[]).find(e=>e.id===entryId);
   if(!entry) return;
   if(!entry.subtasks) entry.subtasks=[];
-  entry.subtasks.push({ id: type==='model'?NMS++:NDS++, name:name.trim(), done:false, aid:null, due:due.trim(), actualDone:'', delayed:false });
+  var prog = parseInt(document.getElementById('pt-prog').value)||0;
+  var sta  = document.getElementById('pt-sta').value;
+  var done = document.getElementById('pt-done').value;
+  // Auto-set done date when status set to Done
+  if(sta==='Done'&&!done) done = new Date().toISOString().slice(0,10);
+  if(sta!=='Done') done = document.getElementById('pt-done').value;
+  var today = new Date().toISOString().slice(0,10);
+  var due   = document.getElementById('pt-due').value;
+  var isOverdue = due && sta!=='Done' && sta!=='Cancelled' && due < today;
+  if(stId!=null){
+    // Update existing
+    var st = entry.subtasks.find(s=>s.id===stId);
+    if(st){
+      st.name=name; st.status=sta; st.priority=document.getElementById('pt-pri').value;
+      st.prog=prog; st.done=(sta==='Done'); st.aid=parseInt(document.getElementById('pt-auth').value)||null;
+      st.start=document.getElementById('pt-start').value;
+      st.due=due; st.actualDone=done; st.hrs=document.getElementById('pt-hrs').value;
+      st.notes=document.getElementById('pt-notes').value.trim();
+      st.overdue=isOverdue; st.delayed = done&&due ? done>due : false;
+      st.updatedAt=today;
+    }
+  } else {
+    // Add new
+    var counter = type==='model' ? NMS++ : NDS++;
+    entry.subtasks.push({
+      id:counter, name:name, status:sta, priority:document.getElementById('pt-pri').value,
+      prog:prog, done:(sta==='Done'), aid:parseInt(document.getElementById('pt-auth').value)||null,
+      start:document.getElementById('pt-start').value, due:due,
+      actualDone:done, hrs:document.getElementById('pt-hrs').value,
+      notes:document.getElementById('pt-notes').value.trim(),
+      overdue:isOverdue, delayed:false, createdAt:today, updatedAt:today
+    });
+  }
+  saveData();
+  closeM('ptm');
   if(type==='model') renderModelLog(); else renderDrawingLog();
-  toast('Task added ✓');
+  toast(stId!=null ? 'Task updated ✓' : 'Task added ✓');
+}
+
+// ─── Delete from modal ──────────────────────────────────────
+function deletePrepSubtaskFromModal(){
+  var type    = document.getElementById('pt-type').value;
+  var entryId = parseInt(document.getElementById('pt-entry-id').value);
+  var stId    = parseInt(document.getElementById('pt-id').value);
+  if(!confirm('Delete this task?')) return;
+  var store = type==='model' ? modelLogs : drawingLogs;
+  var entry = (store[CPJ]||[]).find(e=>e.id===entryId);
+  if(!entry) return;
+  entry.subtasks = (entry.subtasks||[]).filter(s=>s.id!==stId);
+  saveData();
+  closeM('ptm');
+  if(type==='model') renderModelLog(); else renderDrawingLog();
+  toast('Task deleted');
 }
 
 // ─── Delete subtask ─────────────────────────────────────────
 function deletePrepSubtask(type, entryId, stId){
   if(!confirm('Delete this task?')) return;
-  const store = type==='model' ? modelLogs : drawingLogs;
-  const entries = store[CPJ]||[];
-  const entry = entries.find(e=>e.id===entryId);
+  var store = type==='model' ? modelLogs : drawingLogs;
+  var entries = store[CPJ]||[];
+  var entry = entries.find(e=>e.id===entryId);
   if(!entry) return;
   entry.subtasks = (entry.subtasks||[]).filter(s=>s.id!==stId);
+  saveData();
   if(type==='model') renderModelLog(); else renderDrawingLog();
 }
 
@@ -3390,6 +3551,64 @@ const DISC_DRAWING_TYPES = {
     "Utility Corridor Plan",
     "Traffic Signage & Markings Plan",
     "Setting Out Plan",
+    "As-Built / Record Drawing",
+    "Schedule / Specification",
+    "Custom…"
+  ],
+  "Infrastructure (INFR)": [
+    "Master Infrastructure Layout Plan",
+    "Road Network Plan",
+    "Road Alignment & Horizontal Geometry",
+    "Road Longitudinal Profile",
+    "Road Cross-Section — Typical",
+    "Road Cross-Section — At Structures",
+    "Interchange / Junction Layout",
+    "Roundabout Design Drawing",
+    "Pedestrian & Cycle Path Layout",
+    "Pavement Layer Design Detail",
+    "Kerb, Channel & Gutter Detail",
+    "Bridge General Arrangement Drawing",
+    "Bridge Structural Detail",
+    "Bridge Foundation Layout",
+    "Culvert & Underpass Drawing",
+    "Retaining Wall — Infrastructure",
+    "Tunnel Cross-Section",
+    "Tunnel Longitudinal Profile",
+    "Tunnel Lining Detail",
+    "Cut & Cover Structure Drawing",
+    "Earthworks & Grading Plan",
+    "Earthworks Cross-Section",
+    "Slope Stabilisation Detail",
+    "Utility Trench Layout",
+    "Utility Corridor & Easement Plan",
+    "Water Main Layout Plan",
+    "Water Main Profile",
+    "Sewerage Network Layout",
+    "Sewer Profile & Manhole Detail",
+    "Pumping Station Layout",
+    "Stormwater Drainage Network Plan",
+    "Stormwater Drainage Profile",
+    "Detention / Retention Basin Detail",
+    "Outfall Structure Detail",
+    "Irrigation Main Layout",
+    "Power Transmission Line Layout",
+    "Substation Layout & Single Line Diagram",
+    "Street Lighting Layout",
+    "Telecommunications Duct Layout",
+    "Rail Track Alignment Plan",
+    "Rail Longitudinal Profile",
+    "Rail Cross-Section",
+    "Rail Overhead Line Layout",
+    "Station Platform Layout",
+    "Signal & Communication Layout — Rail",
+    "Port / Quay Wall Layout",
+    "Dredging Plan",
+    "Noise Barrier Layout & Detail",
+    "Signage & Wayfinding — Infrastructure",
+    "Traffic Management Plan",
+    "Construction Phasing Plan",
+    "Temporary Works Layout",
+    "Setting Out Plan — Infrastructure",
     "As-Built / Record Drawing",
     "Schedule / Specification",
     "Custom…"
@@ -4349,6 +4568,7 @@ function closeMobMenu(){
 }
 document.getElementById("dpass").addEventListener("keydown",e=>{if(e.key==="Enter")loginStaff();});
 document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if(e.target===o)o.classList.remove("open");}));
+document.getElementById("ptm").addEventListener("click",e=>{if(e.target===document.getElementById("ptm"))closeM("ptm");});
 </script>
 
 <!-- DELAY REASON MODAL -->
@@ -4420,6 +4640,64 @@ document.querySelectorAll(".mover").forEach(o=>o.addEventListener("click",e=>{if
     <div style="display:flex;gap:10px;justify-content:flex-end;">
       <button onclick="closeReturnModal()" style="padding:9px 18px;border-radius:7px;border:1.5px solid var(--color-border-secondary);background:var(--color-background-primary);font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:500;cursor:pointer;color:var(--color-text-primary);">Cancel</button>
       <button onclick="confirmReturn()" style="padding:9px 20px;border-radius:7px;border:none;background:#b91c1c;color:#fff;font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;">Return for rework</button>
+    </div>
+  </div>
+</div>
+<!-- PREP TASK EDIT MODAL -->
+<div class="mover" id="ptm">
+  <div class="modal" style="width:520px;">
+    <div class="mt">📋 Task Details</div>
+    <input type="hidden" id="pt-type">
+    <input type="hidden" id="pt-entry-id">
+    <input type="hidden" id="pt-id">
+    <div class="ff">
+      <div class="field"><label>Task Name *</label><input id="pt-name" placeholder="e.g. Prepare floor plan drawings"></div>
+    </div>
+    <div class="fg3">
+      <div class="field"><label>Status</label>
+        <select id="pt-sta" onchange="ptStatusChange()">
+          <option value="Not Started">Not Started</option>
+          <option value="In Progress">In Progress</option>
+          <option value="Done">Done</option>
+          <option value="On Hold">On Hold</option>
+          <option value="Cancelled">Cancelled</option>
+        </select>
+      </div>
+      <div class="field"><label>Priority</label>
+        <select id="pt-pri">
+          <option value="Low">Low</option>
+          <option value="Medium">Medium</option>
+          <option value="High">High</option>
+          <option value="Critical">Critical</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Progress — <span id="pt-prog-lbl">0</span>%</label>
+        <input id="pt-prog" type="range" min="0" max="100" step="5" value="0"
+          oninput="document.getElementById('pt-prog-lbl').textContent=this.value;autoPtStatus(this.value);"
+          style="margin-top:6px;accent-color:#1e1e1e;">
+      </div>
+    </div>
+    <div class="fg3">
+      <div class="field"><label>Assignee</label>
+        <select id="pt-auth"></select>
+      </div>
+      <div class="field"><label>Planned Start</label><input id="pt-start" type="date"></div>
+      <div class="field"><label>Due Date</label><input id="pt-due" type="date"></div>
+    </div>
+    <div class="fg2">
+      <div class="field"><label>Actual Completed</label><input id="pt-done" type="date"></div>
+      <div class="field"><label>Hours Spent</label><input id="pt-hrs" type="number" min="0" step="0.5" placeholder="e.g. 4.5"></div>
+    </div>
+    <div class="ff">
+      <div class="field"><label>Notes / Comments</label>
+        <input id="pt-notes" placeholder="Progress notes, blockers, references…">
+      </div>
+    </div>
+    <div class="mf">
+      <button class="btn btn-g btn-sm" onclick="closeM('ptm')">Cancel</button>
+      <button class="btn btn-d btn-sm" id="pt-del-btn" onclick="deletePrepSubtaskFromModal()" style="display:none">Delete Task</button>
+      <button class="btn btn-p" onclick="savePrepTask()">Save Task</button>
     </div>
   </div>
 </div>
