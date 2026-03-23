@@ -56,10 +56,10 @@ img{max-width:100%;height:auto;}
 /* -- MOBILE BASE ----------------------------------------- */
 @media(max-width:768px){
   :root{--sw:0px;}
-  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:5000;}
+  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:400;}
   .sidebar.mob-open{transform:translateX(0);}
   .main{margin-left:0!important;}
-  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4999;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:350;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   .mob-overlay.show{display:block;}
   #mob-menu-btn{display:flex!important;}
   .kgrid{grid-template-columns:1fr 1fr!important;}
@@ -179,7 +179,7 @@ img{max-width:100%;height:auto;}
 .slogo-text{font-family:'Nunito Sans',sans-serif;font-size:16px;font-weight:900;color:#ffffff;letter-spacing:-0.3px;}
 .stag{display:inline-block;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:7px;letter-spacing:2.5px;background:#00b899;color:#fff;padding:2px 7px;border-radius:2px;text-transform:uppercase;}
 .nsec{font-family:'Nunito Sans',sans-serif;font-size:9px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:rgba(255,255,255,.25);padding:18px 18px 6px;}
-.ni{display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:13px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none;}
+.ni{display:flex;align-items:center;gap:10px;padding:10px 18px;font-size:13px;font-weight:600;color:rgba(255,255,255,.5);cursor:pointer;border-left:3px solid transparent;transition:all .15s;user-select:none;touch-action:manipulation;-webkit-tap-highlight-color:transparent;min-height:44px;}
 .ni:hover{background:rgba(0,184,153,.08);color:#fff;border-left-color:rgba(0,184,153,.4);}
 .ni.active{background:rgba(0,184,153,.15);color:#fff;border-left-color:#00b899;}
 .ni-icon{width:18px;text-align:center;font-size:15px;flex-shrink:0;opacity:.8;}
@@ -528,15 +528,15 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     </div>
   </div>
   <div class="nsec">Main</div>
-  <div class="ni active" onclick="pg('dash',this);closeMobMenu()"><span class="ni-icon">⊞</span>Dashboard</div>
-  <div class="ni" onclick="pg('projects',this);closeMobMenu()"><span class="ni-icon">◈</span>All Projects<span class="ni-badge" id="pnav">0</span></div>
-  <div class="ni" onclick="pg('team',this);closeMobMenu()"><span class="ni-icon">◎</span>Team<span class="ni-badge" id="tnav">0</span></div>
-  <div class="ni" onclick="pg('timeline',this);closeMobMenu()"><span class="ni-icon">▤</span>Master Timeline</div>
+  <div class="ni active" data-pg="dash"><span class="ni-icon">⊞</span>Dashboard</div>
+  <div class="ni" data-pg="projects"><span class="ni-icon">◈</span>All Projects<span class="ni-badge" id="pnav">0</span></div>
+  <div class="ni" data-pg="team"><span class="ni-icon">◎</span>Team<span class="ni-badge" id="tnav">0</span></div>
+  <div class="ni" data-pg="timeline"><span class="ni-icon">▤</span>Master Timeline</div>
   <div class="nsec">Projects</div>
   <div id="sproj"></div>
   <div class="nsec">System</div>
-  <div class="ni" onclick="pg('reports',this);closeMobMenu()"><span class="ni-icon">📊</span>Weekly Reports</div>
-  <div class="ni" onclick="pg('settings',this);closeMobMenu()"><span class="ni-icon">⚙</span>SharePoint Config</div>
+  <div class="ni" data-pg="reports"><span class="ni-icon">📊</span>Weekly Reports</div>
+  <div class="ni" data-pg="settings"><span class="ni-icon">⚙</span>SharePoint Config</div>
   <div class="sbot">
     <div class="upill">
       <div class="uav" id="uav">A</div>
@@ -550,7 +550,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 <div class="main">
   <div class="topbar">
     <div style="display:flex;align-items:center;">
-      <button id="mob-menu-btn" onclick="toggleMobMenu()" style="align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;pointer-events:auto;position:relative;z-index:5001;">☰</button>
+      <button id="mob-menu-btn" onclick="toggleMobMenu()" style="align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">☰</button>
       <div class="ptitle" id="tptitle">Dashboard</div>
     </div>
     <div class="tright">
@@ -1934,10 +1934,7 @@ async function loginMS() {
 }
 
 function doLogin(){
-  var lg=document.getElementById("login");
-  lg.style.display="none";
-  lg.style.visibility="hidden";
-  lg.style.pointerEvents="none";
+  document.getElementById("login").style.display="none";
   document.getElementById("app").style.display="block";
   history.pushState({page:"dash",proj:null}, "", "#dash");
   // Sync perm with role if perm not explicitly set
@@ -1954,10 +1951,7 @@ function doLogin(){
 
 function logout(){
   if(!confirm("Sign out?"))return;
-  var lg=document.getElementById("login");
-  lg.style.display="flex";
-  lg.style.visibility="visible";
-  lg.style.pointerEvents="auto";
+  document.getElementById("login").style.display="flex";
   document.getElementById("app").style.display="none";
   document.getElementById("demail").value="";
   document.getElementById("dpass").value="";
@@ -4768,7 +4762,6 @@ function toggleMobMenu(){
   else { sb.classList.add('mob-open'); ov.classList.add('show'); document.body.style.overflow='hidden'; }
 }
 function closeMobMenu(){
-  if(_mobMenuBusy) return; _mobMenuBusy=true; setTimeout(function(){_mobMenuBusy=false;},400);
   document.querySelector('.sidebar').classList.remove('mob-open'); document.body.style.overflow='';
   document.getElementById('mob-overlay').classList.remove('show');
 }
@@ -4780,6 +4773,23 @@ document.addEventListener("DOMContentLoaded",function(){
   });
   var ptm=document.getElementById("ptm");
   if(ptm) ptm.addEventListener("click",function(e){if(e.target===ptm)closeM("ptm");});
+
+  // Sidebar nav — use touchend for instant response on mobile, click as fallback
+  document.querySelector('.sidebar').addEventListener('touchend', function(e){
+    var ni = e.target.closest('[data-pg]');
+    if(!ni) return;
+    e.preventDefault();
+    var pageId = ni.dataset.pg;
+    pg(pageId, ni);
+    closeMobMenu();
+  }, {passive: false});
+  document.querySelector('.sidebar').addEventListener('click', function(e){
+    var ni = e.target.closest('[data-pg]');
+    if(!ni) return;
+    var pageId = ni.dataset.pg;
+    pg(pageId, ni);
+    closeMobMenu();
+  });
 });
 </script>
 
