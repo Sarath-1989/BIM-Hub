@@ -514,7 +514,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 
 <!-- APP -->
 <div id="app" style="display:none">
-<div class="mob-overlay" id="mob-overlay" onclick="closeMobMenu()" ontouchstart="closeMobMenu()"></div>
+<div class="mob-overlay" id="mob-overlay" onclick="closeMobMenu()"></div>
 
 <!-- SIDEBAR -->
 <div class="sidebar">
@@ -4753,7 +4753,9 @@ window.addEventListener('load', function(){
   if(CU){ history.pushState({page:"dash",proj:null}, "", "#dash"); }
 });
 
+var _mobMenuBusy = false;
 function toggleMobMenu(){
+  if(_mobMenuBusy) return; _mobMenuBusy=true; setTimeout(function(){_mobMenuBusy=false;},350);
   var sb=document.querySelector('.sidebar');
   var ov=document.getElementById('mob-overlay');
   var isOpen=sb.classList.contains('mob-open');
@@ -4761,6 +4763,7 @@ function toggleMobMenu(){
   else { sb.classList.add('mob-open'); ov.classList.add('show'); document.body.style.overflow='hidden'; }
 }
 function closeMobMenu(){
+  if(_mobMenuBusy) return; _mobMenuBusy=true; setTimeout(function(){_mobMenuBusy=false;},350);
   document.querySelector('.sidebar').classList.remove('mob-open'); document.body.style.overflow='';
   document.getElementById('mob-overlay').classList.remove('show');
 }
