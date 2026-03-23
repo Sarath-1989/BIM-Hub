@@ -56,10 +56,10 @@ img{max-width:100%;height:auto;}
 /* -- MOBILE BASE ----------------------------------------- */
 @media(max-width:768px){
   :root{--sw:0px;}
-  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:400;}
+  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:5000;}
   .sidebar.mob-open{transform:translateX(0);}
   .main{margin-left:0!important;}
-  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:350;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:4999;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   .mob-overlay.show{display:block;}
   #mob-menu-btn{display:flex!important;}
   .kgrid{grid-template-columns:1fr 1fr!important;}
@@ -550,7 +550,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 <div class="main">
   <div class="topbar">
     <div style="display:flex;align-items:center;">
-      <button id="mob-menu-btn" onclick="toggleMobMenu()" style="align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">☰</button>
+      <button id="mob-menu-btn" onclick="toggleMobMenu()" style="align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;pointer-events:auto;position:relative;z-index:5001;">☰</button>
       <div class="ptitle" id="tptitle">Dashboard</div>
     </div>
     <div class="tright">
@@ -1934,7 +1934,10 @@ async function loginMS() {
 }
 
 function doLogin(){
-  document.getElementById("login").style.display="none";
+  var lg=document.getElementById("login");
+  lg.style.display="none";
+  lg.style.visibility="hidden";
+  lg.style.pointerEvents="none";
   document.getElementById("app").style.display="block";
   history.pushState({page:"dash",proj:null}, "", "#dash");
   // Sync perm with role if perm not explicitly set
@@ -1951,7 +1954,10 @@ function doLogin(){
 
 function logout(){
   if(!confirm("Sign out?"))return;
-  document.getElementById("login").style.display="flex";
+  var lg=document.getElementById("login");
+  lg.style.display="flex";
+  lg.style.visibility="visible";
+  lg.style.pointerEvents="auto";
   document.getElementById("app").style.display="none";
   document.getElementById("demail").value="";
   document.getElementById("dpass").value="";
