@@ -2502,12 +2502,41 @@ function initApp(){
   document.getElementById("wdate").textContent=new Date().toLocaleDateString("en-GB",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
   // Load from local first (instant), then sync from SharePoint
   localLoad();
+  cleanOrphanData(); // Remove tasks/logs for deleted projects
   renderSidebar();renderDash();
   // Now load fresh data from SharePoint in background
-  spLoadAll().then(()=>{renderSidebar();renderDash();}).catch(e=>console.warn("SP load:",e));
+  spLoadAll().then(()=>{cleanOrphanData();renderSidebar();renderDash();}).catch(e=>console.warn("SP load:",e));
   const su=localStorage.getItem("sp_url");if(su)document.getElementById("spurl").value=su;
   const st=localStorage.getItem("sp_tid");if(st)document.getElementById("sptid").value=st;
   const sc=localStorage.getItem("sp_cid");if(sc)document.getElementById("spcid").value=sc;
+}
+
+// ── Remove orphaned tasks/logs for projects that no longer exist ──
+function cleanOrphanData(){
+  const validPids = new Set(projects.map(p => String(p.id)));
+  let cleaned = false;
+  // Clean tasks
+  Object.keys(tasks).forEach(pid => {
+    if(!validPids.has(String(pid))){
+      delete tasks[pid];
+      cleaned = true;
+    }
+  });
+  // Clean model logs
+  Object.keys(modelLogs).forEach(pid => {
+    if(!validPids.has(String(pid))){
+      delete modelLogs[pid];
+      cleaned = true;
+    }
+  });
+  // Clean drawing logs
+  Object.keys(drawingLogs).forEach(pid => {
+    if(!validPids.has(String(pid))){
+      delete drawingLogs[pid];
+      cleaned = true;
+    }
+  });
+  if(cleaned) localSave(); // persist the cleanup
 }
 
 // NAV
@@ -2554,22 +2583,63 @@ const sbadge=s=>{const m={Completed:"bg","In Progress":"bp","Not Started":"bgy",
 const pbadge=p=>{const m={High:"bo",Medium:"bp",Low:"bgy"};return`<span class="badge ${m[p]||"bgy"}">${p}</span>`;};
 const fd=d=>d?new Date(d).toLocaleDateString("en-GB",{day:"2-digit",month:"short",year:"2-digit"}):"—";
 const gm=id=>members.find(m=>m.id===id);
-const allT=()=>Object.values(tasks).flat();
+const allT=()=>{
+  const validPids=new Set(projects.map(p=>p.id));
+  return Object.values(tasks).flat().filter(t=>validPids.has(t.pid));
+};
 
 // DASHBOARD
 function renderDash(){
-  const at=allT(),ac=projects.filter(p=>p.status==="Active").length,done=at.filter(t=>t.sta==="Completed").length,del=at.filter(t=>t.sta==="Delayed").length,avgP=Math.round(projects.reduce((a,p)=>a+p.prog,0)/projects.length);
-  document.getElementById("wpr").textContent=projects.length;
-  document.getElementById("wtk").textContent=at.length;
-  document.getElementById("wmb").textContent=members.length;
+  // Only count tasks that belong to existing projects (filter orphans from deleted projects)
+  const validPids = new Set(projects.map(p => p.id));
+  const at = allT().filter(t => validPids.has(t.pid));
+
+  const ac  = projects.filter(p=>p.status==="Active").length;
+  const done = at.filter(t=>t.sta==="Completed").length;
+  const del  = at.filter(t=>t.sta==="Delayed").length;
+  // Safe avgP — avoid NaN when no projects exist
+  const avgP = projects.length > 0
+    ? Math.round(projects.reduce((a,p)=>a+p.prog,0) / projects.length)
+    : 0;
+
+  document.getElementById("wpr").textContent = projects.length;
+  document.getElementById("wtk").textContent  = at.length;
+  document.getElementById("wmb").textContent  = members.length;
+
   document.getElementById("dkpi").innerHTML=`
     <div class="kc g"><div class="kl">Active Projects</div><div class="kv">${ac}</div><div class="ks">of ${projects.length} total</div></div>
     <div class="kc o"><div class="kl">Total Tasks</div><div class="kv">${at.length}</div><div class="ks">${done} completed</div></div>
     <div class="kc p"><div class="kl">Team Members</div><div class="kv">${members.length}</div><div class="ks">Across all projects</div></div>
     <div class="kc d"><div class="kl">Avg Progress</div><div class="kv">${avgP}<span style="font-size:15px">%</span></div><div class="ks">${del} tasks delayed</div></div>`;
-  document.getElementById("dprojs").innerHTML=projects.filter(p=>["Active","Planning"].includes(p.status)).map(p=>`<div style="display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDetail(${p.id})"><div style="width:9px;height:9px;border-radius:50%;background:${p.color};flex-shrink:0"></div><div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</div><div style="font-size:11px;color:var(--muted)">${p.client} · ${p.phase}</div></div><div style="text-align:right;flex-shrink:0"><div style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700;color:${p.color}">${p.prog}%</div><div style="font-size:10px;color:var(--muted)">${fd(p.end)}</div></div></div>`).join("")||"<div style='color:var(--muted);font-size:13px;padding:18px 0;text-align:center'>No active projects.</div>";
-  const rec=at.filter(t=>t.prog>0).sort((a,b)=>b.prog-a.prog).slice(0,5);
-  document.getElementById("dact").innerHTML=rec.map(t=>{const m=gm(t.aid),pj=projects.find(p=>p.id===t.pid);return`<div class="ai"><div class="adot" style="background:${phBg(t.ph)}"></div><div class="ab"><span style="font-weight:600;color:var(--text)">${t.name}</span> — ${t.prog}%<div class="at">${m?.name||"—"} · ${pj?.code||""}</div></div></div>`;}).join("");
+
+  // Active projects list — only Active or Planning status
+  document.getElementById("dprojs").innerHTML = projects.filter(p=>["Active","Planning"].includes(p.status))
+    .map(p=>`<div style="display:flex;align-items:center;gap:11px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="openDetail(${p.id})">
+      <div style="width:9px;height:9px;border-radius:50%;background:${p.color};flex-shrink:0"></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.name}</div>
+        <div style="font-size:11px;color:var(--muted)">${p.client} · ${p.phase}</div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700;color:${p.color}">${p.prog}%</div>
+        <div style="font-size:10px;color:var(--muted)">${fd(p.end)}</div>
+      </div>
+    </div>`).join("") || "<div style='color:var(--muted);font-size:13px;padding:18px 0;text-align:center'>No active projects.</div>";
+
+  // Recent Activity — only tasks from existing projects, with progress > 0
+  const rec = at.filter(t=>t.prog>0).sort((a,b)=>b.prog-a.prog).slice(0,5);
+  document.getElementById("dact").innerHTML = rec.length
+    ? rec.map(t=>{
+        const m=gm(t.aid), pj=projects.find(p=>p.id===t.pid);
+        return `<div class="ai">
+          <div class="adot" style="background:${phBg(t.ph||'')}"></div>
+          <div class="ab">
+            <span style="font-weight:600;color:var(--text)">${t.name}</span> — ${t.prog}%
+            <div class="at">${m?.name||"—"} · ${pj?.code||pj?.name||""}</div>
+          </div>
+        </div>`;
+      }).join("")
+    : "<div style='color:var(--muted);font-size:13px;padding:18px 0;text-align:center'>No recent activity.</div>";
 
   // ── My Returns — show items returned to the current user ──
   var myReturns = [];
