@@ -692,7 +692,10 @@ function loadMSALFallback() {
       <div class="uav" id="uav">A</div>
       <div><div class="uname" id="uname">Admin</div><div class="urole" id="urole">BIM Manager</div></div>
     </div>
-    <button class="out-btn" onclick="logout()">↩ Sign Out</button>
+    <button class="out-btn" id="signout-btn"
+      ontouchend="this._touched=true;showSignOutModal();event.preventDefault();"
+      onclick="if(!this._touched)showSignOutModal();this._touched=false;"
+      style="touch-action:manipulation;-webkit-tap-highlight-color:transparent;">↩ Sign Out</button>
   </div>
 </div>
 
@@ -2456,8 +2459,29 @@ function doLogin(){
   applyRoleUI();
 }
 
+function showSignOutModal(){
+  closeMobMenu(); // close sidebar first on mobile
+  document.getElementById("signout-modal").classList.add("active");
+}
+function closeSignOutModal(){
+  document.getElementById("signout-modal").classList.remove("active");
+}
 function logout(){
-  if(!confirm("Sign out?"))return;
+  closeSignOutModal();
+  // Clear MSAL session if logged in via Microsoft
+  if(msalInstance){
+    try{
+      const accounts=msalInstance.getAllAccounts();
+      if(accounts.length>0){
+        msalInstance.clearCache();
+      }
+    }catch(e){}
+  }
+  // Clear SP site ID cache
+  sessionStorage.removeItem("bim_sp_site_id");
+  SP_SITE_ID=null;
+  spToken=null;
+  // Show login screen
   var _lg=document.getElementById("login");
   _lg.classList.remove("hidden");
   _lg.style.display="flex";
@@ -2468,6 +2492,8 @@ function logout(){
   document.getElementById("demail").value="";
   document.getElementById("dpass").value="";
   CU=null;
+  _spItemIdCache={};
+  toast("Signed out successfully");
 }
 function initApp(){
   requestNotifPermission();setTimeout(updateNotifBell,1000);
@@ -5896,18 +5922,35 @@ document.addEventListener("DOMContentLoaded",function(){
   var ptm=document.getElementById("ptm");
   if(ptm) ptm.addEventListener("click",function(e){if(e.target===ptm)closeM("ptm");});
 
+  // ── Sign-out modal: close on backdrop click & Escape key ──
+  var soModal=document.getElementById("signout-modal");
+  if(soModal){
+    soModal.addEventListener("click",function(e){
+      if(e.target===soModal)closeSignOutModal();
+    });
+    soModal.addEventListener("touchend",function(e){
+      if(e.target===soModal){closeSignOutModal();e.preventDefault();}
+    },{passive:false});
+  }
+  document.addEventListener("keydown",function(e){
+    if(e.key==="Escape"){
+      closeSignOutModal();
+    }
+  });
+
   // ── Handle MSAL redirect result (for loginRedirect flow) ──
-  // Must be called on every page load before any other MSAL call
   handleMSRedirectOnLoad().catch(function(e){
     console.warn("MSAL redirect handler:", e && e.message ? e.message : e);
   });
 
-  // Mobile sidebar — touchend fires instantly, no 300ms delay
+  // ── Mobile sidebar — touchend fires instantly, no 300ms delay ──
   var _sb=document.querySelector('.sidebar');
   if(_sb){
     var _busy=false;
     function _doNav(t){
       if(_busy)return;
+      // Don't intercept the sign-out button — let its own handler fire
+      if(t.closest('#signout-btn'))return;
       var ni=t.closest('[data-pg]');
       if(!ni)return;
       _busy=true; setTimeout(function(){_busy=false;},300);
@@ -5915,6 +5958,8 @@ document.addEventListener("DOMContentLoaded",function(){
       closeMobMenu();
     }
     _sb.addEventListener('touchend',function(e){
+      // Skip sign-out button — it has its own ontouchend
+      if(e.target.closest('#signout-btn'))return;
       e.preventDefault();
       _doNav(e.target);
     },{passive:false});
@@ -5995,6 +6040,29 @@ document.addEventListener("DOMContentLoaded",function(){
     </div>
   </div>
 </div>
+<!-- SIGN OUT CONFIRMATION MODAL -->
+<div id="signout-modal" class="bim-overlay" style="z-index:10002;">
+  <div class="bim-overlay-box" style="max-width:340px;text-align:center;">
+    <div style="width:52px;height:52px;border-radius:14px;background:#fef2f2;display:flex;align-items:center;justify-content:center;font-size:24px;margin:0 auto 14px;border:1.5px solid #fecaca;">↩</div>
+    <div style="font-family:'Nunito Sans',sans-serif;font-size:16px;font-weight:800;color:var(--text);margin-bottom:6px;">Sign out?</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:22px;line-height:1.6;">You will be returned to the login screen.<br>Your data is saved to SharePoint.</div>
+    <div style="display:flex;gap:10px;">
+      <button
+        ontouchend="closeSignOutModal();event.preventDefault();"
+        onclick="if(!this._t)closeSignOutModal();this._t=false;"
+        style="flex:1;padding:11px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;color:var(--text);touch-action:manipulation;-webkit-tap-highlight-color:transparent;">
+        Cancel
+      </button>
+      <button
+        ontouchend="this._t=true;logout();event.preventDefault();"
+        onclick="if(!this._t)logout();this._t=false;"
+        style="flex:1;padding:11px;border-radius:8px;border:none;background:#b91c1c;color:#fff;font-family:'Nunito Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">
+        Sign Out
+      </button>
+    </div>
+  </div>
+</div>
+
 <!-- PREP TASK EDIT MODAL -->
 <div class="mover" id="ptm" role="dialog" aria-modal="true">
   <div class="modal" style="width:520px;">
