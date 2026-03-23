@@ -550,7 +550,7 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 <div class="main">
   <div class="topbar">
     <div style="display:flex;align-items:center;">
-      <button id="mob-menu-btn" onclick="toggleMobMenu()" style="display:none;align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;">☰</button>
+      <button id="mob-menu-btn" onclick="toggleMobMenu()" style="align-items:center;justify-content:center;width:36px;height:36px;border-radius:7px;border:1.5px solid var(--border);background:#fff;cursor:pointer;font-size:16px;margin-right:10px;touch-action:manipulation;-webkit-tap-highlight-color:transparent;">☰</button>
       <div class="ptitle" id="tptitle">Dashboard</div>
     </div>
     <div class="tright">
@@ -4755,7 +4755,6 @@ window.addEventListener('load', function(){
 
 var _mobMenuBusy = false;
 function toggleMobMenu(){
-  if(_mobMenuBusy) return; _mobMenuBusy=true; setTimeout(function(){_mobMenuBusy=false;},350);
   var sb=document.querySelector('.sidebar');
   var ov=document.getElementById('mob-overlay');
   var isOpen=sb.classList.contains('mob-open');
@@ -4763,7 +4762,7 @@ function toggleMobMenu(){
   else { sb.classList.add('mob-open'); ov.classList.add('show'); document.body.style.overflow='hidden'; }
 }
 function closeMobMenu(){
-  if(_mobMenuBusy) return; _mobMenuBusy=true; setTimeout(function(){_mobMenuBusy=false;},350);
+  if(_mobMenuBusy) return; _mobMenuBusy=true; setTimeout(function(){_mobMenuBusy=false;},400);
   document.querySelector('.sidebar').classList.remove('mob-open'); document.body.style.overflow='';
   document.getElementById('mob-overlay').classList.remove('show');
 }
