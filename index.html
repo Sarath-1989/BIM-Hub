@@ -56,10 +56,10 @@ img{max-width:100%;height:auto;}
 /* -- MOBILE BASE ----------------------------------------- */
 @media(max-width:768px){
   :root{--sw:0px;}
-  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:400;}
+  .sidebar{transform:translateX(-260px);transition:transform .25s ease;z-index:11000;}
   .sidebar.mob-open{transform:translateX(0);}
   .main{margin-left:0!important;}
-  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:350;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
+  .mob-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10999;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation;}
   .mob-overlay.show{display:block;}
   #mob-menu-btn{display:flex!important;}
   .kgrid{grid-template-columns:1fr 1fr!important;}
@@ -1934,7 +1934,10 @@ async function loginMS() {
 }
 
 function doLogin(){
-  document.getElementById("login").style.display="none";
+  var lg=document.getElementById("login");
+  lg.style.display="none";
+  lg.style.visibility="hidden";
+  lg.style.pointerEvents="none";
   document.getElementById("app").style.display="block";
   history.pushState({page:"dash",proj:null}, "", "#dash");
   // Sync perm with role if perm not explicitly set
@@ -1951,7 +1954,10 @@ function doLogin(){
 
 function logout(){
   if(!confirm("Sign out?"))return;
-  document.getElementById("login").style.display="flex";
+  var lg=document.getElementById("login");
+  lg.style.display="flex";
+  lg.style.visibility="visible";
+  lg.style.pointerEvents="auto";
   document.getElementById("app").style.display="none";
   document.getElementById("demail").value="";
   document.getElementById("dpass").value="";
@@ -4762,7 +4768,8 @@ function toggleMobMenu(){
   else { sb.classList.add('mob-open'); ov.classList.add('show'); document.body.style.overflow='hidden'; }
 }
 function closeMobMenu(){
-  document.querySelector('.sidebar').classList.remove('mob-open'); document.body.style.overflow='';
+  document.querySelector('.sidebar').classList.remove('mob-open');
+  document.body.style.overflow='';
   document.getElementById('mob-overlay').classList.remove('show');
 }
 document.addEventListener("DOMContentLoaded",function(){
@@ -4774,21 +4781,25 @@ document.addEventListener("DOMContentLoaded",function(){
   var ptm=document.getElementById("ptm");
   if(ptm) ptm.addEventListener("click",function(e){if(e.target===ptm)closeM("ptm");});
 
-  // Sidebar nav — use touchend for instant response on mobile, click as fallback
-  document.querySelector('.sidebar').addEventListener('touchend', function(e){
-    var ni = e.target.closest('[data-pg]');
+  // ── Sidebar nav touch listeners (instant, no 300ms delay) ──
+  var sidebar = document.querySelector('.sidebar');
+  var _navBusy = false;
+  function handleNavTap(target){
+    if(_navBusy) return;
+    var ni = target.closest('[data-pg]');
     if(!ni) return;
+    _navBusy = true;
+    setTimeout(function(){ _navBusy=false; }, 350);
+    var pageId = ni.dataset.pg;
+    pg(pageId, ni);
+    closeMobMenu();
+  }
+  sidebar.addEventListener('touchend', function(e){
     e.preventDefault();
-    var pageId = ni.dataset.pg;
-    pg(pageId, ni);
-    closeMobMenu();
+    handleNavTap(e.target);
   }, {passive: false});
-  document.querySelector('.sidebar').addEventListener('click', function(e){
-    var ni = e.target.closest('[data-pg]');
-    if(!ni) return;
-    var pageId = ni.dataset.pg;
-    pg(pageId, ni);
-    closeMobMenu();
+  sidebar.addEventListener('click', function(e){
+    handleNavTap(e.target);
   });
 });
 </script>
