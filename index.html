@@ -4759,7 +4759,6 @@ window.addEventListener('load', function(){
   if(CU){ history.pushState({page:"dash",proj:null}, "", "#dash"); }
 });
 
-var _mobMenuBusy = false;
 function toggleMobMenu(){
   var sb=document.querySelector('.sidebar');
   var ov=document.getElementById('mob-overlay');
@@ -4781,24 +4780,22 @@ document.addEventListener("DOMContentLoaded",function(){
   var ptm=document.getElementById("ptm");
   if(ptm) ptm.addEventListener("click",function(e){if(e.target===ptm)closeM("ptm");});
 
-  // ── Sidebar nav touch listeners (instant, no 300ms delay) ──
-  var sidebar = document.querySelector('.sidebar');
-  var _navBusy = false;
+  // ── Sidebar nav: touchend fires instantly (no 300ms delay), click is desktop fallback ──
+  var sidebar=document.querySelector('.sidebar');
+  var _navBusy=false;
   function handleNavTap(target){
-    if(_navBusy) return;
-    var ni = target.closest('[data-pg]');
-    if(!ni) return;
-    _navBusy = true;
-    setTimeout(function(){ _navBusy=false; }, 350);
-    var pageId = ni.dataset.pg;
-    pg(pageId, ni);
+    if(_navBusy)return;
+    var ni=target.closest('[data-pg]');
+    if(!ni)return;
+    _navBusy=true; setTimeout(function(){_navBusy=false;},350);
+    pg(ni.dataset.pg, ni);
     closeMobMenu();
   }
-  sidebar.addEventListener('touchend', function(e){
+  sidebar.addEventListener('touchend',function(e){
     e.preventDefault();
     handleNavTap(e.target);
-  }, {passive: false});
-  sidebar.addEventListener('click', function(e){
+  },{passive:false});
+  sidebar.addEventListener('click',function(e){
     handleNavTap(e.target);
   });
 });
