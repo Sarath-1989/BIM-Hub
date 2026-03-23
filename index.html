@@ -5,9 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#1a2332">
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
-<meta http-equiv="X-Content-Type-Options" content="nosniff">
-<meta http-equiv="X-Frame-Options" content="SAMEORIGIN">
 <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+<!-- X-Frame-Options and X-Content-Type-Options must be set via HTTP response headers, not meta tags -->
 <meta name="robots" content="noindex, nofollow">
 <meta name="description" content="Asterwix BIM Hub — Internal Project Management System">
 <title>Asterwix BIM Hub</title>
@@ -71,6 +70,8 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 .prog-ring-wrap{display:flex;align-items:center;gap:24px;flex-wrap:wrap;}
 .cost-field-wrap{display:none;}
 .cost-field-wrap.admin-visible{display:block;}
+/* Responsive 4-col grid used in dashboards */
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 .revision-badge{font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;padding:1px 6px;border-radius:3px;background:#7c3aed18;color:#7c3aed;border:1px solid #c4b5fd;}
 .daily-bar-wrap{display:flex;align-items:flex-end;gap:3px;height:60px;}
 .daily-bar{flex:1;border-radius:3px 3px 0 0;min-width:8px;transition:height .3s;}
@@ -82,8 +83,10 @@ body{font-family:'Nunito Sans',sans-serif;background:var(--bg);color:var(--text)
 .perf-meter{height:8px;border-radius:4px;background:var(--border);overflow:hidden;flex:1;}
 .perf-fill{height:100%;border-radius:4px;background:var(--accent);transition:width .4s;}
 
-@media(max-width:768px){
-  .dash-kpi-grid{grid-template-columns:repeat(2,1fr)!important;}
+/* ── Extra small — single column KPIs ───────────────────── */
+@media(max-width:380px){
+  .dash-kpi-grid{grid-template-columns:1fr 1fr!important;}
+  .dash-kpi .dk-val{font-size:18px!important;}
 }
 *{-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;}
 img{max-width:100%;height:auto;}
@@ -123,9 +126,8 @@ img{max-width:100%;height:auto;}
   .btn{padding:6px 10px!important;font-size:11px!important;}
   .modal-box{width:96vw!important;max-width:96vw!important;max-height:90vh!important;overflow-y:auto!important;padding:18px!important;}
   .card{padding:14px!important;}
-  /* lbox handled in login css */
 
-  /* ── NEW COMPONENTS MOBILE ── */
+  /* ── EXISTING COMPONENTS MOBILE ── */
   .prep-stage{border-radius:8px!important;}
   .prep-stage-hdr{padding:10px 12px!important;}
   .subtask-row{flex-wrap:wrap!important;gap:6px!important;padding:8px!important;}
@@ -133,25 +135,102 @@ img{max-width:100%;height:auto;}
   .subtask-prog-bar{width:60px!important;}
   .return-banner{flex-direction:column!important;gap:6px!important;}
   .stbadge{font-size:8px!important;padding:1px 5px!important;}
-  .ptab{padding:10px 12px!important;font-size:10px!important;}
   .phdr-meta{gap:5px!important;}
   .ms-connect-box{width:90vw!important;padding:28px 20px!important;}
   .modal{padding:18px!important;border-radius:10px!important;}
   .field label{font-size:9px!important;}
   .field input,.field select,.field textarea{font-size:14px!important;} /* prevents iOS zoom */
   .lbox{padding:28px 20px 24px!important;border-radius:16px!important;}
-  /* Settings page mobile fixes */
+
+  /* ── PROJECT TABS — scrollable on mobile ── */
+  .ptabs{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;flex-wrap:nowrap!important;gap:0!important;padding-bottom:2px!important;}
+  .ptab{padding:9px 11px!important;font-size:10px!important;white-space:nowrap!important;flex-shrink:0!important;}
+
+  /* ── SETTINGS PAGE ── */
   .spcfg{padding:14px!important;}
   .sgrid{grid-template-columns:1fr!important;}
   .sp-btn-row{flex-direction:column!important;}
   .sp-btn-row .btn{width:100%!important;text-align:center!important;}
-  .role-table-wrap{border-radius:6px!important;}
+  .role-table-wrap{border-radius:6px!important;overflow-x:auto!important;}
   .page#page-settings .field input,.page#page-settings .field select{font-size:14px!important;}
+  .sstep{padding:10px 12px!important;gap:8px!important;}
+  .ssn{width:22px!important;height:22px!important;font-size:10px!important;flex-shrink:0!important;}
+  .ssb{font-size:11px!important;}
+  .ssb code{font-size:10px!important;word-break:break-all!important;display:inline-block!important;}
+  #sp-diag-result{font-size:10px!important;line-height:1.7!important;}
+  #sp-diag-result code{font-size:9px!important;word-break:break-all!important;}
+
+  /* ── RECYCLE BIN ── */
+  #page-recycle .pgrid{grid-template-columns:1fr!important;}
+  .recycle-card{padding:12px!important;}
+  .recycle-card > div:first-of-type{flex-direction:column!important;gap:6px!important;align-items:flex-start!important;}
+  .recycle-card .recycle-countdown{font-size:10px!important;}
+  .recycle-card > div:last-of-type{flex-direction:column!important;gap:6px!important;}
+  .recycle-card > div:last-of-type .btn{width:100%!important;justify-content:center!important;}
+
+  /* ── PROJECT DASHBOARD TAB ── */
+  .dash-kpi-grid{grid-template-columns:1fr 1fr!important;gap:8px!important;}
+  .dash-kpi{padding:10px 12px!important;}
+  .dash-kpi .dk-val{font-size:20px!important;}
+  .dash-kpi .dk-lbl{font-size:9px!important;}
+  .dash-kpi .dk-trend{font-size:10px!important;}
+  .pdash-section{padding:12px!important;border-radius:8px!important;}
+  .pdash-section-title{font-size:12px!important;margin-bottom:10px!important;}
+
+  /* Progress ring: stack vertically on mobile */
+  .prog-ring-wrap{flex-direction:column!important;align-items:stretch!important;gap:14px!important;}
+  .prog-ring-wrap svg{display:block!important;margin:0 auto!important;}
+  .prog-ring-wrap > div{width:100%!important;}
+
+  /* Daily trend chart: compress labels */
+  .daily-bar-label{font-size:7px!important;}
+
+  /* Revision status grid: 2 columns on mobile */
+  .grid4{grid-template-columns:repeat(2,1fr)!important;gap:8px!important;}
+
+  /* Admin cost input: full width */
+  #proj-cost-input{width:100%!important;font-size:14px!important;box-sizing:border-box!important;}
+
+  /* Financial overview inner flex → column */
+  .pdash-section > div > div[style*="display:flex;align-items:center;gap:18px"]{
+    flex-direction:column!important;align-items:stretch!important;gap:10px!important;
+  }
+
+  /* ── MY PERSONAL DASHBOARD ── */
+  /* Profile banner: wrap avatar + name + score */
+  #mydash-content > div:first-child{
+    flex-wrap:wrap!important;padding:16px!important;gap:12px!important;
+  }
+  #mydash-content > div:first-child > div:last-child{
+    margin-left:0!important;text-align:left!important;width:100%!important;
+  }
+  /* My task rows: compress progress bar, stack overdue badge */
+  .my-task-row{flex-wrap:wrap!important;gap:6px!important;padding:8px 0!important;}
+  .my-task-row > div:nth-child(2){width:100%!important;min-width:0!important;}
+  .my-task-row .perf-meter{max-width:60px!important;min-width:40px!important;flex:none!important;}
+  .my-task-row > span[style*="OVERDUE"]{
+    width:100%!important;display:block!important;margin-top:2px!important;
+  }
+  .perf-meter{height:6px!important;}
+
+  /* Returned items row: stack button below */
+  #mydash-content .pdash-section div[style*="display:flex;align-items:center;gap:12px"]{
+    flex-wrap:wrap!important;gap:8px!important;
+  }
 }
 @media(max-width:420px){
   .kgrid{grid-template-columns:1fr!important;}
   .tgrid{grid-template-columns:1fr!important;}
   .wstats{flex-direction:column!important;gap:8px!important;}
+  /* Single column KPIs on very small screens */
+  .dash-kpi-grid{grid-template-columns:1fr 1fr!important;}
+  .dash-kpi .dk-val{font-size:18px!important;}
+  /* Recycle bin single column */
+  #page-recycle .pgrid{grid-template-columns:1fr!important;}
+  /* My dashboard avatar smaller */
+  #mydash-content > div:first-child > div:first-child + div{
+    font-size:14px!important;
+  }
 }
 
 /* ── TABLET (768px – 1024px) ─────────────────────────────────── */
@@ -174,6 +253,15 @@ img{max-width:100%;height:auto;}
   /* Settings tablet */
   .sgrid{grid-template-columns:repeat(2,1fr)!important;}
   .role-table-wrap{overflow-x:auto;}
+
+  /* ── TABLET: new components ── */
+  .dash-kpi-grid{grid-template-columns:repeat(2,1fr)!important;}
+  .grid4{grid-template-columns:repeat(2,1fr)!important;}
+  .prog-ring-wrap{gap:16px!important;}
+  #page-recycle .pgrid{grid-template-columns:repeat(2,1fr)!important;}
+  .pdash-section{padding:16px!important;}
+  .ptabs{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important;flex-wrap:nowrap!important;}
+  .ptab{white-space:nowrap!important;flex-shrink:0!important;}
 }
 
 /* LOGIN */
@@ -495,7 +583,27 @@ input[type=range]{width:100%;accent-color:#ffffff;}
 .bim-overlay.active{display:flex;}
 .bim-overlay-box{background:var(--color-background-primary,#fff);border-radius:14px;padding:28px;width:460px;max-width:92vw;box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative;z-index:10000;}
 </style>
-<script src="https://alcdn.msauth.net/browser/2.38.0/js/msal-browser.min.js"></script>
+<!-- MSAL v2.38.3 — Microsoft Authentication Library -->
+<!-- Note: Microsoft does not publish SRI hashes for MSAL, so no integrity attribute is used -->
+<script>
+// Define fallback BEFORE the script tag so onerror can call it immediately
+function loadMSALFallback() {
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/@azure/msal-browser@2.38.3/lib/msal-browser.min.js';
+  s.crossOrigin = 'anonymous';
+  s.onerror = function() {
+    var s2 = document.createElement('script');
+    s2.src = 'https://cdn.jsdelivr.net/npm/@azure/msal-browser@2.38.3/lib/msal-browser.min.js';
+    s2.crossOrigin = 'anonymous';
+    document.head.appendChild(s2);
+  };
+  document.head.appendChild(s);
+}
+</script>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"
+  crossorigin="anonymous"
+  onerror="loadMSALFallback()">
+</script>
 </head>
 <body>
 
@@ -779,12 +887,55 @@ input[type=range]{width:100%;accent-color:#ffffff;}
     <div class="spcfg">
       <div class="spct"><span>📋</span>Setup Guide</div>
       <p style="font-size:12px;color:var(--t2);margin-bottom:14px;line-height:1.6;">One-time setup by your IT admin. Once done, all 30+ team members can log in with their Microsoft 365 accounts.</p>
-      <div class="sstep"><div class="ssn">1</div><div class="ssb"><strong>Create SharePoint Lists</strong>Go to your SharePoint site → Site Contents → New → List. Create <code>BIMProjects</code> and <code>BIMTasks</code>.</div></div>
-      <div class="sstep"><div class="ssn">2</div><div class="ssb"><strong>BIMProjects columns</strong>Add: <code>ProjectCode</code>, <code>Client</code>, <code>Status</code>, <code>Phase</code>, <code>StartDate</code>, <code>EndDate</code>, <code>Progress</code>, <code>Color</code>, <code>TeamMembers</code> (person, multiple)</div></div>
-      <div class="sstep"><div class="ssn">3</div><div class="ssb"><strong>BIMTasks columns</strong>Add: <code>ProjectID</code>, <code>Phase</code>, <code>Discipline</code>, <code>Assignee</code> (person), <code>StartDate</code>, <code>EndDate</code>, <code>Priority</code>, <code>Status</code>, <code>Progress</code>, <code>Notes</code></div></div>
-      <div class="sstep"><div class="ssn">4</div><div class="ssb"><strong>Register Azure App</strong>Go to <code>portal.azure.com</code> → Azure AD → App Registrations → New. Grant <code>Sites.ReadWrite.All</code>. Copy Tenant ID and Client ID above.</div></div>
-      <div class="sstep"><div class="ssn">4b</div><div class="ssb"><strong>BIMMembers List columns</strong>Add these columns to your <code>BIMMembers</code> SharePoint list: <code>Email</code> (Single line), <code>SystemRole</code> (Single line), <code>BIMData</code> (Multiple lines). Admin can assign roles from <strong>Settings → User Role Management</strong>.</div></div>
-      <div class="sstep"><div class="ssn">5</div><div class="ssb"><strong>Deploy for your team</strong>Upload this file to your SharePoint Document Library or company intranet. Everyone with a Microsoft 365 account can access it — no additional software needed.</div></div>
+
+      <div class="sstep"><div class="ssn">1</div><div class="ssb"><strong>Create 6 SharePoint Lists</strong><br>Go to your SharePoint site → Site Contents → New → List. Create these 6 lists exactly as named:<br>
+        <div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:6px;">
+          <code style="background:#1a2332;color:#00b899;padding:3px 8px;border-radius:4px;font-size:11px;">BIMProjects</code>
+          <code style="background:#1a2332;color:#00b899;padding:3px 8px;border-radius:4px;font-size:11px;">BIMTasks</code>
+          <code style="background:#1a2332;color:#00b899;padding:3px 8px;border-radius:4px;font-size:11px;">BIMMembers</code>
+          <code style="background:#1a2332;color:#00b899;padding:3px 8px;border-radius:4px;font-size:11px;">BIMModelLogs</code>
+          <code style="background:#1a2332;color:#00b899;padding:3px 8px;border-radius:4px;font-size:11px;">BIMDrawingLogs</code>
+          <code style="background:#1a2332;color:#00b899;padding:3px 8px;border-radius:4px;font-size:11px;">BIMRecycleBin</code>
+        </div>
+      </div></div>
+
+      <div class="sstep"><div class="ssn">2</div><div class="ssb"><strong>Add BIMData column to ALL 6 lists</strong><br>
+        In each list: List Settings → Create Column → <strong>Multiple lines of text</strong> → Name it <code>BIMData</code> → Plain text → OK.<br>
+        <span style="color:#b91c1c;font-weight:700;">⚠ Must be "Multiple lines" not "Single line" — JSON data can exceed 255 characters.</span>
+      </div></div>
+
+      <div class="sstep"><div class="ssn">3</div><div class="ssb"><strong>BIMMembers — extra columns</strong><br>
+        In <code>BIMMembers</code> list only, also add:<br>
+        • <code>Email</code> — Single line of text<br>
+        • <code>SystemRole</code> — Single line of text<br>
+        These allow role lookup and email notifications.
+      </div></div>
+
+      <div class="sstep"><div class="ssn">4</div><div class="ssb"><strong>Register Azure App (if not done)</strong><br>
+        Go to <code>portal.azure.com</code> → Azure Active Directory → App Registrations → New registration.<br>
+        Set Redirect URI to <code>https://hub.asterwix.com</code> (Single-page application).<br>
+        Under API Permissions add: <code>Sites.ReadWrite.All</code>, <code>Files.ReadWrite.All</code>, <code>User.Read</code> (all Delegated).<br>
+        Grant admin consent. Copy Tenant ID and Client ID into the fields above.
+      </div></div>
+
+      <div class="sstep"><div class="ssn">5</div><div class="ssb"><strong>Test Connection</strong><br>
+        Log in with Microsoft 365, then click the <strong>↺ Sync</strong> button in the top bar. If it turns green, SharePoint is connected.<br>
+        The system auto-loads data on every login and auto-saves changes with debouncing (no flooding).
+      </div></div>
+
+      <div class="sstep"><div class="ssn">6</div><div class="ssb"><strong>Deploy for your team</strong><br>
+        Upload this HTML file to your SharePoint Document Library or host it at <code>hub.asterwix.com</code>. All 30+ team members can log in with their Microsoft 365 accounts — no installs needed.
+      </div></div>
+
+      <!-- SP Connection Test -->
+      <div style="margin-top:14px;padding:14px;background:#f8f9fb;border:1.5px solid var(--border);border-radius:8px;">
+        <div style="font-size:11px;font-weight:700;color:var(--t2);margin-bottom:10px;">🔌 Connection Diagnostics</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="btn btn-p btn-sm" onclick="runSPDiagnostics()">▶ Run Diagnostics</button>
+          <button class="btn btn-g btn-sm" onclick="sessionStorage.removeItem('bim_sp_site_id');toast('Site ID cache cleared — next sync will re-discover')">🔄 Clear Site Cache</button>
+        </div>
+        <div id="sp-diag-result" style="margin-top:10px;font-size:11px;color:var(--t2);line-height:1.8;display:none;"></div>
+      </div>
     </div>
     <div class="spcfg">
       <div class="spct"><span>👥</span>Role Permissions</div>
@@ -1384,9 +1535,22 @@ const MSAL_CONFIG = {
   auth: {
     clientId: CLIENT_ID,
     authority: "https://login.microsoftonline.com/" + TENANT_ID,
-    redirectUri: "https://hub.asterwix.com"
+    redirectUri: "https://hub.asterwix.com",
+    navigateToLoginRequestUrl: false
   },
-  cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: false }
+  cache: { cacheLocation: "localStorage", storeAuthStateInCookie: true },
+  system: {
+    // Prevents Cross-Origin-Opener-Policy errors from window.closed polling
+    windowHashTimeout: 60000,
+    iframeHashTimeout: 6000,
+    loadFrameTimeout: 0,
+    asyncPopups: false,
+    allowNativeBroker: false,
+    loggerOptions: {
+      logLevel: 1, // Error only — suppresses verbose MSAL logs
+      piiLoggingEnabled: false
+    }
+  }
 };
 
 const SP_SCOPES = ["User.Read","Sites.ReadWrite.All","Files.ReadWrite.All","offline_access"];
@@ -1621,177 +1785,265 @@ async function getSPToken() {
     spToken = res.accessToken;
     return spToken;
   } catch(e) {
+    // Only attempt popup if it's an interaction_required error (not a COOP/network error)
+    const needsInteraction = e.errorCode === "interaction_required"
+      || e.errorCode === "login_required"
+      || e.errorCode === "consent_required"
+      || (e.name && e.name === "InteractionRequiredAuthError");
+    if (!needsInteraction) return spToken || null; // return cached token if any
     try {
       const res = await msalInstance.acquireTokenPopup({ scopes: SP_SCOPES });
       spToken = res.accessToken;
       return spToken;
-    } catch(e2) { return null; }
+    } catch(e2) {
+      // Swallow COOP/window.closed errors — don't surface to user
+      if (e2.message && (e2.message.includes("window.closed") || e2.message.includes("Cross-Origin"))) {
+        console.warn("Token refresh interrupted by browser COOP policy — using cached token");
+        return spToken || null;
+      }
+      console.warn("acquireTokenPopup failed:", e2.message || e2.errorCode);
+      return null;
+    }
   }
 }
 
-// ── Graph API helper ─────────────────────────────────────
+// ── Graph API helper (uses retry internally) ─────────────
 async function graphAPI(path, method="GET", body=null) {
-  const token = await getSPToken();
-  if (!token) return null;
-  const opts = {
-    method,
-    headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json" }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const res = await fetch("https://graph.microsoft.com/v1.0" + path, opts);
-  if (!res.ok) { console.error("Graph error:", res.status, await res.text()); return null; }
-  if (res.status === 204) return {};
-  return await res.json();
+  return await graphAPIWithRetry(path, method, body);
 }
 
-// ── Get SharePoint Site ID ───────────────────────────────
+// ── Get SharePoint Site ID — cached in sessionStorage ────
 async function getSiteId() {
   if (SP_SITE_ID) return SP_SITE_ID;
+  // Check sessionStorage cache first (survives navigation, not full close)
+  const cached = sessionStorage.getItem("bim_sp_site_id");
+  if (cached) { SP_SITE_ID = cached; return SP_SITE_ID; }
+
   const host = "asterwix007.sharepoint.com";
   try {
-    // Step 1: Get root site first
+    // Step 1: Get root site
     const root = await graphAPI("/sites/" + host);
-    if (!root || !root.id) { console.error("Root site not found"); return null; }
-    console.log("SP Root site:", root.id);
+    if (!root || !root.id) { console.error("SP root site not found"); return null; }
 
-    // Step 2: Search all subsites
-    const subsites = await graphAPI("/sites/" + host + "/sites?$top=50");
-    if (subsites && subsites.value && subsites.value.length > 0) {
-      console.log("Subsites found:", subsites.value.map(s => s.name + " | " + s.webUrl));
-      // Look for Communication site
+    // Step 2: Check root site for BIMProjects list first (most common)
+    const rootLists = await graphAPI("/sites/" + root.id + "/lists?$filter=displayName eq 'BIMProjects'&$select=id,displayName");
+    if (rootLists && rootLists.value && rootLists.value.length > 0) {
+      SP_SITE_ID = root.id;
+      sessionStorage.setItem("bim_sp_site_id", SP_SITE_ID);
+      console.log("✅ BIMProjects found on root site:", root.id);
+      return SP_SITE_ID;
+    }
+
+    // Step 3: Search subsites
+    const subsites = await graphAPI("/sites/" + host + "/sites?$top=50&$select=id,name,webUrl");
+    if (subsites && subsites.value) {
+      // Try communication site first
       const comm = subsites.value.find(s =>
-        s.name && s.name.toLowerCase().includes("communication") ||
-        s.webUrl && s.webUrl.toLowerCase().includes("communication")
+        (s.name && s.name.toLowerCase().includes("communication")) ||
+        (s.webUrl && s.webUrl.toLowerCase().includes("communication"))
       );
       if (comm) {
         SP_SITE_ID = comm.id;
+        sessionStorage.setItem("bim_sp_site_id", SP_SITE_ID);
         console.log("✅ Communication site found:", comm.name, comm.id);
         return SP_SITE_ID;
       }
-      // Try each subsite to find our lists
+      // Check each subsite for BIMProjects
       for (const site of subsites.value) {
-        const lists = await graphAPI("/sites/" + site.id + "/lists?$filter=displayName eq 'BIMProjects'");
+        const lists = await graphAPI("/sites/" + site.id + "/lists?$filter=displayName eq 'BIMProjects'&$select=id,displayName");
         if (lists && lists.value && lists.value.length > 0) {
           SP_SITE_ID = site.id;
-          console.log("✅ Found BIMProjects in site:", site.name, site.id);
+          sessionStorage.setItem("bim_sp_site_id", SP_SITE_ID);
+          console.log("✅ Found BIMProjects in subsite:", site.name, site.id);
           return SP_SITE_ID;
         }
       }
     }
 
-    // Step 3: Check if lists are on root site
-    const rootLists = await graphAPI("/sites/" + root.id + "/lists?$filter=displayName eq 'BIMProjects'");
-    if (rootLists && rootLists.value && rootLists.value.length > 0) {
-      SP_SITE_ID = root.id;
-      console.log("✅ BIMProjects found on root site:", root.id);
-      return SP_SITE_ID;
-    }
-
-    console.error("❌ BIMProjects list not found on any site");
+    console.error("❌ BIMProjects list not found on any SP site");
     return null;
   } catch(e) {
     console.error("getSiteId error:", e);
     return null;
   }
 }
-// ── Read all items from a List ───────────────────────────
+// ── Read all items from a List (with pagination) ──────────
 async function spGetList(listName) {
   const siteId = await getSiteId();
   if (!siteId) return [];
-  const data = await graphAPI("/sites/"+siteId+"/lists/"+listName+"/items?expand=fields&$top=999");
-  return data ? (data.value || []) : [];
+  let items = [];
+  // Only fetch the fields we actually need — faster, avoids 255-char Title truncation
+  let url = "/sites/"+siteId+"/lists/"+encodeURIComponent(listName)
+    + "/items?expand=fields($select=BIMData,Email,SystemRole,Title,id)&$top=500&$select=id,fields";
+  while (url) {
+    const data = await graphAPI(url);
+    if (!data) break;
+    items = items.concat(data.value || []);
+    // Follow nextLink for pagination (handles >500 items)
+    url = data["@odata.nextLink"] ? data["@odata.nextLink"].replace("https://graph.microsoft.com/v1.0","") : null;
+  }
+  return items;
 }
 
 // ── Add item to List ─────────────────────────────────────
 async function spAddItem(listName, fields) {
   const siteId = await getSiteId();
   if (!siteId) return null;
-  return await graphAPI("/sites/"+siteId+"/lists/"+listName+"/items","POST",{fields});
+  return await graphAPIWithRetry("/sites/"+siteId+"/lists/"+encodeURIComponent(listName)+"/items","POST",{fields});
 }
 
 // ── Update item in List ──────────────────────────────────
 async function spUpdateItem(listName, itemId, fields) {
   const siteId = await getSiteId();
   if (!siteId) return null;
-  return await graphAPI("/sites/"+siteId+"/lists/"+listName+"/items/"+itemId+"/fields","PATCH",fields);
+  return await graphAPIWithRetry("/sites/"+siteId+"/lists/"+encodeURIComponent(listName)+"/items/"+itemId+"/fields","PATCH",fields);
 }
 
 // ── Delete item from List ────────────────────────────────
 async function spDeleteItem(listName, itemId) {
   const siteId = await getSiteId();
   if (!siteId) return null;
-  return await graphAPI("/sites/"+siteId+"/lists/"+listName+"/items/"+itemId,"DELETE");
+  return await graphAPIWithRetry("/sites/"+siteId+"/lists/"+encodeURIComponent(listName)+"/items/"+itemId,"DELETE");
+}
+
+// ── Graph API with retry on throttle (429) / server error (503) ─
+async function graphAPIWithRetry(path, method="GET", body=null, retries=3) {
+  for (let attempt = 0; attempt < retries; attempt++) {
+    const token = await getSPToken();
+    if (!token) return null;
+    const opts = {
+      method,
+      headers: { "Authorization": "Bearer " + token, "Content-Type": "application/json", "Accept": "application/json" }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    try {
+      const res = await fetch("https://graph.microsoft.com/v1.0" + path, opts);
+      if (res.status === 429 || res.status === 503) {
+        // Throttled — wait for Retry-After header or exponential backoff
+        const retryAfter = parseInt(res.headers.get("Retry-After") || "2") * 1000;
+        const wait = retryAfter || Math.pow(2, attempt) * 1000;
+        console.warn(`SP throttled (${res.status}) — retrying in ${wait}ms`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error("Graph error:", res.status, errText);
+        return null;
+      }
+      if (res.status === 204) return {};
+      return await res.json();
+    } catch(e) {
+      if (attempt < retries - 1) {
+        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 800));
+        continue;
+      }
+      console.error("Graph fetch error:", e);
+      return null;
+    }
+  }
+  return null;
 }
 
 // ══════════════════════════════════════════════════════════
-// SAVE ALL DATA TO SHAREPOINT
+// SAVE ALL DATA TO SHAREPOINT — Upsert approach (safe for multi-user)
 // ══════════════════════════════════════════════════════════
 async function spSaveAll() {
   toast("Syncing to SharePoint…");
   try {
-    // Verify site connection first
     const testSiteId = await getSiteId();
     if (!testSiteId) {
-      toast("⚠ Cannot connect to SharePoint. Check login.");
+      toast("⚠ Cannot connect to SharePoint. Saved locally.");
       localSave();
       return;
     }
-    console.log("SharePoint Site ID:", testSiteId);
-    // Save Projects
-    await spSaveList("BIMProjects", projects, p => ({
-      Title: p.name,
-      BIMData: JSON.stringify(p)
-    }));
-    // Save Tasks (flatten all)
-    const allTasks = Object.values(tasks).flat();
-    await spSaveList("BIMTasks", allTasks, t => ({
-      Title: t.name||"Task",
-      BIMData: JSON.stringify(t)
-    }));
-    // Save Members
-    await spSaveList("BIMMembers", members, m => ({
-      Title: m.name,
-      Email: m.email || "",
-      SystemRole: m.perm || "Jr. BIM Modeller",
-      BIMData: JSON.stringify(m)
-    }));
-    // Save ModelLogs
-    const allModels = Object.values(modelLogs).flat();
-    await spSaveList("BIMModelLogs", allModels, m => ({
-      Title: m.name||"Model",
-      BIMData: JSON.stringify(m)
-    }));
-    // Save DrawingLogs
-    const allDrawings = Object.values(drawingLogs).flat();
-    await spSaveList("BIMDrawingLogs", allDrawings, d => ({
-      Title: d.title||d.num||"Drawing",
-      BIMData: JSON.stringify(d)
-    }));
-    // Update status bar
+    // ── Save all lists in parallel batches ──
+    await Promise.all([
+      spUpsertList("BIMProjects", projects, p => ({
+        Title: (p.name||"Project").slice(0,255),
+        BIMData: JSON.stringify(p)
+      }), p => p.id),
+      spUpsertList("BIMTasks", Object.values(tasks).flat(), t => ({
+        Title: (t.name||"Task").slice(0,255),
+        BIMData: JSON.stringify(t)
+      }), t => t.id),
+      spUpsertList("BIMMembers", members, m => ({
+        Title: (m.name||"Member").slice(0,255),
+        Email: (m.email||"").slice(0,255),
+        SystemRole: (m.perm||"Jr. BIM Modeller").slice(0,255),
+        BIMData: JSON.stringify(m)
+      }), m => m.id),
+      spUpsertList("BIMModelLogs", Object.values(modelLogs).flat(), m => ({
+        Title: (m.name||"Model").slice(0,255),
+        BIMData: JSON.stringify(m)
+      }), m => m.id),
+      spUpsertList("BIMDrawingLogs", Object.values(drawingLogs).flat(), d => ({
+        Title: (d.title||d.num||"Drawing").slice(0,255),
+        BIMData: JSON.stringify(d)
+      }), d => d.id),
+      // Sync recycle bin to SharePoint
+      spUpsertList("BIMRecycleBin", getRecycleBin(), p => ({
+        Title: (p.name||"Project").slice(0,255),
+        BIMData: JSON.stringify(p)
+      }), p => p.id),
+    ]);
     document.getElementById("spbar").className="spbar ok";
     document.getElementById("spbar-txt").textContent="✓ SharePoint synced — "+new Date().toLocaleTimeString();
     toast("Synced to SharePoint ✓");
   } catch(e) {
     console.error("SP Save error:", e);
-    toast("Sync error — saved locally");
+    toast("Sync error — data saved locally as backup");
   }
-  // Always save locally as backup
   localSave();
 }
 
-// ── Save a list (clear + rewrite approach) ───────────────
-async function spSaveList(listName, items, mapFn) {
+// ── Upsert list: update existing items, add new ones, delete removed ones ─
+// This is safe for multi-user — no delete-all-then-rewrite
+var _spItemIdCache = {}; // listName → { localId → spItemId }
+
+async function spUpsertList(listName, items, mapFn, getLocalId) {
   const siteId = await getSiteId();
   if (!siteId) return;
-  // Get existing items
+
+  // Build local ID set
+  const localIds = new Set(items.map(getLocalId).map(String));
+
+  // Get current SP items
   const existing = await spGetList(listName);
-  // Delete old
-  for (const ex of existing) {
-    await spDeleteItem(listName, ex.id);
+
+  // Build map: localId → SP item id
+  if (!_spItemIdCache[listName]) _spItemIdCache[listName] = {};
+  const cache = _spItemIdCache[listName];
+
+  existing.forEach(ex => {
+    try {
+      const parsed = JSON.parse(ex.fields.BIMData || "{}");
+      const lid = String(getLocalId(parsed) || "");
+      if (lid) cache[lid] = ex.id;
+    } catch(e) {}
+  });
+
+  // Delete SP items that no longer exist locally
+  const existingLocalIds = new Set(Object.keys(cache));
+  for (const lid of existingLocalIds) {
+    if (!localIds.has(lid)) {
+      await spDeleteItem(listName, cache[lid]);
+      delete cache[lid];
+    }
   }
-  // Add new
+
+  // Update or add
   for (const item of items) {
-    await spAddItem(listName, mapFn(item));
+    const lid = String(getLocalId(item));
+    const fields = mapFn(item);
+    if (cache[lid]) {
+      // Update existing
+      await spUpdateItem(listName, cache[lid], fields);
+    } else {
+      // Add new
+      const result = await spAddItem(listName, fields);
+      if (result && result.id) cache[lid] = result.id;
+    }
   }
 }
 
@@ -1803,49 +2055,73 @@ async function spLoadAll() {
   try {
     const testSiteId = await getSiteId();
     if (!testSiteId) {
-      console.warn("SharePoint site not found - using local data");
+      console.warn("SharePoint site not found — using local data");
       localLoad();
       toast("⚠ SharePoint not connected — using local data");
       return;
     }
-    console.log("Loading from SharePoint site:", testSiteId);
-    // Load Projects
-    const pItems = await spGetList("BIMProjects");
+    // ── Load all lists in parallel ──
+    const [pItems, tItems, mItems, mlItems, dlItems, rbItems] = await Promise.all([
+      spGetList("BIMProjects"),
+      spGetList("BIMTasks"),
+      spGetList("BIMMembers"),
+      spGetList("BIMModelLogs"),
+      spGetList("BIMDrawingLogs"),
+      spGetList("BIMRecycleBin").catch(()=>[]) // optional — may not exist yet
+    ]);
+
+    // Projects
     if (pItems.length > 0) {
-      projects = pItems.map(i => JSON.parse(i.fields.BIMData||"{}")).filter(p=>p.id);
+      const loaded = pItems.map(i => { try{return JSON.parse(i.fields.BIMData||"{}");}catch(e){return null;} }).filter(p=>p&&p.id);
+      if (loaded.length) projects = loaded;
     }
-    // Load Tasks
-    const tItems = await spGetList("BIMTasks");
+    // Tasks
     if (tItems.length > 0) {
-      tasks = {};
+      const newTasks = {};
       tItems.forEach(i => {
-        const t = JSON.parse(i.fields.BIMData||"{}");
-        if (t.pid) { if (!tasks[t.pid]) tasks[t.pid]=[]; tasks[t.pid].push(t); }
+        try{
+          const t = JSON.parse(i.fields.BIMData||"{}");
+          if (t.pid) { if (!newTasks[t.pid]) newTasks[t.pid]=[]; newTasks[t.pid].push(t); }
+        }catch(e){}
       });
+      if (Object.keys(newTasks).length) tasks = newTasks;
     }
-    // Load Members
-    const mItems = await spGetList("BIMMembers");
+    // Members
     if (mItems.length > 0) {
-      members = mItems.map(i => JSON.parse(i.fields.BIMData||"{}")).filter(m=>m.id);
+      const loaded = mItems.map(i => { try{return JSON.parse(i.fields.BIMData||"{}");}catch(e){return null;} }).filter(m=>m&&m.id);
+      if (loaded.length) members = loaded;
     }
-    // Load ModelLogs
-    const mlItems = await spGetList("BIMModelLogs");
+    // Model Logs
     if (mlItems.length > 0) {
-      modelLogs = {};
+      const newML = {};
       mlItems.forEach(i => {
-        const m = JSON.parse(i.fields.BIMData||"{}");
-        if (m.pid) { if (!modelLogs[m.pid]) modelLogs[m.pid]=[]; modelLogs[m.pid].push(m); }
+        try{
+          const m = JSON.parse(i.fields.BIMData||"{}");
+          if (m.pid) { if (!newML[m.pid]) newML[m.pid]=[]; newML[m.pid].push(m); }
+        }catch(e){}
       });
+      if (Object.keys(newML).length) modelLogs = newML;
     }
-    // Load DrawingLogs
-    const dlItems = await spGetList("BIMDrawingLogs");
+    // Drawing Logs
     if (dlItems.length > 0) {
-      drawingLogs = {};
+      const newDL = {};
       dlItems.forEach(i => {
-        const d = JSON.parse(i.fields.BIMData||"{}");
-        if (d.pid) { if (!drawingLogs[d.pid]) drawingLogs[d.pid]=[]; drawingLogs[d.pid].push(d); }
+        try{
+          const d = JSON.parse(i.fields.BIMData||"{}");
+          if (d.pid) { if (!newDL[d.pid]) newDL[d.pid]=[]; newDL[d.pid].push(d); }
+        }catch(e){}
       });
+      if (Object.keys(newDL).length) drawingLogs = newDL;
     }
+    // Recycle Bin (sync from SP if available)
+    if (rbItems.length > 0) {
+      const loaded = rbItems.map(i => { try{return JSON.parse(i.fields.BIMData||"{}");}catch(e){return null;} }).filter(p=>p&&p.id&&p.deletedAt);
+      if (loaded.length) saveRecycleBin(loaded);
+    }
+
+    // Rebuild SP item ID cache from fresh load
+    _spItemIdCache = {};
+
     document.getElementById("spbar").className="spbar ok";
     document.getElementById("spbar-txt").textContent="✓ Connected to SharePoint — Live sync active";
     toast("Data loaded from SharePoint ✓");
@@ -1887,8 +2163,82 @@ function localLoad(){
   }catch(e){}
 }
 
-// ── saveData = SP sync + local backup ────────────────────
-function saveData(){ spSaveAll(); }
+// ── saveData = debounced SP sync + immediate local backup ─
+// Debounce: waits 1.5s after last call before hitting SharePoint
+// This prevents 50+ API calls when editing a single task
+var _saveDebounceTimer = null;
+function saveData(immediate) {
+  localSave(); // Always save locally right away
+  if (_saveDebounceTimer) clearTimeout(_saveDebounceTimer);
+  if (immediate) {
+    spSaveAll();
+  } else {
+    _saveDebounceTimer = setTimeout(function(){
+      _saveDebounceTimer = null;
+      spSaveAll();
+    }, 1500);
+  }
+}
+function saveDataNow() { saveData(true); } // Force immediate sync (used by doSync button)
+
+// ── SharePoint Diagnostics ────────────────────────────────
+async function runSPDiagnostics() {
+  const el = document.getElementById("sp-diag-result");
+  if (!el) return;
+  el.style.display = "block";
+  el.innerHTML = "⏳ Running diagnostics…";
+  const lines = [];
+  const ok = s => `<span style="color:#16a34a;font-weight:700;">✅</span> ${s}`;
+  const fail = s => `<span style="color:#b91c1c;font-weight:700;">❌</span> ${s}`;
+  const warn = s => `<span style="color:#d97706;font-weight:700;">⚠️</span> ${s}`;
+
+  // 1. MSAL
+  lines.push(typeof msal !== "undefined" ? ok("MSAL library loaded (v2.38.3)") : fail("MSAL library NOT loaded"));
+  lines.push(msalInstance ? ok("MSAL instance initialised") : fail("MSAL not initialised — not logged in via Microsoft"));
+
+  // 2. Token
+  const token = await getSPToken();
+  lines.push(token ? ok("SharePoint access token acquired") : fail("Cannot get SP token — please sign in with Microsoft first"));
+  if (!token) { el.innerHTML = lines.join("<br>"); return; }
+
+  // 3. Site ID
+  sessionStorage.removeItem("bim_sp_site_id");
+  SP_SITE_ID = null;
+  const siteId = await getSiteId();
+  lines.push(siteId ? ok(`Site ID found: <code style="font-size:10px;">${siteId}</code>`) : fail("Site ID not found — BIMProjects list may not exist"));
+  if (!siteId) { el.innerHTML = lines.join("<br>"); return; }
+
+  // 4. Check each list
+  const requiredLists = ["BIMProjects","BIMTasks","BIMMembers","BIMModelLogs","BIMDrawingLogs","BIMRecycleBin"];
+  for (const list of requiredLists) {
+    try {
+      const data = await graphAPI(`/sites/${siteId}/lists?$filter=displayName eq '${list}'&$select=id,displayName`);
+      if (data && data.value && data.value.length > 0) {
+        // Check BIMData column exists
+        const cols = await graphAPI(`/sites/${siteId}/lists/${data.value[0].id}/columns?$select=name,columnGroup`);
+        const hasBIMData = cols && cols.value && cols.value.some(c => c.name === "BIMData");
+        lines.push(hasBIMData ? ok(`${list} — list found + BIMData column ✓`) : warn(`${list} — list found but <strong>BIMData column missing</strong> — add a Multiple lines column named BIMData`));
+      } else {
+        lines.push(list === "BIMRecycleBin" ? warn(`${list} — not found (optional, create to enable cloud recycle bin)`) : fail(`${list} — list NOT found on SharePoint`));
+      }
+    } catch(e) {
+      lines.push(fail(`${list} — error checking: ${e.message||e}`));
+    }
+  }
+
+  // 5. Current user
+  lines.push(CU ? ok(`Logged in as: ${CU.name} (${CU.email}) — Role: ${getCURole()}`) : warn("Not logged in"));
+
+  // 6. Summary
+  const failCount = lines.filter(l=>l.includes("❌")).length;
+  const warnCount = lines.filter(l=>l.includes("⚠️")).length;
+  lines.push("");
+  if (failCount === 0 && warnCount === 0) lines.push(`<strong style="color:#16a34a;">🎉 All checks passed — SharePoint fully configured!</strong>`);
+  else if (failCount > 0) lines.push(`<strong style="color:#b91c1c;">${failCount} error(s) found — fix the ❌ items above to enable SharePoint sync.</strong>`);
+  else lines.push(`<strong style="color:#d97706;">${warnCount} warning(s) — system works but some optional features need setup.</strong>`);
+
+  el.innerHTML = lines.join("<br>");
+}
 
 // ══════════════════════════════════════════════════════════
 // LOGIN WITH MICROSOFT
@@ -1912,28 +2262,110 @@ function cancelMSLogin() {
   toast('Microsoft login cancelled.');
 }
 
+// ── Handle redirect result on page load ────────────────────
+async function handleMSRedirectOnLoad() {
+  if (typeof msal === "undefined") return;
+  initMSAL();
+  try {
+    const response = await msalInstance.handleRedirectPromise();
+    if (response && response.account) {
+      // Came back from loginRedirect — complete login
+      spToken = response.accessToken;
+      const account = response.account;
+      const nameParts = account.name ? account.name.split(" ") : ["User"];
+      const ini = nameParts.map(n => n[0]).join("").toUpperCase().slice(0, 2);
+      CU = {
+        id: "ms_" + account.localAccountId,
+        name: account.name || account.username,
+        email: account.username,
+        role: "Jr. BIM Modeller",
+        ini: ini,
+        col: "#555555"
+      };
+      showMSOverlay('Fetching role & permissions…');
+      const role = await fetchAzureRole();
+      CU.role = role || "Jr. BIM Modeller";
+      CU.perm = CU.role;
+      CU.col = ROLE_COLORS[CU.role] || "#555555";
+      hideMSOverlay();
+      doLogin();
+      document.getElementById("uav").style.background = CU.col;
+      document.getElementById("urole").textContent = CU.role;
+      applyRoleUI();
+      renderTeam();
+      toast("Welcome, " + CU.name + " (" + CU.role + ") ✓");
+    } else {
+      // Check for existing silent session
+      const accounts = msalInstance.getAllAccounts();
+      if (accounts.length > 0) {
+        try {
+          const silentRes = await msalInstance.acquireTokenSilent({ scopes: SP_SCOPES, account: accounts[0] });
+          if (silentRes) {
+            spToken = silentRes.accessToken;
+            const account = accounts[0];
+            const nameParts = account.name ? account.name.split(" ") : ["User"];
+            const ini = nameParts.map(n => n[0]).join("").toUpperCase().slice(0, 2);
+            CU = {
+              id: "ms_" + account.localAccountId,
+              name: account.name || account.username,
+              email: account.username,
+              role: "Jr. BIM Modeller", ini, col: "#555555"
+            };
+            const role = await fetchAzureRole();
+            CU.role = role || "Jr. BIM Modeller";
+            CU.perm = CU.role;
+            CU.col = ROLE_COLORS[CU.role] || "#555555";
+            doLogin();
+            applyRoleUI();
+            toast("Auto-signed in as " + CU.name + " ✓");
+          }
+        } catch(e) { /* silent failed, show login */ }
+      }
+    }
+  } catch(e) {
+    console.warn("MSAL handleRedirectPromise:", e.message || e);
+  }
+}
+
 async function loginMS() {
   const btn = document.querySelector(".ms-btn");
   const origHTML = btn ? btn.innerHTML : "";
 
-  showMSOverlay('Verifying Asterwix tenant…');
+  if (typeof msal === "undefined") {
+    alert("Microsoft login library failed to load.\n\nPlease check your internet connection and refresh the page.");
+    return;
+  }
 
-  try {
-    if (typeof msal === "undefined") {
+  initMSAL();
+
+  // ── 1. Try silent token first (already signed in) ──────────
+  const accounts = msalInstance.getAllAccounts();
+  if (accounts.length > 0) {
+    showMSOverlay('Resuming your session…');
+    try {
+      const silentRes = await msalInstance.acquireTokenSilent({ scopes: SP_SCOPES, account: accounts[0] });
+      spToken = silentRes.accessToken;
+      const account = accounts[0];
+      const nameParts = account.name ? account.name.split(" ") : ["User"];
+      const ini = nameParts.map(n => n[0]).join("").toUpperCase().slice(0, 2);
+      CU = { id: "ms_" + account.localAccountId, name: account.name || account.username, email: account.username, role: "Jr. BIM Modeller", ini, col: "#555555" };
+      updateMSOverlay('Fetching role & permissions…');
+      const role = await fetchAzureRole();
+      CU.role = role || "Jr. BIM Modeller"; CU.perm = CU.role; CU.col = ROLE_COLORS[CU.role] || "#555555";
       hideMSOverlay();
       if (btn) btn.innerHTML = origHTML;
-      alert("Microsoft login library failed to load.\n\nPlease check your internet connection and refresh the page.");
+      doLogin(); document.getElementById("uav").style.background = CU.col;
+      document.getElementById("urole").textContent = CU.role;
+      applyRoleUI(); renderTeam();
+      toast("Welcome back, " + CU.name + " ✓");
       return;
-    }
+    } catch(e) { /* silent failed, proceed to interactive */ }
+  }
 
-    updateMSOverlay('Initialising Microsoft identity platform…');
-    initMSAL();
-    if (_msLoginCancelled) return;
-
-    try { await msalInstance.handleRedirectPromise(); } catch(e) { /* ignore */ }
-    if (_msLoginCancelled) return;
-
-    updateMSOverlay('Opening Microsoft sign-in window…');
+  // ── 2. Popup login (primary — avoids full page redirect) ──
+  // Note: popup suppresses COOP window.closed warnings via asyncPopups:false
+  showMSOverlay('Opening Microsoft sign-in…');
+  try {
     let response;
     try {
       response = await msalInstance.loginPopup({
@@ -1941,13 +2373,22 @@ async function loginMS() {
         prompt: "select_account"
       });
     } catch(popupErr) {
-      hideMSOverlay();
-      if (btn) btn.innerHTML = origHTML;
-      if (popupErr.errorCode === "popup_window_error" || popupErr.errorCode === "empty_window_error") {
-        alert("Popup was blocked by your browser.\n\nPlease allow popups for hub.asterwix.com and try again.\n\n(Click the popup blocked icon in your browser address bar)");
-        return;
+      // Popup blocked or COOP issue → fall back to redirect
+      const isCoopOrBlocked = popupErr.errorCode === "popup_window_error"
+        || popupErr.errorCode === "empty_window_error"
+        || popupErr.errorCode === "monitor_window_timeout"
+        || (popupErr.message && popupErr.message.includes("window.closed"));
+      if (isCoopOrBlocked) {
+        updateMSOverlay('Popup blocked — redirecting to Microsoft login…');
+        await new Promise(r => setTimeout(r, 800));
+        // Store pending login flag
+        sessionStorage.setItem("msal_pending_login", "1");
+        await msalInstance.loginRedirect({ scopes: SP_SCOPES, prompt: "select_account" });
+        return; // Page will redirect
       }
       if (popupErr.errorCode === "user_cancelled" || _msLoginCancelled) {
+        hideMSOverlay();
+        if (btn) btn.innerHTML = origHTML;
         toast("Login cancelled.");
         return;
       }
@@ -1962,31 +2403,18 @@ async function loginMS() {
       spToken = response.accessToken;
       const nameParts = account.name ? account.name.split(" ") : ["User"];
       const ini = nameParts.map(n => n[0]).join("").toUpperCase().slice(0, 2);
-      CU = {
-        id: "ms_" + account.localAccountId,
-        name: account.name || account.username,
-        email: account.username,
-        role: "Jr. BIM Modeller",
-        ini: ini,
-        col: "#555555"
-      };
-
+      CU = { id: "ms_" + account.localAccountId, name: account.name || account.username, email: account.username, role: "Jr. BIM Modeller", ini, col: "#555555" };
       updateMSOverlay('Fetching role & permissions…');
       const role = await fetchAzureRole();
-      CU.role = role || "Jr. BIM Modeller";
-      CU.perm = CU.role;
-      CU.col = ROLE_COLORS[CU.role] || "#555555";
-
+      CU.role = role || "Jr. BIM Modeller"; CU.perm = CU.role; CU.col = ROLE_COLORS[CU.role] || "#555555";
       updateMSOverlay('Loading your workspace…');
-      await new Promise(r => setTimeout(r, 400)); // brief visual pause
-
+      await new Promise(r => setTimeout(r, 300));
       hideMSOverlay();
       if (btn) btn.innerHTML = origHTML;
       doLogin();
       document.getElementById("uav").style.background = CU.col;
       document.getElementById("urole").textContent = CU.role;
-      applyRoleUI();
-      renderTeam();
+      applyRoleUI(); renderTeam();
       toast("Welcome, " + CU.name + " (" + CU.role + ") ✓");
     } else {
       hideMSOverlay();
@@ -1998,8 +2426,12 @@ async function loginMS() {
     if (btn) btn.innerHTML = origHTML;
     console.error("Microsoft login error:", err);
     const msg = err.message || err.errorCode || "Unknown error";
-    toast("Microsoft login failed: " + msg);
-    console.log("Full error:", JSON.stringify(err));
+    // Don't surface COOP/window.closed as a user-facing error
+    if (msg.includes("window.closed") || msg.includes("Cross-Origin")) {
+      toast("⚠ Sign-in popup was interrupted. Please try again.");
+    } else {
+      toast("Microsoft login failed: " + msg);
+    }
   }
 }
 
@@ -3065,7 +3497,7 @@ function saveMem(){
 // SP
 async function testSP(){const r=document.getElementById("spres");r.style.display="flex";r.textContent="⏳ Testing SharePoint connection…";try{const siteId=await getSiteId();if(siteId){r.innerHTML=`<span style="color:var(--ok)">✓ Connected to SharePoint — Site verified. Lists ready for sync.</span>`;document.getElementById("spbar").className="spbar ok";document.getElementById("spbar-txt").textContent="✓ Connected to SharePoint — Live sync active";toast("SharePoint connected ✓");}else{r.innerHTML="<span style='color:var(--danger)'>⚠ Could not connect. Make sure you are logged in with Microsoft.</span>";}}catch(e){r.innerHTML="<span style='color:var(--danger)'>⚠ Connection error: "+e.message+"</span>";}}
 function saveSP(){localStorage.setItem("sp_url",document.getElementById("spurl").value.trim());localStorage.setItem("sp_tid",document.getElementById("sptid").value.trim());localStorage.setItem("sp_cid",document.getElementById("spcid").value.trim());toast("Config saved");}
-function doSync(){spSaveAll().then(()=>spLoadAll()).then(()=>{renderSidebar();renderDash();toast("Sync complete ✓");});}
+function doSync(){saveDataNow();spLoadAll().then(()=>{renderSidebar();renderDash();toast("Sync complete ✓");});}
 
 // UTILS
 function openM(id){document.getElementById(id).classList.add("open");}
@@ -4755,7 +5187,7 @@ function exportReportPDF(data){
         <!-- 7. Revision & Approval Status -->
         <div style="border:1px solid #e2e6ec;border-radius:8px;padding:14px 18px;margin-bottom:12px;">
           <div style="font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#7a8fa8;margin-bottom:8px;">7. Revision & Approval Status</div>
-          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center;">
+          <div class="grid4" style="text-align:center;">
             <div style="padding:10px;border:1px solid #e2e6ec;border-radius:6px;"><div style="font-size:20px;font-weight:800;">${allSubmissions}</div><div style="font-size:9px;color:#7a8fa8;">Total</div></div>
             <div style="padding:10px;border:1px solid #bbf7d0;border-radius:6px;background:#f0fdf4;"><div style="font-size:20px;font-weight:800;color:#16a34a;">${approvedSubs}</div><div style="font-size:9px;color:#15803d;">Approved</div></div>
             <div style="padding:10px;border:1px solid #fecaca;border-radius:6px;background:#fef2f2;"><div style="font-size:20px;font-weight:800;color:#dc2626;">${rejectedSubs}</div><div style="font-size:9px;color:#b91c1c;">Rejected</div></div>
@@ -4817,7 +5249,7 @@ function exportReportPDF(data){
     </div>
 
     <!-- Summary Bar -->
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:24px;">
+    <div class="grid4" style="margin-bottom:24px;">
       ${[
         {label:"Projects",val:data.projects.length,color:"#1a2332"},
         {label:"Total Tasks",val:allT().length,color:"#00b899"},
@@ -5214,7 +5646,7 @@ function renderProjDashboard(pid){
 
     <div class="pdash-section">
       <div class="pdash-section-title">✅ Revision & Approval Status</div>
-      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;">
+      <div class="grid4">
         <div style="text-align:center;padding:12px;background:var(--surface);border-radius:8px;">
           <div style="font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;">${totalSubs}</div>
           <div style="font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.5px;">Total</div>
@@ -5463,6 +5895,12 @@ document.addEventListener("DOMContentLoaded",function(){
   });
   var ptm=document.getElementById("ptm");
   if(ptm) ptm.addEventListener("click",function(e){if(e.target===ptm)closeM("ptm");});
+
+  // ── Handle MSAL redirect result (for loginRedirect flow) ──
+  // Must be called on every page load before any other MSAL call
+  handleMSRedirectOnLoad().catch(function(e){
+    console.warn("MSAL redirect handler:", e && e.message ? e.message : e);
+  });
 
   // Mobile sidebar — touchend fires instantly, no 300ms delay
   var _sb=document.querySelector('.sidebar');
