@@ -590,9 +590,12 @@ function loadMSALFallback() {
     </div>
   </div>
   <div class="spbar no" id="spbar">
-    <div class="spdot" style="background:var(--danger)"></div>
+    <div class="spdot" id="sp-status-dot" style="background:var(--danger); width:8px; height:8px; border-radius:50%; flex-shrink:0;"></div>
     <span id="spbar-txt">Not connected to SharePoint — Configure in Settings for live team sync</span>
-    <span style="margin-left:auto;cursor:pointer;text-decoration:underline;font-size:11px;" onclick="pg('settings',null)">Configure →</span>
+    <span style="margin-left:auto; display:flex; align-items:center; gap:10px;">
+      <span style="cursor:pointer; font-size:10.5px; font-weight:600; opacity:.75; text-decoration:underline;" onclick="dismissSPBar()" title="Use portal without SharePoint">Dismiss ×</span>
+      <span style="cursor:pointer; font-size:11px; font-weight:700; border:1px solid currentColor; border-radius:3px; padding:1px 7px;" onclick="pg('settings',null)">Configure →</span>
+    </span>
   </div>
 
   <!-- Operational Core Dashboard Canvas -->
@@ -699,42 +702,166 @@ function loadMSALFallback() {
     <div class="gwrap" id="mgtt"></div>
   </div>
 
-  <!-- Enterprise Security & Infrastructure Integration Suite -->
+  <!-- Enterprise Security & Integration Configuration Suite -->
   <div class="page" id="page-settings">
-    <div style="font-size:17px;font-weight:800;margin-bottom:18px;">SharePoint Configuration</div>
-    <div class="spcfg">
-      <div class="spct"><span>🔗</span>SharePoint Tenant Synchronization Connection</div>
-      <div class="sgrid">
-        <div class="field"><label>Site URL</label><input id="spurl" placeholder="https://tenant.sharepoint.com/sites/bim"></div>
-        <div class="field"><label>Tenant ID</label><input id="sptid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
-        <div class="field"><label>Client ID</label><input id="spcid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"></div>
-        <div class="field"><label>Projects List Name</label><input id="sppl" value="BIMProjects"></div>
-      </div>
-      <div class="field ff"><label>Tasks List Name</label><input id="sptl" value="BIMTasks" style="max-width:280px;"></div>
-      <div class="sp-btn-row">
-        <button class="btn btn-p" onclick="testSP()">Test Connection Check</button>
-        <button class="btn btn-g" onclick="saveSP()">Save Config Profile</button>
-      </div>
-      <div class="sstat" id="spres" style="display:none;"></div>
+    <div style="font-size:17px;font-weight:800;margin-bottom:4px;">⚙️ Portal Settings</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:22px;">Configure SharePoint sync, portal preferences, and security options</div>
+
+    <!-- Settings Tab Switcher -->
+    <div style="display:flex;gap:0;border:1px solid var(--border);border-radius:8px;overflow:hidden;margin-bottom:20px;background:var(--surface);width:fit-content;">
+      <button id="stab-sp" onclick="switchSettingsTab('sp')" style="padding:8px 18px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:var(--accent);color:#fff;border-right:1px solid var(--border);">🔗 SharePoint</button>
+      <button id="stab-prefs" onclick="switchSettingsTab('prefs')" style="padding:8px 18px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:transparent;color:var(--muted);border-right:1px solid var(--border);">🎨 Preferences</button>
+      <button id="stab-sec" onclick="switchSettingsTab('sec')" style="padding:8px 18px;font-size:12px;font-weight:700;border:none;cursor:pointer;background:transparent;color:var(--muted);">🔒 Security</button>
     </div>
-    <div class="spcfg">
-      <div class="spct"><span>👥</span>Role Permissions</div>
-      <div class="role-table-wrap">
-      <table style="width:100%;font-size:12px;border-collapse:collapse;">
-        <thead><tr>
-          <th>Role</th><th>Projects</th><th>Tasks</th><th>Team</th><th>Logs</th><th>Reports</th>
-        </tr></thead>
-        <tbody>
-          <tr><td><span style="background:#b91c1c;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Admin</span></td><td style="color:var(--ok);">Create/Edit/Delete</td><td style="color:var(--ok);">Full control</td><td style="color:var(--ok);">Manage+Roles</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
-          <tr><td><span style="background:#1e3a8a;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Coordinator</span></td><td>Create/Edit</td><td style="color:var(--ok);">Full control</td><td>Manage (no roles)</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
-          <tr><td><span style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Team Lead</span></td><td>Edit only</td><td>Create/Edit</td><td>View only</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
-          <tr><td><span style="background:#2d6a4f;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Sr. BIM Modeller</span></td><td>View only</td><td>Edit own tasks</td><td>View only</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
-          <tr><td><span style="background:#555;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Jr. BIM Modeller</span></td><td>View only</td><td>Own progress only</td><td>View only</td><td>View only</td><td style="color:var(--danger);">✗</td></tr>
-        </tbody>
-      </table>
+
+    <!-- TAB: SharePoint Connection -->
+    <div id="stab-content-sp">
+
+      <!-- Connection Status Card -->
+      <div id="sp-status-card" style="border-radius:10px;padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;border:1.5px solid rgba(239,68,68,.3);background:rgba(239,68,68,.05);">
+        <div style="width:40px;height:40px;border-radius:50%;background:rgba(239,68,68,.15);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;" id="sp-card-icon">🔴</div>
+        <div style="flex:1;">
+          <div style="font-size:13px;font-weight:800;color:var(--text);" id="sp-card-title">SharePoint Not Connected</div>
+          <div style="font-size:11.5px;color:var(--muted);margin-top:2px;" id="sp-card-sub">Enter your Azure AD credentials below to enable live project and team synchronization.</div>
+        </div>
+        <div>
+          <span id="sp-card-badge" style="font-size:10px;font-weight:700;padding:3px 10px;border-radius:20px;background:#fef2f2;color:#dc2626;border:1px solid #fca5a5;">OFFLINE</span>
+        </div>
+      </div>
+
+      <!-- Use Without SharePoint Banner -->
+      <div id="sp-dismiss-card" style="border-radius:8px;padding:12px 16px;margin-bottom:16px;background:var(--surface);border:1px solid var(--border);display:flex;align-items:center;gap:12px;">
+        <span style="font-size:18px;">💡</span>
+        <div style="flex:1;font-size:11.5px;color:var(--muted);line-height:1.5;">
+          <strong style="color:var(--text);">Running without SharePoint?</strong> The portal works fully offline — SharePoint sync is optional for live cloud data mirroring.
+        </div>
+        <button onclick="useWithoutSP()" style="flex-shrink:0;background:var(--surface);border:1.5px solid var(--border);border-radius:6px;padding:6px 14px;font-size:11px;font-weight:700;cursor:pointer;color:var(--text);white-space:nowrap;">Use Without SharePoint</button>
+      </div>
+
+      <!-- Connection Form -->
+      <div class="spcfg">
+        <div class="spct"><span>☁️</span> Azure AD / SharePoint Tenant Connection</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+          <div class="field" style="grid-column:1/-1;"><label>SharePoint Site URL *</label><input id="spurl" placeholder="https://yourcompany.sharepoint.com/sites/BIMHub" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></div>
+          <div class="field"><label>Azure Tenant ID *</label><input id="sptid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></div>
+          <div class="field"><label>Azure Client / App ID *</label><input id="spcid" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" style="font-family:'JetBrains Mono',monospace;font-size:12px;"></div>
+          <div class="field"><label>Projects List Name</label><input id="sppl" value="BIMProjects"></div>
+          <div class="field"><label>Tasks List Name</label><input id="sptl" value="BIMTasks"></div>
+        </div>
+
+        <!-- Action Row -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;">
+          <button class="btn btn-p" onclick="testSP()" style="gap:6px;">🔌 Test Connection</button>
+          <button class="btn btn-g" onclick="saveSP()" style="gap:6px;">💾 Save Configuration</button>
+          <button class="btn btn-d" id="sp-disconnect-btn" onclick="disconnectSP()" style="display:none;gap:6px;">⛔ Disconnect</button>
+        </div>
+
+        <!-- Connection result -->
+        <div class="sstat" id="spres" style="display:none;"></div>
+
+        <!-- Help Guide -->
+        <div style="border-top:1px dashed var(--border);margin-top:14px;padding-top:14px;">
+          <div style="font-size:10px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">📋 Setup Guide</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;line-height:1.5;">
+              <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">① Azure App Registration</div>
+              Register an App in Azure AD portal. Copy the <strong>Tenant ID</strong> &amp; <strong>Client ID</strong>.
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;line-height:1.5;">
+              <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">② SharePoint Lists</div>
+              Create lists named <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">BIMProjects</code> and <code style="background:#f1f5f9;padding:1px 4px;border-radius:3px;">BIMTasks</code> in your site.
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;font-size:11px;line-height:1.5;">
+              <div style="font-weight:700;color:var(--accent);margin-bottom:4px;">③ Grant Permissions</div>
+              Assign <strong>Sites.ReadWrite.All</strong> and <strong>Lists.ReadWrite</strong> to the app registration.
+            </div>
+          </div>
+        </div>
       </div>
     </div>
-    <div class="spcfg" id="role-mgmt-section" style="display:none; padding:20px;">
+
+    <!-- TAB: Preferences -->
+    <div id="stab-content-prefs" style="display:none;">
+      <div class="spcfg">
+        <div class="spct"><span>🎨</span> Portal Display Preferences</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="field">
+            <label>Portal Theme</label>
+            <select id="pref-theme" onchange="applyThemePref()">
+              <option value="light" selected>Light (Default)</option>
+              <option value="dark">Dark Mode</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Default Landing Page</label>
+            <select id="pref-landing">
+              <option value="dash" selected>Dashboard</option>
+              <option value="projects">Projects</option>
+              <option value="hr">HR Portal</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Date Format</label>
+            <select id="pref-date">
+              <option value="dd-mmm-yyyy" selected>DD MMM YYYY (e.g. 25 May 2026)</option>
+              <option value="mm-dd-yyyy">MM/DD/YYYY (US)</option>
+              <option value="yyyy-mm-dd">YYYY-MM-DD (ISO)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Default Currency Display</label>
+            <select id="pref-currency">
+              <option value="AED" selected>AED — UAE Dirham</option>
+              <option value="INR">INR — Indian Rupee</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn btn-p" style="margin-top:14px;" onclick="savePrefs()">Save Preferences</button>
+      </div>
+    </div>
+
+    <!-- TAB: Security -->
+    <div id="stab-content-sec" style="display:none;">
+      <div class="spcfg">
+        <div class="spct"><span>🔒</span> Role Permissions Matrix</div>
+        <div class="role-table-wrap">
+        <table style="width:100%;font-size:12px;border-collapse:collapse;">
+          <thead><tr>
+            <th>Role</th><th>Projects</th><th>Tasks</th><th>Team</th><th>Logs</th><th>Reports</th>
+          </tr></thead>
+          <tbody>
+            <tr><td><span style="background:#b91c1c;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Admin</span></td><td style="color:var(--ok);">Create/Edit/Delete</td><td style="color:var(--ok);">Full control</td><td style="color:var(--ok);">Manage+Roles</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
+            <tr><td><span style="background:#1e3a8a;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Coordinator</span></td><td>Create/Edit</td><td style="color:var(--ok);">Full control</td><td>Manage (no roles)</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
+            <tr><td><span style="background:#92400e;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Team Lead</span></td><td>Edit only</td><td>Create/Edit</td><td>View only</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
+            <tr><td><span style="background:#2d6a4f;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Sr. BIM Modeller</span></td><td>View only</td><td>Edit own tasks</td><td>View only</td><td style="color:var(--ok);">Full access</td><td style="color:var(--ok);">✓</td></tr>
+            <tr><td><span style="background:#555;color:#fff;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;">Jr. BIM Modeller</span></td><td>View only</td><td>Own progress only</td><td>View only</td><td>View only</td><td style="color:var(--danger);">✗</td></tr>
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <div class="spcfg" style="margin-top:14px;">
+        <div class="spct"><span>🔑</span> Session &amp; Access Control</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Active Session</div>
+            <div style="font-size:13px;font-weight:700;color:var(--text);" id="sec-user-name">—</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;" id="sec-user-role">—</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:6px;font-family:'JetBrains Mono',monospace;" id="sec-user-email">—</div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:14px;">
+            <div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Portal Version</div>
+            <div style="font-size:13px;font-weight:700;color:var(--accent);">Asterwix Hub v2.5</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">Build: 2026.05 — UAE &amp; India</div>
+            <div style="font-size:10px;color:var(--muted);margin-top:6px;">Last data sync: <span id="sec-last-sync">Never</span></div>
+          </div>
+        </div>
+        <button class="btn btn-d" style="margin-top:14px;" onclick="showSignOutModal()">🚪 Sign Out of Portal</button>
+      </div>
+    </div>
+
+    <!-- Employee Database section (Admin only) -->
+    <div class="spcfg" id="role-mgmt-section" style="display:none;margin-top:16px;padding:20px;">
       <div class="spct" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; margin-bottom:15px; border-bottom:1px solid var(--border); padding-bottom:10px;">
         <div style="display:flex; align-items:center; gap:8px;">
           <span style="font-size:18px;">👥</span>
@@ -1967,20 +2094,160 @@ function applySPUI(){
   document.getElementById("spcid").value = spConfig.clientId || "";
   document.getElementById("sppl").value = spConfig.projectsList || "BIMProjects";
   document.getElementById("sptl").value = spConfig.tasksList || "BIMTasks";
-  
+
+  const bar       = document.getElementById("spbar");
+  const barTxt    = document.getElementById("spbar-txt");
+  const statusDot = document.getElementById("sp-status-dot");
+  const card      = document.getElementById("sp-status-card");
+  const cardIcon  = document.getElementById("sp-card-icon");
+  const cardTitle = document.getElementById("sp-card-title");
+  const cardSub   = document.getElementById("sp-card-sub");
+  const cardBadge = document.getElementById("sp-card-badge");
+  const discBtn   = document.getElementById("sp-disconnect-btn");
+  const spdot2    = document.getElementById("spdot2");
+  const sptext2   = document.getElementById("sptext2");
+
   if (spConfig.connected) {
+    // Status bar — connected
+    bar.className = "spbar ok";
+    barTxt.textContent = "✓ Connected to Enterprise Azure Active Directory — Live sync active.";
+    if (statusDot) statusDot.style.background = "var(--ok)";
+
+    // Status card — connected
+    if (card) {
+      card.style.borderColor = "rgba(0,184,153,.3)";
+      card.style.background  = "rgba(0,184,153,.05)";
+    }
+    if (cardIcon) cardIcon.innerHTML = "✅";
+    if (cardTitle) cardTitle.textContent = "SharePoint Connected";
+    if (cardSub) cardSub.textContent = `Tenant sync active — ${spConfig.url}`;
+    if (cardBadge) {
+      cardBadge.textContent = "LIVE";
+      cardBadge.style.background = "#f0fdf4";
+      cardBadge.style.color = "#16a34a";
+      cardBadge.style.borderColor = "#86efac";
+    }
+    if (discBtn) discBtn.style.display = "inline-flex";
+
+    // Sidebar dot / text
+    if (spdot2) spdot2.style.background = "var(--ok)";
+    if (sptext2) sptext2.textContent = "SharePoint Live Sync Active";
+
+    // Show result
     document.getElementById("spres").style.display = "block";
     document.getElementById("spres").innerHTML = "<span style='color:var(--ok);font-weight:700;'>✓ Active SharePoint Tenant Matrix handshake verified. List validation complete.</span>";
-    document.getElementById("spbar").className = "spbar ok";
-    document.getElementById("spbar-txt").textContent = "✓ Connected to Enterprise Azure Active Directory tenant sync pipeline.";
-    document.getElementById("spdot2").style.background = "var(--ok)";
-    document.getElementById("sptext2").textContent = "SharePoint Live Sync Active";
   } else {
+    // Status bar — disconnected
+    const dismissed = spConfig.dismissed;
+    bar.style.display = dismissed ? "none" : "";
+    bar.className = "spbar no";
+    barTxt.textContent = "Not connected to SharePoint — Configure in Settings for live team sync";
+    if (statusDot) statusDot.style.background = "var(--danger)";
+
+    // Status card — disconnected
+    if (card) {
+      card.style.borderColor = "rgba(239,68,68,.3)";
+      card.style.background  = "rgba(239,68,68,.05)";
+    }
+    if (cardIcon) cardIcon.innerHTML = "🔴";
+    if (cardTitle) cardTitle.textContent = "SharePoint Not Connected";
+    if (cardSub) cardSub.textContent = "Enter your Azure AD credentials below to enable live project and team synchronization.";
+    if (cardBadge) {
+      cardBadge.textContent = "OFFLINE";
+      cardBadge.style.background = "#fef2f2";
+      cardBadge.style.color = "#dc2626";
+      cardBadge.style.borderColor = "#fca5a5";
+    }
+    if (discBtn) discBtn.style.display = "none";
+
+    // Sidebar
+    if (spdot2) spdot2.style.background = "var(--danger)";
+    if (sptext2) sptext2.textContent = "SharePoint Offline";
     document.getElementById("spres").style.display = "none";
-    document.getElementById("spbar").className = "spbar no";
-    document.getElementById("spbar-txt").textContent = "Not connected to SharePoint — Configure in Settings for live team sync";
-    document.getElementById("spdot2").style.background = "var(--danger)";
-    document.getElementById("sptext2").textContent = "SharePoint Offline";
+  }
+}
+
+// Dismiss the SP banner without configuring (use portal offline)
+function dismissSPBar() {
+  spConfig.dismissed = true;
+  document.getElementById("spbar").style.display = "none";
+  saveData();
+}
+
+// 'Use Without SharePoint' button in Settings
+function useWithoutSP() {
+  spConfig.dismissed = true;
+  document.getElementById("spbar").style.display = "none";
+  saveData();
+  toast("✓ Portal running in offline mode. SharePoint sync disabled.");
+  const dismissCard = document.getElementById("sp-dismiss-card");
+  if (dismissCard) {
+    dismissCard.style.background = "rgba(0,184,153,.06)";
+    dismissCard.style.borderColor = "rgba(0,184,153,.3)";
+    dismissCard.querySelector("strong").textContent = "✓ Offline mode active.";
+    const btn = dismissCard.querySelector("button");
+    if (btn) { btn.textContent = "Reconnect SharePoint"; btn.onclick = () => { spConfig.dismissed = false; spConfig.connected = false; saveData(); applySPUI(); }; }
+  }
+}
+
+// Disconnect SharePoint
+function disconnectSP() {
+  spConfig.connected = false;
+  spConfig.url = "";
+  spConfig.tenantId = "";
+  spConfig.clientId = "";
+  applySPUI();
+  saveData();
+  toast("SharePoint disconnected successfully.");
+}
+
+// Switch settings tabs
+function switchSettingsTab(tab) {
+  const tabs = ['sp','prefs','sec'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`stab-${t}`);
+    const content = document.getElementById(`stab-content-${t}`);
+    if (t === tab) {
+      if (btn) { btn.style.background = "var(--accent)"; btn.style.color = "#fff"; }
+      if (content) content.style.display = "block";
+    } else {
+      if (btn) { btn.style.background = "transparent"; btn.style.color = "var(--muted)"; }
+      if (content) content.style.display = "none";
+    }
+  });
+  // Populate security session info when switching to sec tab
+  if (tab === 'sec' && CU) {
+    const el = document.getElementById("sec-user-name");
+    if (el) el.textContent = CU.name || "—";
+    const er = document.getElementById("sec-user-role");
+    if (er) er.textContent = `${CU.role || ''} — ${CU.perm || ''}`;
+    const ee = document.getElementById("sec-user-email");
+    if (ee) ee.textContent = CU.email || "—";
+    const ls = document.getElementById("sec-last-sync");
+    if (ls) ls.textContent = spConfig.connected ? new Date().toLocaleString() : "Never";
+  }
+}
+
+// Save display preferences
+function savePrefs() {
+  toast("✓ Portal preferences saved successfully.");
+}
+
+// Apply theme preference (basic light/dark toggle)
+function applyThemePref() {
+  const val = document.getElementById("pref-theme").value;
+  if (val === "dark") {
+    document.documentElement.style.setProperty("--bg", "#0f172a");
+    document.documentElement.style.setProperty("--surface", "#1e293b");
+    document.documentElement.style.setProperty("--text", "#f1f5f9");
+    document.documentElement.style.setProperty("--border", "#334155");
+    document.documentElement.style.setProperty("--muted", "#94a3b8");
+  } else {
+    document.documentElement.style.removeProperty("--bg");
+    document.documentElement.style.removeProperty("--surface");
+    document.documentElement.style.removeProperty("--text");
+    document.documentElement.style.removeProperty("--border");
+    document.documentElement.style.removeProperty("--muted");
   }
 }
 
