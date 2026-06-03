@@ -3398,8 +3398,9 @@
         // Load modules visibility depending on permission mapping
         this.enforceRolePermissions();
         
-        // Navigate to Dashboard
-        Portal.Router.navigate('dashboard');
+        // Navigate to initial hash page or fallback to dashboard
+        const initialPage = window.location.hash.slice(1) || 'dashboard';
+        Portal.Router.navigate(initialPage);
         
         // Initial setup for Map & KPI tables
         Portal.GPS.init();
@@ -3469,7 +3470,16 @@
        ROUTER SYSTEM LAYER
        ------------------------------------------------------------- */
     Portal.Router = {
-      navigate: function(pageId) {
+      currentPage: null,
+
+      navigate: function(pageId, updateHash = true) {
+        if (this.currentPage === pageId) return;
+        this.currentPage = pageId;
+
+        if (updateHash) {
+          window.location.hash = pageId;
+        }
+
         // Toggle Sidebar Active styling
         document.querySelectorAll('.nav-item').forEach(item => {
           item.classList.remove('active', 'active-gps', 'active-bim');
@@ -3533,6 +3543,14 @@
         }
       }
     };
+
+    // Listen for browser back/forward history changes
+    window.addEventListener('hashchange', function() {
+      const pageId = window.location.hash.slice(1) || 'dashboard';
+      if (currentUser) {
+        Portal.Router.navigate(pageId, false);
+      }
+    });
 
     /* -------------------------------------------------------------
        GPS ATTENDANCE TRACKER LAYER
