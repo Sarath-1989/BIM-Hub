@@ -3353,7 +3353,7 @@
             badge.style.border = '1px solid rgba(16,185,129,0.3)';
             badge.style.color = '#10b981';
             badge.querySelector('circle').setAttribute('fill', '#10b981');
-            badgeText.innerText = 'MICROSOFT 365 CONNECTED — Sign in with your Asterwix account';
+            badgeText.innerText = 'SECURE LOGIN — Sign in with your Asterwix account';
           }
 
           try {
@@ -3369,16 +3369,19 @@
               this.checkActiveSSOSession();
             });
           } catch(e) {
-            console.error("SSO Library initialization failure. Falling back to sandbox.", e);
-            this.isMock = true;
+            console.error("SSO Library initialization failure.", e);
           }
         } else {
-          // Not configured — show offline/sandbox mode indicator
+          // Not configured — show warning status
           this.isMock = true;
           const badge = document.getElementById('login-mode-badge');
           const badgeText = document.getElementById('login-mode-text');
           if (badge && badgeText) {
-            badgeText.innerText = 'OFFLINE MODE — Microsoft 365 not yet configured';
+            badge.style.background = 'rgba(239, 68, 68, 0.08)';
+            badge.style.border = '1px solid rgba(239, 68, 68, 0.3)';
+            badge.style.color = '#ef4444';
+            badge.querySelector('circle').setAttribute('fill', '#ef4444');
+            badgeText.innerText = 'CONFIGURATION REQUIRED — Please configure config/app-config.js';
           }
         }
 
@@ -3439,13 +3442,8 @@
       },
 
       loginSSO: function() {
-        if (this.isMock) {
-          // Mock mode: sign in automatically as Super Admin
-          currentUser = this.resolveUserProfile("connect@asterwix.com", "Sarath Perucheril");
-          sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-          Portal.Audit.log("Portal", "Login", "Signed in via Offline Mode (Microsoft 365 not yet configured).");
-          Portal.UI.showToast("Signed In (Offline Mode)", "Microsoft 365 is not yet connected. To enable live sign-in, update config/app-config.js with your Azure AD Client ID and Tenant ID.", "warning");
-          this.loadPortalShell();
+        if (!this.msalInstance) {
+          Portal.UI.showToast("Configuration Error", "Microsoft 365 is not configured. Please enter your Client ID and Tenant ID in config/app-config.js.", "error");
           return;
         }
 
