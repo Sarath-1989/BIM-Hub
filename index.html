@@ -2959,6 +2959,90 @@
     </div>
   </div>
 
+  <!-- Edit Employee Modal -->
+  <div class="modal-overlay" id="modal-edit-employee">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Employee File</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <form id="form-edit-employee" onsubmit="event.preventDefault(); Portal.HR.updateEmployee()">
+        <input type="hidden" id="ee-id">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Full Employee Name</label>
+              <input type="text" class="form-control" id="ee-name" required>
+            </div>
+            <div class="form-group">
+              <label>Personal/Company Email</label>
+              <input type="email" class="form-control" id="ee-email" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Department Category</label>
+              <select class="form-control" id="ee-dept" required>
+                <option value="HR & Admin">HR & Admin</option>
+                <option value="Accounts">Accounts</option>
+                <option value="BIM Structural">BIM Structural</option>
+                <option value="BIM Architectural">BIM Architectural</option>
+                <option value="BIM MEP">BIM MEP</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Designation Title</label>
+              <input type="text" class="form-control" id="ee-designation" placeholder="e.g. Senior Modeller / Manager" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>office / Site Location</label>
+              <select class="form-control" id="ee-location" required>
+                <option value="Dubai HQ">Dubai HQ</option>
+                <option value="India Office">India Office</option>
+                <option value="Remote Work">Remote Work</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Disbursement Currency</label>
+              <select class="form-control" id="ee-currency" required>
+                <option value="AED">AED (UAE Dirham)</option>
+                <option value="INR">INR (Indian Rupee)</option>
+              </select>
+            </div>
+          </div>
+          
+          <h4 style="font-size:13px; font-weight:700; color:var(--accent-hr); margin-top:16px; margin-bottom:8px;">Salary Compensation Breakdown</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Basic Pay Component</label>
+              <input type="number" class="form-control" id="ee-sal-basic" required value="0">
+            </div>
+            <div class="form-group">
+              <label>Housing Allowance</label>
+              <input type="number" class="form-control" id="ee-sal-housing" required value="0">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Transport Allowance</label>
+              <input type="number" class="form-control" id="ee-sal-transport" required value="0">
+            </div>
+            <div class="form-group">
+              <label>Other Allowances</label>
+              <input type="number" class="form-control" id="ee-sal-others" required value="0">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Dismiss</button>
+          <button type="submit" class="btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Register Model Modal -->
   <div class="modal-overlay" id="modal-add-model">
     <div class="modal-box">
@@ -5082,7 +5166,12 @@
             <td>${manager ? manager.name : '--'}</td>
             <td><strong style="color:var(--accent-hr); font-family:var(--font-mono);">${salaryValStr}</strong></td>
             <td>
-              ${currentUser.email === 'connect@asterwix.com' ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.HR.deleteEmployee('${e.empId}')">Terminate</button>` : 'Locked'}
+              ${currentUser.email === 'connect@asterwix.com' ? `
+                <div style="display: flex; gap: 6px;">
+                  <button class="btn" style="padding:4px 8px; font-size:11px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6;" onclick="Portal.HR.openEditEmployeeModal('${e.empId}')">Edit</button>
+                  <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.HR.deleteEmployee('${e.empId}')">Terminate</button>
+                </div>
+              ` : 'Locked'}
             </td>
           `;
           tbody.appendChild(tr);
@@ -5135,6 +5224,69 @@
         
         Portal.UI.closeModal();
         this.renderEmployees();
+      },
+
+      openEditEmployeeModal: function(empId) {
+        const emps = Portal.DB.get('employees');
+        const emp = emps.find(e => e.empId === empId);
+        if (!emp) return;
+
+        document.getElementById('ee-id').value = emp.empId;
+        document.getElementById('ee-name').value = emp.name;
+        document.getElementById('ee-email').value = emp.email;
+        document.getElementById('ee-dept').value = emp.dept;
+        document.getElementById('ee-designation').value = emp.designation;
+        document.getElementById('ee-location').value = emp.location || 'Dubai HQ';
+        document.getElementById('ee-currency').value = emp.currency || 'AED';
+        
+        document.getElementById('ee-sal-basic').value = emp.salaryBasic || 0;
+        document.getElementById('ee-sal-housing').value = emp.salaryHousing || 0;
+        document.getElementById('ee-sal-transport').value = emp.salaryTransport || 0;
+        document.getElementById('ee-sal-others').value = emp.salaryOthers || 0;
+
+        Portal.UI.openModal('modal-edit-employee');
+      },
+
+      updateEmployee: function() {
+        if (currentUser.email !== 'connect@asterwix.com') {
+          Portal.UI.showToast("Permission Denied", "Only the Super Admin can edit employees.", "error");
+          return;
+        }
+
+        const id = document.getElementById('ee-id').value;
+        const name = document.getElementById('ee-name').value;
+        const email = document.getElementById('ee-email').value;
+        const dept = document.getElementById('ee-dept').value;
+        const designation = document.getElementById('ee-designation').value;
+        const location = document.getElementById('ee-location').value;
+        const currency = document.getElementById('ee-currency').value;
+
+        const basic = Number(document.getElementById('ee-sal-basic').value) || 0;
+        const housing = Number(document.getElementById('ee-sal-housing').value) || 0;
+        const transport = Number(document.getElementById('ee-sal-transport').value) || 0;
+        const others = Number(document.getElementById('ee-sal-others').value) || 0;
+
+        const emps = Portal.DB.get('employees');
+        const idx = emps.findIndex(e => e.empId === id);
+        if (idx !== -1) {
+          emps[idx].name = name;
+          emps[idx].email = email;
+          emps[idx].dept = dept;
+          emps[idx].designation = designation;
+          emps[idx].location = location;
+          emps[idx].currency = currency;
+          emps[idx].salaryBasic = basic;
+          emps[idx].salaryHousing = housing;
+          emps[idx].salaryTransport = transport;
+          emps[idx].salaryOthers = others;
+
+          Portal.DB.set('employees', emps);
+          Portal.UI.showToast("Employee Updated", `Record ${id} has been updated.`, "success");
+          Portal.Audit.log("HR Accounts", "Update Employee", `Updated employee record: ${id} (${name})`);
+          
+          Portal.UI.closeModal();
+          this.renderEmployees();
+        }
       },
 
       deleteEmployee: function(empId) {
