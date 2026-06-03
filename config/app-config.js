@@ -1,25 +1,27 @@
 /**
- * Asterwix Unified Web Portal Configuration
- * Save as config/app-config.js. Ensure this file is gitignored in production.
+ * Asterwix Unified Web Portal — Configuration File
+ * =====================================================================
+ * IMPORTANT: Ensure this file is listed in .gitignore for security.
+ * =====================================================================
  */
 
 window.ASTERWIX_CONFIG = {
-  // Set to true to bypass MSAL/Graph and run entirely with simulated local data
-  // When false, the portal will attempt to authenticate with Azure AD and call SharePoint Graph API
-  MOCK_MODE_ENABLED: true,
 
-  // Azure AD (Entra ID) Configuration
+  // Live Microsoft 365 authentication is now ENABLED
+  MOCK_MODE_ENABLED: false,
+
+  // Azure AD (Entra ID) — Asterwix Portal App Registration
   auth: {
-    clientId: 'YOUR_CLIENT_ID_HERE', // Placeholder
-    authority: 'https://login.microsoftonline.com/YOUR_TENANT_ID_HERE', // Placeholder
-    redirectUri: 'http://localhost:3000/index.html', // Development local URL or index.html
-    productionRedirectUri: 'https://hub.asterwix.com/' // Production URL
+    clientId: 'bf5114ed-db8d-4137-b2a3-2d4ea4cd25e8',
+    authority: 'https://login.microsoftonline.com/16522c0a-f9da-4e67-ac59-ed6adea4e80e',
+    redirectUri: window.location.origin + window.location.pathname,
+    productionRedirectUri: 'https://hub.asterwix.com/'
   },
 
-  // SharePoint Online Site Configuration
+  // SharePoint Online Site Configuration (optional)
   sharePoint: {
     hostname: 'asterwix.sharepoint.com',
     siteName: 'AsterwixHub',
-    siteId: '' // Will be resolved dynamically if empty
+    siteId: '' // Resolved dynamically if left empty
   }
 };
