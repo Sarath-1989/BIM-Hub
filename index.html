@@ -1582,11 +1582,27 @@
         font-size: 8px;
         padding: 1px 2px;
       }
+      /* Tighter spacing for panels & cards on mobile */
+      .panel-body {
+        padding: 14px !important;
+      }
+      .module-card, .project-card {
+        padding: 16px !important;
+      }
+      /* Compact tables for mobile screens */
+      table.data-table th {
+        padding: 8px 10px !important;
+        font-size: 10px !important;
+      }
+      table.data-table td {
+        padding: 8px 10px !important;
+        font-size: 12px !important;
+      }
     }
 
     @media (max-width: 480px) {
       .main-content {
-        padding: 12px;
+        padding: 10px;
       }
       .clock-display {
         display: none !important; /* Hide clock on mobile headers to prevent overflow */
@@ -1598,13 +1614,38 @@
         grid-template-columns: 1fr; /* 1 column lists for sandbox items */
       }
       .page-title {
-        font-size: 16px;
+        font-size: 15px;
       }
       .topbar {
-        padding: 0 12px;
+        padding: 0 10px;
       }
       .topbar-right {
-        gap: 12px;
+        gap: 10px;
+      }
+      /* 2-column compact KPIs on tiny screens */
+      .kpis-grid {
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 10px !important;
+        margin-bottom: 16px !important;
+      }
+      .kpi-card {
+        padding: 12px 10px !important;
+      }
+      .kpi-value {
+        font-size: 18px !important;
+        margin-top: 4px !important;
+      }
+      .kpi-title {
+        font-size: 10px !important;
+      }
+      /* Even tighter tables to fit more columns */
+      table.data-table th {
+        padding: 6px 8px !important;
+        font-size: 9px !important;
+      }
+      table.data-table td {
+        padding: 6px 8px !important;
+        font-size: 11px !important;
       }
     }
 
