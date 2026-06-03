@@ -3073,7 +3073,19 @@
        ------------------------------------------------------------- */
     Portal.DB = {
       init: function() {
-        if (!localStorage.getItem('ax_employees')) {
+        const emps = localStorage.getItem('ax_employees');
+        // Auto re-seed if database cache has outdated employee records (checks for connect@asterwix.com)
+        if (!emps || !emps.includes('connect@asterwix.com')) {
+          localStorage.removeItem('ax_employees');
+          localStorage.removeItem('ax_offices');
+          localStorage.removeItem('ax_attendance');
+          localStorage.removeItem('ax_projects');
+          localStorage.removeItem('ax_tasks');
+          localStorage.removeItem('ax_models');
+          localStorage.removeItem('ax_drawings');
+          localStorage.removeItem('ax_leaves');
+          localStorage.removeItem('ax_overtime');
+          localStorage.removeItem('ax_audit');
           this.seedInitialData();
         }
       },
