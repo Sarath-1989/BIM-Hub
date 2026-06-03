@@ -3230,9 +3230,14 @@
             const data = await response.json();
             this.siteId = data.id;
             return this.siteId;
+          } else {
+            const errData = await response.json().catch(() => ({}));
+            console.error("SharePoint API error:", response.status, errData);
+            Portal.UI.showToast("SharePoint Sync Failed", `Error ${response.status}: ${errData.error?.message || 'Access denied'}`, "error");
           }
         } catch (e) {
           console.error("Failed to resolve SharePoint Site ID", e);
+          Portal.UI.showToast("Network Error", "Could not connect to Microsoft Graph API.", "error");
         }
         return null;
       },
