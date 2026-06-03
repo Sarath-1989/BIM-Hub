@@ -3367,6 +3367,13 @@
             });
             this.msalInstance.initialize().then(() => {
               this.checkActiveSSOSession();
+            }).catch(initErr => {
+              console.error("MSAL Initialization failed:", initErr);
+              // Show visual feedback on failure
+              const badgeText = document.getElementById('login-mode-text');
+              if (badgeText) {
+                badgeText.innerText = 'INITIALIZATION ERROR: ' + (initErr.message || 'MSAL Init Failed');
+              }
             });
           } catch(e) {
             console.error("SSO Library initialization failure.", e);
@@ -3466,7 +3473,9 @@
           this.loadPortalShell();
         }).catch(err => {
           document.getElementById('login-err-banner').style.display = 'block';
-          console.error(err);
+          console.error("MSAL Login Error:", err);
+          // Show error message as a toast for visibility
+          Portal.UI.showToast("Microsoft Sign-in Failed", err.message || err.toString(), "error");
         });
       },
 
