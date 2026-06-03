@@ -1730,18 +1730,12 @@
       </nav>
 
       <div class="sidebar-footer">
-        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
-          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-            <div class="logout-btn" onclick="Portal.Auth.logout()">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-              <span>Logout</span>
-            </div>
-            <div class="switch-btn" id="btn-switch-user-trigger" onclick="Portal.Auth.openSwitchUserModal()" style="display: none;">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-              <span>Switch User</span>
-            </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <div class="logout-btn" onclick="Portal.Auth.logout()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+            <span>Logout</span>
           </div>
-          <div class="version-tag" style="text-align: right; opacity: 0.5;">v1.0.0</div>
+          <div class="version-tag">v1.0.0</div>
         </div>
       </div>
     </aside>
@@ -2569,26 +2563,7 @@
        MODAL POPUPS DEFINITIONS
        ------------------------------------------------------------- -->
   
-  <!-- Switch User Modal (Only active in Mock Mode) -->
-  <div class="modal-overlay" id="modal-switch-user" style="z-index: 10000;">
-    <div class="modal-box" style="max-width: 500px;">
-      <div class="modal-header">
-        <h3 class="modal-title">Switch Active User (Sandbox)</h3>
-        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
-      </div>
-      <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
-          Select a simulated employee profile to switch roles and test permission scopes.
-        </p>
-        <div id="switch-user-list" style="display: flex; flex-direction: column; gap: 10px;">
-          <!-- Dynamically populated via JS -->
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="Portal.UI.closeModal()">Close</button>
-      </div>
-    </div>
-  </div>
+
 
   <!-- Manual Attendance Modal -->
   <div class="modal-overlay" id="modal-manual-attendance">
@@ -3061,12 +3036,32 @@
       </svg>
       <h2 class="login-title" style="margin-bottom: 2px; font-family: var(--font-mono); font-size: 14px; color: var(--accent-gps); text-transform: uppercase; letter-spacing: 2px;">Unified Portal</h2>
       <p class="login-subtitle" style="margin-top: 4px;">BIM & Engineering Web Portal</p>
-      
-      <div class="login-error-banner" id="login-err-banner">
-        Invalid credentials or authority server disconnected.
+
+      <!-- Connection Mode Status Badge -->
+      <div id="login-mode-badge" style="
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(251,191,36,0.08);
+        border: 1px solid rgba(251,191,36,0.25);
+        border-radius: 8px;
+        padding: 8px 14px;
+        font-size: 11px;
+        font-weight: 700;
+        color: #fbbf24;
+        margin-bottom: 8px;
+        font-family: var(--font-mono);
+        letter-spacing: 0.5px;
+      ">
+        <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#fbbf24"/></svg>
+        <span id="login-mode-text">OFFLINE MODE &mdash; Checking Microsoft connection...</span>
       </div>
 
-      <!-- Path A: SSO login -->
+      <div class="login-error-banner" id="login-err-banner">
+        Microsoft 365 sign-in failed. Please check your network or contact your administrator.
+      </div>
+
+      <!-- Microsoft 365 SSO -->
       <button class="m365-login-btn" onclick="Portal.Auth.loginSSO()">
         <!-- Microsoft Logo SVG -->
         <svg width="21" height="21" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
@@ -3350,7 +3345,17 @@
           document.getElementById('side-m365-status').innerText = 'CONNECTED';
           document.getElementById('side-m365-status').style.background = 'rgba(16, 185, 129, 0.1)';
           document.getElementById('side-m365-status').style.color = '#10b981';
-          
+          // Update login badge to LIVE
+          const badge = document.getElementById('login-mode-badge');
+          const badgeText = document.getElementById('login-mode-text');
+          if (badge && badgeText) {
+            badge.style.background = 'rgba(16,185,129,0.08)';
+            badge.style.border = '1px solid rgba(16,185,129,0.3)';
+            badge.style.color = '#10b981';
+            badge.querySelector('circle').setAttribute('fill', '#10b981');
+            badgeText.innerText = 'MICROSOFT 365 CONNECTED — Sign in with your Asterwix account';
+          }
+
           try {
             this.msalInstance = new msal.PublicClientApplication({
               auth: {
@@ -3368,8 +3373,13 @@
             this.isMock = true;
           }
         } else {
-          // Defaults sandbox indicators
+          // Not configured — show offline/sandbox mode indicator
           this.isMock = true;
+          const badge = document.getElementById('login-mode-badge');
+          const badgeText = document.getElementById('login-mode-text');
+          if (badge && badgeText) {
+            badgeText.innerText = 'OFFLINE MODE — Microsoft 365 not yet configured';
+          }
         }
 
         // Auto-login sandbox if saved session
@@ -3430,11 +3440,11 @@
 
       loginSSO: function() {
         if (this.isMock) {
-          // Auto login as super admin in mock mode
+          // Mock mode: sign in automatically as Super Admin
           currentUser = this.resolveUserProfile("connect@asterwix.com", "Sarath Perucheril");
           sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-          Portal.Audit.log("Portal", "Login", "Successfully signed in via simulated Microsoft 365 SSO (Mock Mode).");
-          Portal.UI.showToast("Logged In", "Mock Microsoft 365 Authentication Successful", "success");
+          Portal.Audit.log("Portal", "Login", "Signed in via Offline Mode (Microsoft 365 not yet configured).");
+          Portal.UI.showToast("Signed In (Offline Mode)", "Microsoft 365 is not yet connected. To enable live sign-in, update config/app-config.js with your Azure AD Client ID and Tenant ID.", "warning");
           this.loadPortalShell();
           return;
         }
@@ -3453,68 +3463,7 @@
         });
       },
 
-      openSwitchUserModal: function() {
-        const emps = Portal.DB.get('employees');
-        const container = document.getElementById('switch-user-list');
-        if (!container) return;
 
-        container.innerHTML = '';
-        emps.forEach(emp => {
-          const item = document.createElement('div');
-          item.style.cssText = `
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 12px;
-            background: rgba(255,255,255,0.03);
-            border: 1px solid var(--glass-border);
-            border-radius: 6px;
-          `;
-
-          let roleColor = 'var(--text-muted)';
-          if (emp.role === 'Admin') roleColor = 'var(--accent-hr)';
-          else if (emp.role === 'BIM Manager') roleColor = 'var(--accent-bim)';
-          else if (emp.role === 'HR Admin') roleColor = 'var(--accent-hr)';
-          else if (emp.role === 'Accounts') roleColor = 'var(--accent-gps)';
-          else if (emp.role === 'Team Lead') roleColor = 'var(--accent-bim)';
-
-          item.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 2px;">
-              <div style="font-weight: 700; font-size: 13px; color: #fff;">${emp.name}</div>
-              <div style="font-size: 11px; color: var(--text-muted);">${emp.email}</div>
-              <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
-                <span style="font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.08); border-radius: 4px; color: ${roleColor}; font-weight: 700;">${emp.role}</span>
-                <span style="font-size: 10px; color: var(--text-muted);">${emp.designation}</span>
-              </div>
-            </div>
-            <button class="btn" style="padding: 6px 12px; font-size: 11px;" onclick="Portal.Auth.switchUser('${emp.email}')">Switch</button>
-          `;
-          container.appendChild(item);
-        });
-
-        Portal.UI.openModal('modal-switch-user');
-      },
-
-      switchUser: function(email) {
-        const emps = Portal.DB.get('employees');
-        const match = emps.find(e => e.email.toLowerCase() === email.toLowerCase());
-        if (!match) return;
-
-        currentUser = {
-          empId: match.empId,
-          name: match.name,
-          email: match.email,
-          role: match.role,
-          designation: match.designation
-        };
-
-        sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-        Portal.Audit.log("Portal", "Login", `Switched active sandbox profile to: ${match.name} (${match.role})`);
-        Portal.UI.showToast("User Switched", `Active session changed to ${match.name}`, "success");
-        
-        Portal.UI.closeModal();
-        this.loadPortalShell();
-      },
 
       logout: function() {
         Portal.Audit.log("Portal", "Logout", "Logged out of portal session.");
@@ -3540,11 +3489,7 @@
           addEmpBtn.style.display = (currentUser.email === 'connect@asterwix.com') ? 'block' : 'none';
         }
 
-        // Show/hide Switch User trigger button depending on mock mode and Super Admin
-        const switchBtn = document.getElementById('btn-switch-user-trigger');
-        if (switchBtn) {
-          switchBtn.style.display = (this.isMock && currentUser.email === 'connect@asterwix.com') ? 'flex' : 'none';
-        }
+
 
         // UI updates
         document.getElementById('side-profile-name').innerText = currentUser.name;
