@@ -18,10 +18,10 @@ window.ASTERWIX_CONFIG = {
     productionRedirectUri: 'https://hub.asterwix.com/'
   },
 
-  // SharePoint Online Site Configuration (optional)
+  // SharePoint Online Site Configuration
   sharePoint: {
-    hostname: 'asterwix.sharepoint.com',
-    siteName: 'AsterwixHub',
+    hostname: 'asterwix007.sharepoint.com',
+    siteName: 'AsterwixBIMHub',
     siteId: '' // Resolved dynamically if left empty
   }
 };
