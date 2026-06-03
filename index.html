@@ -2935,6 +2935,45 @@
     </div>
   </div>
 
+  <!-- Reset Password Modal -->
+  <div class="modal-overlay" id="modal-reset-password">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Reset Fallback Password</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <form id="form-reset-password" onsubmit="event.preventDefault(); Portal.Auth.saveResetPassword()">
+        <div class="modal-body">
+          <div id="reset-step-1">
+            <div class="form-group">
+              <label>Enter Registered Email</label>
+              <input type="email" class="form-control" id="reset-email" required placeholder="connect@asterwix.com">
+            </div>
+            <button type="button" class="btn" style="width:100%; justify-content:center;" onclick="Portal.Auth.sendResetPasscode()">Send Verification Passcode</button>
+          </div>
+          
+          <div id="reset-step-2" style="display:none; margin-top:20px;">
+            <div class="form-group">
+              <label>Verification Passcode (Sent to Email)</label>
+              <input type="text" class="form-control" id="reset-passcode" required placeholder="Enter 6-digit passcode">
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label>New Password</label>
+                <input type="password" class="form-control" id="reset-new-pass" required placeholder="New Password">
+              </div>
+              <div class="form-group">
+                <label>Confirm Password</label>
+                <input type="password" class="form-control" id="reset-confirm-pass" required placeholder="Confirm Password">
+              </div>
+            </div>
+            <button type="submit" class="btn" style="width:100%; justify-content:center;">Update Password</button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- -------------------------------------------------------------
        FULL PAGE OVERLAY: LOGIN & SSO SELECTOR
        ------------------------------------------------------------- -->
@@ -2965,9 +3004,10 @@
           <label>Employee Username</label>
           <input type="text" class="form-control" id="login-user" required placeholder="name@asterwix.com">
         </div>
-        <div class="form-group">
+        <div class="form-group" style="position: relative;">
           <label>Password</label>
           <input type="password" class="form-control" id="login-pass" required placeholder="••••••••">
+          <span style="position: absolute; right: 0; top: 0; font-size: 11px; color: var(--accent-hr); cursor: pointer; font-weight: 700;" onclick="Portal.UI.openModal('modal-reset-password')">Forgot?</span>
         </div>
         <button type="submit" class="btn" style="width:100%; justify-content:center;">Direct Sign In</button>
       </form>
@@ -3041,7 +3081,7 @@
       seedInitialData: function() {
         // Employees Seeding
         const employees = [
-          { empId: "EMP-001", name: "Sarath Perucheril", email: "sarath@asterwix.com", dept: "HR & Admin", role: "HR Admin", designation: "General Manager HR", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
+          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "HR Admin", designation: "General Manager HR", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
           { empId: "EMP-002", name: "Amit Sharma", email: "amit@asterwix.com", dept: "BIM Structural", role: "BIM Manager", designation: "BIM Structural Lead", salaryBasic: 10000, salaryHousing: 4000, salaryTransport: 1500, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
           { empId: "EMP-003", name: "Deepak Rawat", email: "deepak@asterwix.com", dept: "BIM Architectural", role: "Team Lead", designation: "Senior BIM Modeller", salaryBasic: 8000, salaryHousing: 3000, salaryTransport: 1000, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-002" },
           { empId: "EMP-004", name: "Sunita Roy", email: "sunita@asterwix.com", dept: "BIM MEP", role: "Staff", designation: "MEP Engineer", salaryBasic: 6000, salaryHousing: 2000, salaryTransport: 1000, salaryOthers: 200, currency: "INR", status: "Active", location: "India Office", managerId: "EMP-003" },
@@ -3094,7 +3134,7 @@
 
         // Overtime Seeding
         const overtime = [
-          { otId: "OT-01", empId: "EMP-003", date: "2026-06-01", hours: 3.5, projectRef: "DXB-MAR-01", multiplier: 1.25, otRate: 150, approvedBy: "sarath@asterwix.com", status: "Approved" }
+          { otId: "OT-01", empId: "EMP-003", date: "2026-06-01", hours: 3.5, projectRef: "DXB-MAR-01", multiplier: 1.25, otRate: 150, approvedBy: "connect@asterwix.com", status: "Approved" }
         ];
         localStorage.setItem('ax_overtime', JSON.stringify(overtime));
 
@@ -3332,7 +3372,8 @@
         const emps = Portal.DB.get('employees');
         const match = emps.find(e => e.email.toLowerCase() === user.toLowerCase());
         
-        if (match && pass === 'asterwix2026') { // Standard evaluation password
+        const fallbackPassword = localStorage.getItem('ax_fallback_password') || (window.ASTERWIX_CONFIG && window.ASTERWIX_CONFIG.FALLBACK_PASSWORD) || '123456';
+        if (match && pass === fallbackPassword) {
           currentUser = {
             empId: match.empId,
             name: match.name,
@@ -3345,9 +3386,62 @@
           this.loadPortalShell();
         } else {
           const banner = document.getElementById('login-err-banner');
-          banner.innerText = "Incorrect username or password. (Hint: Use any employee email & 'asterwix2026' for testing)";
+          banner.innerText = `Incorrect username or password. (Hint: Use any employee email & '${fallbackPassword}' for testing)`;
           banner.style.display = 'block';
         }
+      },
+
+      resetPasscodeValue: null,
+
+      sendResetPasscode: function() {
+        const email = document.getElementById('reset-email').value;
+        if (!email || email.toLowerCase() !== 'connect@asterwix.com') {
+          Portal.UI.showToast("Verification Error", "This email is not authorized to reset the admin password.", "error");
+          return;
+        }
+
+        // Generate 6-digit random passcode
+        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        this.resetPasscodeValue = code;
+
+        // Display simulated email popup/toast
+        Portal.UI.showToast("Passcode Sent", `Authorization code sent to connect@asterwix.com: ${code}`, "success");
+        Portal.UI.showToast("Mock Email Server", `[Email to connect@asterwix.com] Security: Your password reset passcode is ${code}`, "info");
+
+        // Switch steps
+        document.getElementById('reset-step-1').style.display = 'none';
+        document.getElementById('reset-step-2').style.display = 'block';
+      },
+
+      saveResetPassword: function() {
+        const enteredCode = document.getElementById('reset-passcode').value;
+        const newPass = document.getElementById('reset-new-pass').value;
+        const confirmPass = document.getElementById('reset-confirm-pass').value;
+
+        if (enteredCode !== this.resetPasscodeValue) {
+          Portal.UI.showToast("Auth Error", "Invalid verification passcode.", "error");
+          return;
+        }
+
+        if (newPass !== confirmPass) {
+          Portal.UI.showToast("Input Error", "Passwords do not match.", "error");
+          return;
+        }
+
+        // Update password in localStorage
+        localStorage.setItem('ax_fallback_password', newPass);
+        Portal.UI.showToast("Success", "Admin password has been updated successfully!", "success");
+        Portal.Audit.log("System", "Security", "Admin fallback credentials password reset completed with email authorization.");
+
+        // Close modal
+        Portal.UI.closeModal();
+
+        // Reset form steps
+        setTimeout(() => {
+          document.getElementById('reset-step-1').style.display = 'block';
+          document.getElementById('reset-step-2').style.display = 'none';
+          document.getElementById('form-reset-password').reset();
+        }, 500);
       },
 
       bypassLogin: function(role) {
