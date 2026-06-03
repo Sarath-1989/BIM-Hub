@@ -3381,7 +3381,16 @@
             badge.style.border = '1px solid rgba(239, 68, 68, 0.3)';
             badge.style.color = '#ef4444';
             badge.querySelector('circle').setAttribute('fill', '#ef4444');
-            badgeText.innerText = 'CONFIGURATION REQUIRED — Please configure config/app-config.js';
+            
+            let reason = "Please configure config/app-config.js";
+            if (!window.ASTERWIX_CONFIG) {
+              reason = "config/app-config.js could not be loaded. Check path or CORS.";
+            } else if (window.ASTERWIX_CONFIG.MOCK_MODE_ENABLED) {
+              reason = "MOCK_MODE_ENABLED is true in config/app-config.js.";
+            } else if (window.ASTERWIX_CONFIG.auth.clientId === 'YOUR_CLIENT_ID_HERE') {
+              reason = "Client ID is still 'YOUR_CLIENT_ID_HERE' in config/app-config.js.";
+            }
+            badgeText.innerText = 'CONFIGURATION REQUIRED — ' + reason;
           }
         }
 
