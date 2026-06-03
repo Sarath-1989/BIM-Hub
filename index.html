@@ -4045,6 +4045,16 @@
         // Toggle Sidebar Active styling
         document.querySelectorAll('.nav-item').forEach(item => {
           item.classList.remove('active', 'active-gps', 'active-bim');
+          const onClickAttr = item.getAttribute('onclick') || '';
+          if (onClickAttr.includes(`'${pageId}'`)) {
+            if (pageId.includes('gps') || pageId === 'attendance-log' || pageId === 'monthly-summary') {
+              item.classList.add('active-gps');
+            } else if (pageId === 'projects' || pageId === 'master-timeline' || pageId === 'team-directory' || pageId === 'weekly-reports') {
+              item.classList.add('active-bim');
+            } else {
+              item.classList.add('active');
+            }
+          }
         });
 
         // Set page elements active
