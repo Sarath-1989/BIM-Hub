@@ -338,6 +338,18 @@
     .logout-btn:hover {
       opacity: 0.8;
     }
+    .switch-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      font-weight: 700;
+      color: var(--accent-bim);
+      transition: opacity 0.2s;
+    }
+    .switch-btn:hover {
+      opacity: 0.8;
+    }
     .version-tag {
       font-family: var(--font-mono);
     }
@@ -1509,10 +1521,11 @@
 
       #sidebar {
         position: fixed !important;
-        top: var(--spbar-height);
+        top: 0 !important;
         left: 0;
         bottom: 0;
-        height: calc(100vh - var(--spbar-height)) !important;
+        height: 100% !important;
+        height: 100dvh !important;
         transform: translateX(-100%) !important;
         z-index: 1000 !important;
         box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
@@ -1710,14 +1723,26 @@
           <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
           <span>Audit Log</span>
         </div>
+        <div class="nav-item" id="nav-admin-gps" onclick="Portal.Router.navigate('gps-settings')" style="display: none;">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line><circle cx="12" cy="12" r="3"></circle></svg>
+          <span>GPS Settings</span>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
-        <div class="logout-btn" onclick="Portal.Auth.logout()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-          <span>Logout</span>
+        <div style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div class="logout-btn" onclick="Portal.Auth.logout()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <span>Logout</span>
+            </div>
+            <div class="switch-btn" id="btn-switch-user-trigger" onclick="Portal.Auth.openSwitchUserModal()" style="display: none;">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              <span>Switch User</span>
+            </div>
+          </div>
+          <div class="version-tag" style="text-align: right; opacity: 0.5;">v1.0.0</div>
         </div>
-        <div class="version-tag">v1.0.0</div>
       </div>
     </aside>
     <div id="sidebar-overlay" onclick="Portal.UI.toggleSidebar()"></div>
@@ -2466,6 +2491,76 @@
           </div>
         </div>
 
+        <!-- -------------------------------------------------------------
+             PAGE: GPS SETTINGS (ADMIN ONLY)
+             ------------------------------------------------------------- -->
+        <div class="page" id="page-gps-settings">
+          <div class="form-row" style="grid-template-columns: 1fr 2fr; gap: 24px; align-items: start;">
+            <!-- Form Card -->
+            <div class="card-panel">
+              <h3 class="panel-title" style="margin-bottom: 16px;">Add GPS Location</h3>
+              <form id="form-add-gps-loc" onsubmit="event.preventDefault(); Portal.GPS.submitGPSLocation()">
+                <div class="form-group">
+                  <label>Location Name</label>
+                  <input type="text" class="form-control" id="gps-loc-name" required placeholder="e.g. Sarath's Residence">
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Latitude</label>
+                    <input type="number" step="any" class="form-control" id="gps-loc-lat" required placeholder="25.0763">
+                  </div>
+                  <div class="form-group">
+                    <label>Longitude</label>
+                    <input type="number" step="any" class="form-control" id="gps-loc-lng" required placeholder="55.1555">
+                  </div>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Radius (Meters)</label>
+                    <input type="number" class="form-control" id="gps-loc-radius" required value="200" placeholder="200">
+                  </div>
+                  <div class="form-group">
+                    <label>Location Type</label>
+                    <select class="form-control" id="gps-loc-type" onchange="Portal.GPS.toggleGPSLocEmpSelect()" required>
+                      <option value="Office">Office Site</option>
+                      <option value="Site">Project Site</option>
+                      <option value="WFH">Work From Home (WFH)</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="form-group" id="gps-loc-emp-group" style="display: none;">
+                  <label>Assign to Employee</label>
+                  <select class="form-control" id="gps-loc-emp-id">
+                    <!-- Loaded dynamically -->
+                  </select>
+                </div>
+                <button type="submit" class="btn" style="width: 100%; justify-content: center; margin-top: 8px;">Save Location</button>
+              </form>
+            </div>
+
+            <!-- List Card -->
+            <div class="card-panel">
+              <h3 class="panel-title" style="margin-bottom: 16px;">Configured GPS Locations</h3>
+              <div class="responsive-table-wrapper">
+                <table class="data-table" id="table-gps-locations">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Coordinates</th>
+                      <th>Radius</th>
+                      <th>Type</th>
+                      <th>Assigned To</th>
+                      <th>Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </main>
     </div>
   </div>
@@ -2474,6 +2569,27 @@
        MODAL POPUPS DEFINITIONS
        ------------------------------------------------------------- -->
   
+  <!-- Switch User Modal (Only active in Mock Mode) -->
+  <div class="modal-overlay" id="modal-switch-user" style="z-index: 10000;">
+    <div class="modal-box" style="max-width: 500px;">
+      <div class="modal-header">
+        <h3 class="modal-title">Switch Active User (Sandbox)</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <div class="modal-body" style="max-height: 400px; overflow-y: auto;">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+          Select a simulated employee profile to switch roles and test permission scopes.
+        </p>
+        <div id="switch-user-list" style="display: flex; flex-direction: column; gap: 10px;">
+          <!-- Dynamically populated via JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="Portal.UI.closeModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Manual Attendance Modal -->
   <div class="modal-overlay" id="modal-manual-attendance">
     <div class="modal-box">
@@ -2935,45 +3051,6 @@
     </div>
   </div>
 
-  <!-- Reset Password Modal -->
-  <div class="modal-overlay" id="modal-reset-password" style="z-index: 10000;">
-    <div class="modal-box">
-      <div class="modal-header">
-        <h3 class="modal-title">Reset Fallback Password</h3>
-        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
-      </div>
-      <form id="form-reset-password" onsubmit="event.preventDefault(); Portal.Auth.saveResetPassword()">
-        <div class="modal-body">
-          <div id="reset-step-1">
-            <div class="form-group">
-              <label>Enter Registered Email</label>
-              <input type="email" class="form-control" id="reset-email" required placeholder="connect@asterwix.com">
-            </div>
-            <button type="button" class="btn" style="width:100%; justify-content:center;" onclick="Portal.Auth.sendResetPasscode()">Send Verification Passcode</button>
-          </div>
-          
-          <div id="reset-step-2" style="display:none; margin-top:20px;">
-            <div class="form-group">
-              <label>Verification Passcode (Sent to Email)</label>
-              <input type="text" class="form-control" id="reset-passcode" required placeholder="Enter 6-digit passcode">
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label>New Password</label>
-                <input type="password" class="form-control" id="reset-new-pass" required placeholder="New Password">
-              </div>
-              <div class="form-group">
-                <label>Confirm Password</label>
-                <input type="password" class="form-control" id="reset-confirm-pass" required placeholder="Confirm Password">
-              </div>
-            </div>
-            <button type="submit" class="btn" style="width:100%; justify-content:center;">Update Password</button>
-          </div>
-        </div>
-      </form>
-    </div>
-  </div>
-
   <!-- -------------------------------------------------------------
        FULL PAGE OVERLAY: LOGIN & SSO SELECTOR
        ------------------------------------------------------------- -->
@@ -2995,38 +3072,6 @@
         <svg width="21" height="21" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
         <span>Sign in with Microsoft 365</span>
       </button>
-
-      <div class="login-divider">or sign in with credentials</div>
-
-      <!-- Path B: Direct Fallback -->
-      <form id="form-login-direct" onsubmit="event.preventDefault(); Portal.Auth.loginDirect()">
-        <div class="form-group">
-          <label>Employee Username</label>
-          <input type="text" class="form-control" id="login-user" required placeholder="name@asterwix.com">
-        </div>
-        <div class="form-group" style="position: relative;">
-          <label>Password</label>
-          <input type="password" class="form-control" id="login-pass" required placeholder="••••••••">
-          <span style="position: absolute; right: 0; top: 0; font-size: 11px; color: var(--accent-hr); cursor: pointer; font-weight: 700;" onclick="Portal.UI.openModal('modal-reset-password')">Forgot?</span>
-        </div>
-        <button type="submit" class="btn" style="width:100%; justify-content:center;">Direct Sign In</button>
-      </form>
-
-      <!-- Sandbox Developer Bypass Selector -->
-      <div class="sandbox-login-box">
-        <div class="sandbox-header">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-          <span>Developer Sandbox Bypass</span>
-        </div>
-        <div class="sandbox-list">
-          <button class="sandbox-role-btn" onclick="Portal.Auth.bypassLogin('Admin')">🔑 Administrator</button>
-          <button class="sandbox-role-btn" onclick="Portal.Auth.bypassLogin('HR Admin')">👥 HR Admin</button>
-          <button class="sandbox-role-btn" onclick="Portal.Auth.bypassLogin('Accounts')">💰 Accounts</button>
-          <button class="sandbox-role-btn" onclick="Portal.Auth.bypassLogin('BIM Manager')">🏗 BIM Manager</button>
-          <button class="sandbox-role-btn" onclick="Portal.Auth.bypassLogin('Team Lead')">⚡ Team Lead</button>
-          <button class="sandbox-role-btn" onclick="Portal.Auth.bypassLogin('Staff')">💻 BIM Modeller</button>
-        </div>
-      </div>
     </div>
   </div>
 
@@ -3074,8 +3119,8 @@
     Portal.DB = {
       init: function() {
         const emps = localStorage.getItem('ax_employees');
-        // Auto re-seed if database cache has outdated employee records (checks for connect@asterwix.com)
-        if (!emps || !emps.includes('connect@asterwix.com')) {
+        // Auto re-seed if database cache has outdated employee records (checks for connect@asterwix.com and Super Admin)
+        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin')) {
           localStorage.removeItem('ax_employees');
           localStorage.removeItem('ax_offices');
           localStorage.removeItem('ax_attendance');
@@ -3093,7 +3138,7 @@
       seedInitialData: function() {
         // Employees Seeding
         const employees = [
-          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "HR Admin", designation: "General Manager HR", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
+          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
           { empId: "EMP-002", name: "Amit Sharma", email: "amit@asterwix.com", dept: "BIM Structural", role: "BIM Manager", designation: "BIM Structural Lead", salaryBasic: 10000, salaryHousing: 4000, salaryTransport: 1500, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
           { empId: "EMP-003", name: "Deepak Rawat", email: "deepak@asterwix.com", dept: "BIM Architectural", role: "Team Lead", designation: "Senior BIM Modeller", salaryBasic: 8000, salaryHousing: 3000, salaryTransport: 1000, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-002" },
           { empId: "EMP-004", name: "Sunita Roy", email: "sunita@asterwix.com", dept: "BIM MEP", role: "Staff", designation: "MEP Engineer", salaryBasic: 6000, salaryHousing: 2000, salaryTransport: 1000, salaryOthers: 200, currency: "INR", status: "Active", location: "India Office", managerId: "EMP-003" },
@@ -3337,18 +3382,47 @@
         }
       },
 
+      resolveUserProfile: function(email, defaultName) {
+        const emps = Portal.DB.get('employees');
+        const match = emps.find(e => e.email.toLowerCase() === email.toLowerCase());
+
+        if (email.toLowerCase() === 'connect@asterwix.com') {
+          return {
+            empId: match ? match.empId : "EMP-001",
+            name: match ? match.name : (defaultName || "Sarath Perucheril"),
+            email: "connect@asterwix.com",
+            role: "Admin",
+            designation: "Super Admin"
+          };
+        }
+
+        if (match) {
+          return {
+            empId: match.empId,
+            name: match.name,
+            email: match.email,
+            role: match.role,
+            designation: match.designation
+          };
+        }
+
+        // Fallback for other live accounts
+        return {
+          empId: "EMP-M365",
+          name: defaultName || email.split('@')[0],
+          email: email,
+          role: "Staff",
+          designation: "M365 Modeller"
+        };
+      },
+
       checkActiveSSOSession: function() {
         const accounts = this.msalInstance.getAllAccounts();
         if (accounts.length > 0) {
           this.msalInstance.setActiveAccount(accounts[0]);
-          // Resolve role and profile
-          currentUser = {
-            empId: "EMP-M365",
-            name: accounts[0].name,
-            email: accounts[0].username,
-            role: "Admin", // Defaults to Admin in live for setup or maps AD groups
-            designation: "M365 Unified Officer"
-          };
+          const email = accounts[0].username;
+          const name = accounts[0].name;
+          currentUser = this.resolveUserProfile(email, name);
           sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
           this.loadPortalShell();
         }
@@ -3356,19 +3430,22 @@
 
       loginSSO: function() {
         if (this.isMock) {
-          Portal.UI.showToast("Bypassed Connection", "Live SSO requires application setup in app-config.js. Direct Sandbox Login enabled.", "warning");
+          // Auto login as super admin in mock mode
+          currentUser = this.resolveUserProfile("connect@asterwix.com", "Sarath Perucheril");
+          sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
+          Portal.Audit.log("Portal", "Login", "Successfully signed in via simulated Microsoft 365 SSO (Mock Mode).");
+          Portal.UI.showToast("Logged In", "Mock Microsoft 365 Authentication Successful", "success");
+          this.loadPortalShell();
           return;
         }
+
         this.msalInstance.loginPopup({ scopes: ["User.Read", "Sites.ReadWrite.All"] }).then(response => {
           this.msalInstance.setActiveAccount(response.account);
-          currentUser = {
-            empId: "EMP-M365",
-            name: response.account.name,
-            email: response.account.username,
-            role: "Admin",
-            designation: "M365 Unified Officer"
-          };
+          const email = response.account.username;
+          const name = response.account.name;
+          currentUser = this.resolveUserProfile(email, name);
           sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
+          Portal.Audit.log("Portal", "Login", `Successfully signed in via Microsoft 365 SSO (${email}).`);
           this.loadPortalShell();
         }).catch(err => {
           document.getElementById('login-err-banner').style.display = 'block';
@@ -3376,102 +3453,66 @@
         });
       },
 
-      loginDirect: function() {
-        const user = document.getElementById('login-user').value;
-        const pass = document.getElementById('login-pass').value;
-        
-        // Match in database
+      openSwitchUserModal: function() {
         const emps = Portal.DB.get('employees');
-        const match = emps.find(e => e.email.toLowerCase() === user.toLowerCase());
-        
-        const fallbackPassword = localStorage.getItem('ax_fallback_password') || (window.ASTERWIX_CONFIG && window.ASTERWIX_CONFIG.FALLBACK_PASSWORD) || '123456';
-        if (match && pass === fallbackPassword) {
-          currentUser = {
-            empId: match.empId,
-            name: match.name,
-            email: match.email,
-            role: match.role,
-            designation: match.designation
-          };
-          sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-          Portal.Audit.log("Portal", "Login", "Successfully signed in via direct fallback credentials.");
-          this.loadPortalShell();
-        } else {
-          const banner = document.getElementById('login-err-banner');
-          banner.innerText = `Incorrect username or password. (Hint: Use any employee email & '${fallbackPassword}' for testing)`;
-          banner.style.display = 'block';
-        }
+        const container = document.getElementById('switch-user-list');
+        if (!container) return;
+
+        container.innerHTML = '';
+        emps.forEach(emp => {
+          const item = document.createElement('div');
+          item.style.cssText = `
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--glass-border);
+            border-radius: 6px;
+          `;
+
+          let roleColor = 'var(--text-muted)';
+          if (emp.role === 'Admin') roleColor = 'var(--accent-hr)';
+          else if (emp.role === 'BIM Manager') roleColor = 'var(--accent-bim)';
+          else if (emp.role === 'HR Admin') roleColor = 'var(--accent-hr)';
+          else if (emp.role === 'Accounts') roleColor = 'var(--accent-gps)';
+          else if (emp.role === 'Team Lead') roleColor = 'var(--accent-bim)';
+
+          item.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 2px;">
+              <div style="font-weight: 700; font-size: 13px; color: #fff;">${emp.name}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">${emp.email}</div>
+              <div style="display: flex; gap: 6px; align-items: center; margin-top: 4px;">
+                <span style="font-size: 10px; padding: 2px 6px; background: rgba(255,255,255,0.08); border-radius: 4px; color: ${roleColor}; font-weight: 700;">${emp.role}</span>
+                <span style="font-size: 10px; color: var(--text-muted);">${emp.designation}</span>
+              </div>
+            </div>
+            <button class="btn" style="padding: 6px 12px; font-size: 11px;" onclick="Portal.Auth.switchUser('${emp.email}')">Switch</button>
+          `;
+          container.appendChild(item);
+        });
+
+        Portal.UI.openModal('modal-switch-user');
       },
 
-      resetPasscodeValue: null,
-
-      sendResetPasscode: function() {
-        const email = document.getElementById('reset-email').value;
-        if (!email || email.toLowerCase() !== 'connect@asterwix.com') {
-          Portal.UI.showToast("Verification Error", "This email is not authorized to reset the admin password.", "error");
-          return;
-        }
-
-        // Generate 6-digit random passcode
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
-        this.resetPasscodeValue = code;
-
-        // Display simulated email popup/toast
-        Portal.UI.showToast("Passcode Sent", `Authorization code sent to connect@asterwix.com: ${code}`, "success");
-        Portal.UI.showToast("Mock Email Server", `[Email to connect@asterwix.com] Security: Your password reset passcode is ${code}`, "info");
-
-        // Switch steps
-        document.getElementById('reset-step-1').style.display = 'none';
-        document.getElementById('reset-step-2').style.display = 'block';
-      },
-
-      saveResetPassword: function() {
-        const enteredCode = document.getElementById('reset-passcode').value;
-        const newPass = document.getElementById('reset-new-pass').value;
-        const confirmPass = document.getElementById('reset-confirm-pass').value;
-
-        if (enteredCode !== this.resetPasscodeValue) {
-          Portal.UI.showToast("Auth Error", "Invalid verification passcode.", "error");
-          return;
-        }
-
-        if (newPass !== confirmPass) {
-          Portal.UI.showToast("Input Error", "Passwords do not match.", "error");
-          return;
-        }
-
-        // Update password in localStorage
-        localStorage.setItem('ax_fallback_password', newPass);
-        Portal.UI.showToast("Success", "Admin password has been updated successfully!", "success");
-        Portal.Audit.log("System", "Security", "Admin fallback credentials password reset completed with email authorization.");
-
-        // Close modal
-        Portal.UI.closeModal();
-
-        // Reset form steps
-        setTimeout(() => {
-          document.getElementById('reset-step-1').style.display = 'block';
-          document.getElementById('reset-step-2').style.display = 'none';
-          document.getElementById('form-reset-password').reset();
-        }, 500);
-      },
-
-      bypassLogin: function(role) {
-        // Auto resolve matching employee record to populate profile properly
+      switchUser: function(email) {
         const emps = Portal.DB.get('employees');
-        let match = emps.find(e => e.role === role);
-        if (!match) match = emps[0];
+        const match = emps.find(e => e.email.toLowerCase() === email.toLowerCase());
+        if (!match) return;
 
         currentUser = {
           empId: match.empId,
           name: match.name,
           email: match.email,
-          role: role,
+          role: match.role,
           designation: match.designation
         };
 
         sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-        Portal.Audit.log("Portal", "Login", `Bypassed authentication to Sandbox as role: ${role}`);
+        Portal.Audit.log("Portal", "Login", `Switched active sandbox profile to: ${match.name} (${match.role})`);
+        Portal.UI.showToast("User Switched", `Active session changed to ${match.name}`, "success");
+        
+        Portal.UI.closeModal();
         this.loadPortalShell();
       },
 
@@ -3491,6 +3532,18 @@
         const syncBtn = document.getElementById('sp-sync-btn');
         if (syncBtn) {
           syncBtn.style.display = (!this.isMock) ? 'flex' : 'none';
+        }
+
+        // Show/hide "+ Add Employee" button depending on Super Admin
+        const addEmpBtn = document.getElementById('btn-add-employee-trigger');
+        if (addEmpBtn) {
+          addEmpBtn.style.display = (currentUser.email === 'connect@asterwix.com') ? 'block' : 'none';
+        }
+
+        // Show/hide Switch User trigger button depending on mock mode and Super Admin
+        const switchBtn = document.getElementById('btn-switch-user-trigger');
+        if (switchBtn) {
+          switchBtn.style.display = (this.isMock && currentUser.email === 'connect@asterwix.com') ? 'flex' : 'none';
         }
 
         // UI updates
@@ -3516,8 +3569,14 @@
         const role = currentUser.role;
 
         // View states mapping
-        const show = (id) => document.getElementById(id).style.display = 'block';
-        const hide = (id) => document.getElementById(id).style.display = 'none';
+        const show = (id) => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'block';
+        };
+        const hide = (id) => {
+          const el = document.getElementById(id);
+          if (el) el.style.display = 'none';
+        };
 
         // Reset
         hide('header-bim');
@@ -3537,6 +3596,7 @@
         hide('header-admin');
         hide('nav-admin-users');
         hide('nav-admin-audit');
+        hide('nav-admin-gps');
 
         hide('btn-add-manual-att');
         hide('btn-add-project');
@@ -3548,6 +3608,9 @@
           show('header-bim'); show('nav-bim-projects'); show('nav-bim-timeline'); show('nav-bim-directory'); show('nav-bim-reports');
           show('header-hr'); show('nav-hr-employees'); show('nav-hr-leave'); show('nav-hr-overtime'); show('nav-hr-payroll'); show('nav-hr-wps'); show('nav-hr-payslips');
           show('header-admin'); show('nav-admin-users'); show('nav-admin-audit');
+          if (currentUser.email === 'connect@asterwix.com') {
+            show('nav-admin-gps');
+          }
           show('btn-add-manual-att'); show('btn-add-project'); show('panel-leave-approvals'); show('btn-add-overtime');
         } else if (role === 'HR Admin') {
           show('header-bim'); show('nav-bim-projects');
@@ -3634,6 +3697,9 @@
             Portal.UI.loadUsers();
           } else if (pageId === 'audit-log') {
             Portal.UI.loadAuditLogs();
+          } else if (pageId === 'gps-settings') {
+            Portal.GPS.renderGPSLocationsTable();
+            Portal.GPS.toggleGPSLocEmpSelect();
           }
 
           // Top Header updates
@@ -3674,19 +3740,36 @@
 
       renderOfficeDropdown: function() {
         const select = document.getElementById('gps-office-select');
+        if (!select) return;
         select.innerHTML = '';
         const offices = Portal.DB.get('offices');
         
         offices.forEach(o => {
           if (o.isActive) {
-            const opt = document.createElement('option');
-            opt.value = o.id;
-            opt.innerText = `${o.name} (${o.type})`;
-            select.appendChild(opt);
+            const isGeneral = o.type === 'Office' || o.type === 'Site';
+            const isAssignedToMe = o.type === 'WFH' && o.assignedEmpId === currentUser.empId;
+            const isSuperAdminView = currentUser.email === 'connect@asterwix.com';
+
+            if (isGeneral || isAssignedToMe || isSuperAdminView) {
+              const opt = document.createElement('option');
+              opt.value = o.id;
+              let displayName = `${o.name} (${o.type})`;
+              if (o.type === 'WFH' && o.assignedEmpName) {
+                displayName += ` - [${o.assignedEmpName}]`;
+              }
+              opt.innerText = displayName;
+              select.appendChild(opt);
+            }
           }
         });
 
-        this.selectedOffice = offices[0];
+        const firstOpt = select.querySelector('option');
+        if (firstOpt) {
+          const id = firstOpt.value;
+          this.selectedOffice = offices.find(o => o.id === id);
+        } else {
+          this.selectedOffice = null;
+        }
       },
 
       changeOfficeLoc: function() {
@@ -4140,6 +4223,143 @@
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+      },
+
+      toggleGPSLocEmpSelect: function() {
+        const type = document.getElementById('gps-loc-type').value;
+        const empGroup = document.getElementById('gps-loc-emp-group');
+        if (!empGroup) return;
+
+        if (type === 'WFH') {
+          empGroup.style.display = 'block';
+          // Populate employees dropdown
+          const select = document.getElementById('gps-loc-emp-id');
+          select.innerHTML = '';
+          const emps = Portal.DB.get('employees');
+          emps.forEach(emp => {
+            const opt = document.createElement('option');
+            opt.value = emp.empId;
+            opt.innerText = `${emp.name} (${emp.email})`;
+            select.appendChild(opt);
+          });
+        } else {
+          empGroup.style.display = 'none';
+        }
+      },
+
+      renderGPSLocationsTable: function() {
+        const tbody = document.getElementById('table-gps-locations').querySelector('tbody');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const offices = Portal.DB.get('offices');
+        offices.forEach(o => {
+          const tr = document.createElement('tr');
+          
+          let assignedName = '--';
+          if (o.type === 'WFH' && o.assignedEmpName) {
+            assignedName = `<strong>${o.assignedEmpName}</strong>`;
+          }
+
+          tr.innerHTML = `
+            <td><strong>${o.name}</strong></td>
+            <td><code style="font-size:11px; font-family:var(--font-mono);">${Number(o.lat).toFixed(4)}, ${Number(o.lng).toFixed(4)}</code></td>
+            <td>${o.radius}m</td>
+            <td><span class="role-chip" style="background:${o.type === 'Office' ? 'var(--accent-bim)' : o.type === 'Site' ? 'var(--accent-gps)' : 'var(--accent-hr)'}; color:#fff; border:none; font-size:10px;">${o.type}</span></td>
+            <td>${assignedName}</td>
+            <td>
+              <span class="role-chip" style="background:${o.isActive ? '#065f46' : '#1e293b'}; color:#fff; border:none; cursor:pointer; font-size:10px;" onclick="Portal.GPS.toggleLocationActive('${o.id}')">
+                ${o.isActive ? 'Active' : 'Inactive'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.GPS.deleteGPSLocation('${o.id}')">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      },
+
+      submitGPSLocation: function() {
+        if (currentUser.email !== 'connect@asterwix.com') {
+          Portal.UI.showToast("Access Denied", "Only the Super Admin can configure GPS settings.", "error");
+          return;
+        }
+
+        const name = document.getElementById('gps-loc-name').value;
+        const lat = Number(document.getElementById('gps-loc-lat').value);
+        const lng = Number(document.getElementById('gps-loc-lng').value);
+        const radius = Number(document.getElementById('gps-loc-radius').value) || 200;
+        const type = document.getElementById('gps-loc-type').value;
+        
+        let assignedEmpId = null;
+        let assignedEmpName = null;
+
+        if (type === 'WFH') {
+          assignedEmpId = document.getElementById('gps-loc-emp-id').value;
+          const emps = Portal.DB.get('employees');
+          const emp = emps.find(e => e.empId === assignedEmpId);
+          if (emp) {
+            assignedEmpName = emp.name;
+          }
+        }
+
+        const offices = Portal.DB.get('offices');
+        const id = "LOC-" + (offices.length + 1).toString().padStart(2, '0');
+
+        const newLoc = {
+          id: id,
+          name: name,
+          lat: lat,
+          lng: lng,
+          radius: radius,
+          type: type,
+          isActive: true,
+          assignedEmpId: assignedEmpId,
+          assignedEmpName: assignedEmpName
+        };
+
+        offices.push(newLoc);
+        Portal.DB.set('offices', offices);
+
+        Portal.UI.showToast("Location Saved", `Added ${name} to GPS locations list.`, "success");
+        Portal.Audit.log("Admin GPS", "Create Location", `Added GPS location: ${name} (${type})`);
+        
+        document.getElementById('form-add-gps-loc').reset();
+        document.getElementById('gps-loc-emp-group').style.display = 'none';
+
+        this.renderGPSLocationsTable();
+        this.renderOfficeDropdown();
+      },
+
+      toggleLocationActive: function(id) {
+        if (currentUser.email !== 'connect@asterwix.com') return;
+        const offices = Portal.DB.get('offices');
+        const o = offices.find(x => x.id === id);
+        if (o) {
+          o.isActive = !o.isActive;
+          Portal.DB.set('offices', offices);
+          Portal.UI.showToast("Status Updated", `${o.name} is now ${o.isActive ? 'Active' : 'Inactive'}.`, "info");
+          Portal.Audit.log("Admin GPS", "Toggle Location Status", `Toggled activity for: ${o.name} to ${o.isActive}`);
+          this.renderGPSLocationsTable();
+          this.renderOfficeDropdown();
+        }
+      },
+
+      deleteGPSLocation: function(id) {
+        if (currentUser.email !== 'connect@asterwix.com') return;
+        if (!confirm("Are you sure you want to delete this GPS location?")) return;
+
+        let offices = Portal.DB.get('offices');
+        const o = offices.find(x => x.id === id);
+        if (o) {
+          offices = offices.filter(x => x.id !== id);
+          Portal.DB.set('offices', offices);
+          Portal.UI.showToast("Location Deleted", `${o.name} removed.`, "info");
+          Portal.Audit.log("Admin GPS", "Delete Location", `Deleted GPS location: ${o.name}`);
+          this.renderGPSLocationsTable();
+          this.renderOfficeDropdown();
+        }
       }
     };
 
@@ -4855,7 +5075,7 @@
             <td>${manager ? manager.name : '--'}</td>
             <td><strong style="color:var(--accent-hr); font-family:var(--font-mono);">${salaryValStr}</strong></td>
             <td>
-              ${currentUser.role === 'Admin' ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.HR.deleteEmployee('${e.empId}')">Terminate</button>` : 'Locked'}
+              ${currentUser.email === 'connect@asterwix.com' ? `<button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.HR.deleteEmployee('${e.empId}')">Terminate</button>` : 'Locked'}
             </td>
           `;
           tbody.appendChild(tr);
@@ -4863,6 +5083,11 @@
       },
 
       submitEmployee: function() {
+        if (currentUser.email !== 'connect@asterwix.com') {
+          Portal.UI.showToast("Permission Denied", "Only the Super Admin can add employees.", "error");
+          return;
+        }
+
         const name = document.getElementById('ae-name').value;
         const email = document.getElementById('ae-email').value;
         const dept = document.getElementById('ae-dept').value;
@@ -4906,6 +5131,11 @@
       },
 
       deleteEmployee: function(empId) {
+        if (currentUser.email !== 'connect@asterwix.com') {
+          Portal.UI.showToast("Permission Denied", "Only the Super Admin can terminate employee records.", "error");
+          return;
+        }
+
         if (!confirm(`Are you sure you want to terminate record ${empId}?`)) return;
         
         let emps = Portal.DB.get('employees');
