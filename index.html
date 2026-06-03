@@ -1649,6 +1649,166 @@
       }
     }
 
+    /* Virtual ID Card Styling */
+    .id-card-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .id-card {
+      width: 260px;
+      height: 400px;
+      background: radial-gradient(circle at 50% 30%, #1c273e 0%, #0c1220 100%);
+      border: 2px solid var(--accent-bim);
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+      font-family: var(--font-sans);
+      color: #fff;
+    }
+    .id-card::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      width: 140%;
+      height: 120px;
+      background: var(--accent-bim);
+      transform: rotate(-8deg);
+      opacity: 0.15;
+      z-index: 1;
+    }
+    .id-card-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+      z-index: 2;
+    }
+    .id-card-header .brand-name {
+      font-family: 'Poetsen One', sans-serif;
+      font-size: 16px;
+      color: #fff;
+    }
+    .id-card-header .brand-subtitle {
+      font-size: 8px;
+      background: rgba(255,255,255,0.15);
+      padding: 2px 6px;
+      border-radius: 20px;
+      color: var(--accent-bim);
+      font-weight: 700;
+      font-family: var(--font-mono);
+    }
+    .id-card-photo-box {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      border: 3px solid var(--accent-bim);
+      overflow: hidden;
+      background: rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      z-index: 2;
+    }
+    .id-card-photo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .id-card-photo-placeholder {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--accent-bim);
+    }
+    .id-card-name {
+      font-size: 16px;
+      font-weight: 700;
+      text-align: center;
+      margin-bottom: 4px;
+      z-index: 2;
+    }
+    .id-card-designation {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      text-align: center;
+      z-index: 2;
+    }
+    .id-card-meta {
+      width: 100%;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding-top: 12px;
+      margin-bottom: 15px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      z-index: 2;
+    }
+    .id-card-meta-item {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .id-card-meta-label {
+      font-size: 8px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-family: var(--font-mono);
+    }
+    .id-card-meta-value {
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+    }
+    .id-card-barcode-box {
+      width: 100%;
+      height: 35px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: auto;
+      z-index: 2;
+      opacity: 0.8;
+    }
+    .id-card-barcode {
+      width: 80%;
+      height: 20px;
+      background: repeating-linear-gradient(90deg, #fff, #fff 2px, transparent 2px, transparent 6px);
+    }
+    .id-card-barcode-num {
+      font-size: 9px;
+      font-family: var(--font-mono);
+      margin-top: 2px;
+      letter-spacing: 2px;
+      color: var(--text-muted);
+    }
+
+    /* Print Layout for ID Card */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #print-id-card-zone, #print-id-card-zone * {
+        visibility: visible;
+      }
+      #print-id-card-zone {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        margin: 0;
+      }
+    }
   </style>
 </head>
 <body>
@@ -1751,7 +1911,7 @@
           <span>Payslips</span>
         </div>
         <div class="nav-item" onclick="Portal.Router.navigate('my-profile')">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7z"></path></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
           <span>My Profile</span>
         </div>
 
@@ -2424,13 +2584,47 @@
              ------------------------------------------------------------- -->
         <div class="page" id="page-my-profile">
           <div class="profile-layout">
-            <!-- Left panel: Picture and quick details -->
+            <!-- Left panel: Dynamic ID Card Preview and Print -->
             <div>
-              <div class="card-panel" style="text-align:center;">
-                <div class="avatar" style="width:100px; height:100px; font-size:40px; margin:0 auto 16px auto;" id="profile-card-avatar">U</div>
-                <h3 id="profile-card-name">Username</h3>
-                <p id="profile-card-role" style="color:var(--text-muted); font-size:13px; font-family:var(--font-mono); margin-top:4px;">Role</p>
-                <p id="profile-card-id" style="color:var(--text-muted); font-size:12px; margin-top:2px;">Emp ID</p>
+              <div class="card-panel id-card-wrapper">
+                <div class="id-card" id="my-id-card">
+                  <div class="id-card-header">
+                    <span class="brand-name">Asterwix</span>
+                    <span class="brand-subtitle">ID CARD</span>
+                  </div>
+                  <div class="id-card-photo-box" id="idc-photo-container">
+                    <!-- Photo or initials -->
+                    <span class="id-card-photo-placeholder" id="idc-initials">--</span>
+                  </div>
+                  <div class="id-card-name" id="idc-name">--</div>
+                  <div class="id-card-designation" id="idc-designation">--</div>
+                  <div class="id-card-meta">
+                    <div class="id-card-meta-item">
+                      <span class="id-card-meta-label">ID Number</span>
+                      <span class="id-card-meta-value" id="idc-id">--</span>
+                    </div>
+                    <div class="id-card-meta-item">
+                      <span class="id-card-meta-label">Department</span>
+                      <span class="id-card-meta-value" id="idc-dept">--</span>
+                    </div>
+                    <div class="id-card-meta-item">
+                      <span class="id-card-meta-label">Location</span>
+                      <span class="id-card-meta-value" id="idc-location">--</span>
+                    </div>
+                    <div class="id-card-meta-item">
+                      <span class="id-card-meta-label">Joined</span>
+                      <span class="id-card-meta-value">2026</span>
+                    </div>
+                  </div>
+                  <div class="id-card-barcode-box">
+                    <div class="id-card-barcode"></div>
+                    <span class="id-card-barcode-num" id="idc-barcode-val">--</span>
+                  </div>
+                </div>
+                <button type="button" class="btn" style="width:100%; justify-content:center;" onclick="Portal.HR.printIDCard()">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+                  Print ID Card
+                </button>
               </div>
             </div>
             
@@ -2438,43 +2632,89 @@
             <div class="card-panel">
               <h3 class="panel-title" style="margin-bottom: 20px;">Personal Account Information</h3>
               <form id="form-my-profile" onsubmit="event.preventDefault(); Portal.HR.saveMyProfile()">
+                <input type="hidden" id="prof-photo-data">
+                
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Profile Picture Upload</label>
+                    <input type="file" class="form-control" id="prof-photo-upload" accept="image/*" onchange="Portal.HR.handlePhotoUpload(this)">
+                  </div>
+                  <div class="form-group">
+                    <label>Date of Birth (DOB)</label>
+                    <input type="date" class="form-control" id="prof-dob" required>
+                  </div>
+                </div>
+
                 <div class="form-row">
                   <div class="form-group">
                     <label>Mobile Number</label>
-                    <input type="text" class="form-control" id="prof-phone">
+                    <input type="tel" class="form-control" id="prof-phone" required placeholder="+971 50 123 4567">
                   </div>
                   <div class="form-group">
-                    <label>Mailing Address</label>
-                    <input type="text" class="form-control" id="prof-address">
+                    <label>Personal/Contact Email</label>
+                    <input type="email" class="form-control" id="prof-personal-email" required placeholder="name@personal.com">
                   </div>
                 </div>
+
+                <div class="form-row">
+                  <div class="form-group" style="flex: 2;">
+                    <label>Permanent Residential Address</label>
+                    <input type="text" class="form-control" id="prof-address" required placeholder="Apartment / Villa, Street, City, Country">
+                  </div>
+                </div>
+
+                <h4 style="font-size:14px; margin-top:20px; margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:6px; color:var(--accent-bim);">
+                  Emergency Contact Details
+                </h4>
                 <div class="form-row">
                   <div class="form-group">
-                    <label>Passport / National ID Number</label>
-                    <input type="text" class="form-control" id="prof-doc-num">
+                    <label>Contact Full Name</label>
+                    <input type="text" class="form-control" id="prof-emergency-name" required placeholder="e.g. Jane Doe">
                   </div>
                   <div class="form-group">
-                    <label>Emergency Contact details</label>
-                    <input type="text" class="form-control" id="prof-emergency">
+                    <label>Relationship Status</label>
+                    <input type="text" class="form-control" id="prof-emergency-relation" required placeholder="e.g. Spouse / Parent / Sibling">
+                  </div>
+                  <div class="form-group">
+                    <label>Emergency Contact Phone</label>
+                    <input type="tel" class="form-control" id="prof-emergency-phone" required placeholder="+971 50 987 6543">
                   </div>
                 </div>
-                
-                <h4 style="font-size:14px; margin-top:20px; margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:6px;">
-                  Bank Account (WPS Disbursement)
+
+                <h4 style="font-size:14px; margin-top:20px; margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:6px; color:var(--accent-bim);">
+                  Bank Account Details (WPS Disbursement)
                 </h4>
                 <div class="form-row">
                   <div class="form-group">
                     <label>Recipient Bank Name</label>
-                    <input type="text" class="form-control" id="prof-bank-name">
+                    <input type="text" class="form-control" id="prof-bank-name" required placeholder="e.g. Emirates NBD / SBI">
                   </div>
                   <div class="form-group">
+                    <label>Account Number</label>
+                    <input type="text" class="form-control" id="prof-bank-acc" required placeholder="e.g. 10123456789">
+                  </div>
+                  <div class="form-group" style="flex: 1.5;">
                     <label>IBAN String</label>
-                    <input type="text" class="form-control" id="prof-iban">
+                    <input type="text" class="form-control" id="prof-iban" required placeholder="e.g. AE030240000010123456789">
                   </div>
                 </div>
 
-                <div style="margin-top:20px;">
-                  <button type="submit" class="btn">Update Information</button>
+                <h4 style="font-size:14px; margin-top:20px; margin-bottom:12px; border-bottom:1px solid var(--border-color); padding-bottom:6px; color:var(--accent-gps);">
+                  Passport Credentials (Not Mandatory)
+                </h4>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label>Passport Number</label>
+                    <input type="text" class="form-control" id="prof-passport-num" placeholder="e.g. P1234567">
+                  </div>
+                  <div class="form-group">
+                    <label>Passport Expiration Date</label>
+                    <input type="date" class="form-control" id="prof-passport-expiry">
+                  </div>
+                </div>
+
+                <div style="margin-top:24px;">
+                  <button type="submit" class="btn">Save & Update Profile</button>
                 </div>
               </form>
             </div>
@@ -3032,6 +3272,68 @@
             <div class="form-group">
               <label>Other Allowances</label>
               <input type="number" class="form-control" id="ee-sal-others" required value="0">
+            </div>
+          </div>
+
+          <h4 style="font-size:13px; font-weight:700; color:var(--accent-bim); margin-top:16px; margin-bottom:8px;">Personal Information & Emergency Contacts</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Date of Birth</label>
+              <input type="date" class="form-control" id="ee-dob">
+            </div>
+            <div class="form-group">
+              <label>Mobile Number</label>
+              <input type="tel" class="form-control" id="ee-phone">
+            </div>
+            <div class="form-group">
+              <label>Personal Email</label>
+              <input type="email" class="form-control" id="ee-personal-email">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="flex: 2;">
+              <label>Permanent Address</label>
+              <input type="text" class="form-control" id="ee-address">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Emergency Contact Name</label>
+              <input type="text" class="form-control" id="ee-emergency-name">
+            </div>
+            <div class="form-group">
+              <label>Emergency Relation</label>
+              <input type="text" class="form-control" id="ee-emergency-relation">
+            </div>
+            <div class="form-group">
+              <label>Emergency Phone</label>
+              <input type="tel" class="form-control" id="ee-emergency-phone">
+            </div>
+          </div>
+
+          <h4 style="font-size:13px; font-weight:700; color:var(--accent-bim); margin-top:16px; margin-bottom:8px;">Bank & Passport Credentials</h4>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Bank Name</label>
+              <input type="text" class="form-control" id="ee-bank-name">
+            </div>
+            <div class="form-group">
+              <label>Account Number</label>
+              <input type="text" class="form-control" id="ee-bank-acc">
+            </div>
+            <div class="form-group" style="flex: 1.5;">
+              <label>IBAN String</label>
+              <input type="text" class="form-control" id="ee-iban">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Passport Number</label>
+              <input type="text" class="form-control" id="ee-passport-num">
+            </div>
+            <div class="form-group">
+              <label>Passport Expiration</label>
+              <input type="date" class="form-control" id="ee-passport-expiry">
             </div>
           </div>
         </div>
@@ -5244,6 +5546,20 @@
         document.getElementById('ee-sal-transport').value = emp.salaryTransport || 0;
         document.getElementById('ee-sal-others').value = emp.salaryOthers || 0;
 
+        // Expanded personal fields
+        document.getElementById('ee-dob').value = emp.dob || '';
+        document.getElementById('ee-phone').value = emp.phone || '';
+        document.getElementById('ee-personal-email').value = emp.personalEmail || '';
+        document.getElementById('ee-address').value = emp.address || '';
+        document.getElementById('ee-emergency-name').value = emp.emergencyContactName || '';
+        document.getElementById('ee-emergency-relation').value = emp.emergencyContactRelation || '';
+        document.getElementById('ee-emergency-phone').value = emp.emergencyContactPhone || '';
+        document.getElementById('ee-bank-name').value = emp.bankName || '';
+        document.getElementById('ee-bank-acc').value = emp.bankAccount || '';
+        document.getElementById('ee-iban').value = emp.iban || '';
+        document.getElementById('ee-passport-num').value = emp.docNum || '';
+        document.getElementById('ee-passport-expiry').value = emp.passportExpiry || '';
+
         Portal.UI.openModal('modal-edit-employee');
       },
 
@@ -5279,6 +5595,20 @@
           emps[idx].salaryHousing = housing;
           emps[idx].salaryTransport = transport;
           emps[idx].salaryOthers = others;
+
+          // Save expanded personal fields
+          emps[idx].dob = document.getElementById('ee-dob').value;
+          emps[idx].phone = document.getElementById('ee-phone').value;
+          emps[idx].personalEmail = document.getElementById('ee-personal-email').value;
+          emps[idx].address = document.getElementById('ee-address').value;
+          emps[idx].emergencyContactName = document.getElementById('ee-emergency-name').value;
+          emps[idx].emergencyContactRelation = document.getElementById('ee-emergency-relation').value;
+          emps[idx].emergencyContactPhone = document.getElementById('ee-emergency-phone').value;
+          emps[idx].bankName = document.getElementById('ee-bank-name').value;
+          emps[idx].bankAccount = document.getElementById('ee-bank-acc').value;
+          emps[idx].iban = document.getElementById('ee-iban').value;
+          emps[idx].docNum = document.getElementById('ee-passport-num').value;
+          emps[idx].passportExpiry = document.getElementById('ee-passport-expiry').value;
 
           Portal.DB.set('employees', emps);
           Portal.UI.showToast("Employee Updated", `Record ${id} has been updated.`, "success");
@@ -5789,49 +6119,137 @@
         `;
       },
 
+      handlePhotoUpload: function(input) {
+        const file = input.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const base64 = e.target.result;
+          document.getElementById('prof-photo-data').value = base64;
+          
+          // Live preview on the ID card
+          const imgContainer = document.getElementById('idc-photo-container');
+          if (imgContainer) {
+            imgContainer.innerHTML = `<img src="${base64}" class="id-card-photo" alt="Employee Photo">`;
+          }
+        };
+        reader.readAsDataURL(file);
+      },
+
+      renderMyIDCard: function(staff) {
+        const nameEl = document.getElementById('idc-name');
+        const desEl = document.getElementById('idc-designation');
+        const idEl = document.getElementById('idc-id');
+        const deptEl = document.getElementById('idc-dept');
+        const locEl = document.getElementById('idc-location');
+        const barVal = document.getElementById('idc-barcode-val');
+        const imgContainer = document.getElementById('idc-photo-container');
+
+        if (nameEl) nameEl.innerText = staff.name;
+        if (desEl) desEl.innerText = staff.designation;
+        if (idEl) idEl.innerText = staff.empId;
+        if (deptEl) deptEl.innerText = staff.dept;
+        if (locEl) locEl.innerText = staff.location || 'Dubai HQ';
+        if (barVal) barVal.innerText = staff.empId.replace('-', '');
+
+        if (imgContainer) {
+          if (staff.photo) {
+            imgContainer.innerHTML = `<img src="${staff.photo}" class="id-card-photo" alt="Employee Photo">`;
+          } else {
+            const initials = staff.name.split(' ').map(n => n[0]).join('');
+            imgContainer.innerHTML = `<span class="id-card-photo-placeholder" id="idc-initials">${initials}</span>`;
+          }
+        }
+      },
+
       loadProfileForm: function() {
         const emps = Portal.DB.get('employees');
         const staff = emps.find(e => e.empId === currentUser.empId);
+        if (!staff) return;
 
         // Fill form fields
-        document.getElementById('prof-phone').value = staff.phone || "+971 4 000 0000";
-        document.getElementById('prof-address').value = staff.address || "Jumeirah Lake Towers, Dubai, UAE";
-        document.getElementById('prof-doc-num').value = staff.docNum || "784-2026-1234567-1";
-        document.getElementById('prof-emergency').value = staff.emergency || "Family: +971 50 000 0000";
-        document.getElementById('prof-bank-name').value = staff.bankName || "Emirates NBD";
-        document.getElementById('prof-iban').value = staff.iban || "AE030200000000000000000";
+        document.getElementById('prof-photo-data').value = staff.photo || "";
+        document.getElementById('prof-dob').value = staff.dob || "";
+        document.getElementById('prof-phone').value = staff.phone || "";
+        document.getElementById('prof-personal-email').value = staff.personalEmail || "";
+        document.getElementById('prof-address').value = staff.address || "";
+        document.getElementById('prof-emergency-name').value = staff.emergencyContactName || "";
+        document.getElementById('prof-emergency-relation').value = staff.emergencyContactRelation || "";
+        document.getElementById('prof-emergency-phone').value = staff.emergencyContactPhone || "";
+        document.getElementById('prof-bank-name').value = staff.bankName || "";
+        document.getElementById('prof-bank-acc').value = staff.bankAccount || "";
+        document.getElementById('prof-iban').value = staff.iban || "";
+        document.getElementById('prof-passport-num').value = staff.docNum || "";
+        document.getElementById('prof-passport-expiry').value = staff.passportExpiry || "";
 
-        // Quick profile Card updates
-        document.getElementById('profile-card-name').innerText = staff.name;
-        document.getElementById('profile-card-role').innerText = staff.role;
-        document.getElementById('profile-card-id').innerText = staff.empId;
-        document.getElementById('profile-card-avatar').innerText = staff.name.split(' ').map(n => n[0]).join('');
+        // Reset file input
+        const fileInput = document.getElementById('prof-photo-upload');
+        if (fileInput) fileInput.value = '';
+
+        // Live ID Card updates
+        this.renderMyIDCard(staff);
       },
 
       saveMyProfile: function() {
         const emps = Portal.DB.get('employees');
         const staffIdx = emps.findIndex(e => e.empId === currentUser.empId);
+        if (staffIdx === -1) return;
 
-        emps[staffIdx].phone = document.getElementById('prof-phone').value;
-        emps[staffIdx].address = document.getElementById('prof-address').value;
-        emps[staffIdx].docNum = document.getElementById('prof-doc-num').value;
-        emps[staffIdx].emergency = document.getElementById('prof-emergency').value;
-        
-        // WPS records
-        const oldIban = emps[staffIdx].iban || '';
-        const newIban = document.getElementById('prof-iban').value;
-        
-        emps[staffIdx].bankName = document.getElementById('prof-bank-name').value;
-        emps[staffIdx].iban = newIban;
+        const photo = document.getElementById('prof-photo-data').value;
+        const dob = document.getElementById('prof-dob').value;
+        const phone = document.getElementById('prof-phone').value;
+        const personalEmail = document.getElementById('prof-personal-email').value;
+        const address = document.getElementById('prof-address').value;
+        const emergencyName = document.getElementById('prof-emergency-name').value;
+        const emergencyRelation = document.getElementById('prof-emergency-relation').value;
+        const emergencyPhone = document.getElementById('prof-emergency-phone').value;
+        const bankName = document.getElementById('prof-bank-name').value;
+        const bankAcc = document.getElementById('prof-bank-acc').value;
+        const iban = document.getElementById('prof-iban').value;
+        const docNum = document.getElementById('prof-passport-num').value;
+        const passportExpiry = document.getElementById('prof-passport-expiry').value;
+
+        // Apply edits
+        emps[staffIdx].photo = photo;
+        emps[staffIdx].dob = dob;
+        emps[staffIdx].phone = phone;
+        emps[staffIdx].personalEmail = personalEmail;
+        emps[staffIdx].address = address;
+        emps[staffIdx].emergencyContactName = emergencyName;
+        emps[staffIdx].emergencyContactRelation = emergencyRelation;
+        emps[staffIdx].emergencyContactPhone = emergencyPhone;
+        emps[staffIdx].bankName = bankName;
+        emps[staffIdx].bankAccount = bankAcc;
+        emps[staffIdx].iban = iban;
+        emps[staffIdx].docNum = docNum;
+        emps[staffIdx].passportExpiry = passportExpiry;
 
         Portal.DB.set('employees', emps);
-        Portal.UI.showToast("Profile Updated", "Personal account data saved successfully.", "success");
+        Portal.UI.showToast("Profile Updated", "Personal profile and account data saved successfully.", "success");
+        Portal.Audit.log("HR Accounts", "Profile Update", `Employee ${currentUser.empId} updated their personal info sheet.`);
+
+        // Re-render ID Card
+        this.renderMyIDCard(emps[staffIdx]);
+      },
+
+      printIDCard: function() {
+        const cardNode = document.getElementById('my-id-card');
+        const printZone = document.getElementById('print-id-card-zone');
+        if (!cardNode || !printZone) return;
+
+        // Copy card HTML into print zone
+        printZone.innerHTML = cardNode.outerHTML;
+        printZone.style.display = 'block';
         
-        if (oldIban !== newIban) {
-          Portal.Audit.log("HR Accounts", "WPS Update", `IBAN details changed. Old: ${oldIban} -> New: ${newIban}`);
-        } else {
-          Portal.Audit.log("HR Accounts", "Profile Update", "Updated personal info sheet.");
-        }
+        // Print
+        window.print();
+        
+        // Cleanup after printing
+        setTimeout(() => {
+          printZone.innerHTML = '';
+          printZone.style.display = 'none';
+        }, 500);
       }
     };
 
@@ -5977,5 +6395,6 @@
     });
 
   </script>
+  <div id="print-id-card-zone" style="display: none;"></div>
 </body>
 </html>
