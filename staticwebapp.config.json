@@ -1,0 +1,27 @@
+{
+  "navigationFallback": {
+    "rewrite": "/index.html",
+    "exclude": ["/assets/*.{png,jpg,gif,svg,ico}", "/config/*.js", "/css/*", "/js/*"]
+  },
+  "routes": [
+    {
+      "route": "/auth",
+      "rewrite": "/index.html"
+    },
+    {
+      "route": "/portal.html",
+      "redirect": "/index.html",
+      "statusCode": 301
+    }
+  ],
+  "globalHeaders": {
+    "content-security-policy": "default-src 'self' https://*.microsoftonline.com https://graph.microsoft.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://unpkg.com cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.tile.openstreetmap.org https://unpkg.com https://graph.microsoft.com; connect-src 'self' https://login.microsoftonline.com https://graph.microsoft.com https://*.sharepoint.com; frame-src 'self' https://login.microsoftonline.com;",
+    "X-Frame-Options": "DENY",
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "same-origin",
+    "Strict-Transport-Security": "max-age=31536000; includeSubDomains; preload"
+  },
+  "mimeTypes": {
+    ".json": "application/json"
+  }
+}
