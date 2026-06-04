@@ -126,6 +126,52 @@
       color: #f87171;
     }
     
+    .sync-status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      user-select: none;
+    }
+    .sync-status-pill.sync-saved {
+      border: 1px solid rgba(16, 185, 129, 0.2);
+      background: rgba(16, 185, 129, 0.05);
+      color: #10b981;
+    }
+    .sync-status-pill.sync-saved .sync-status-dot {
+      background-color: #10b981;
+      box-shadow: 0 0 8px #10b981;
+    }
+    .sync-status-pill.sync-saving {
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      background: rgba(245, 158, 11, 0.05);
+      color: #f59e0b;
+    }
+    .sync-status-pill.sync-saving .sync-status-dot {
+      background-color: #f59e0b;
+      box-shadow: 0 0 8px #f59e0b;
+      animation: pulse-sync 1.5s infinite;
+    }
+    .sync-status-pill.sync-error {
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      background: rgba(239, 68, 68, 0.05);
+      color: #ef4444;
+    }
+    .sync-status-pill.sync-error .sync-status-dot {
+      background-color: #ef4444;
+      box-shadow: 0 0 8px #ef4444;
+    }
+    @keyframes pulse-sync {
+      0% { transform: scale(1); opacity: 1; }
+      50% { transform: scale(1.3); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    
     #app-container {
       display: flex;
       flex: 1;
@@ -1955,12 +2001,16 @@
           <h2 class="page-title" id="current-page-title">Dashboard</h2>
         </div>
 
-        <div class="topbar-right">
-          <!-- SharePoint Backup Button -->
-          <button id="sp-sync-btn" class="btn-pill" style="display: none; background: #064e3b; border-color: #065f46; color: #34d399; align-items: center;" onclick="Portal.Graph.backupDatabase()">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="stroke: #34d399; margin-right: 4px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-            <span>SP Backup</span>
-          </button>
+          <!-- Cloud Sync Status Pill -->
+          <div id="sp-sync-status-pill" class="sync-status-pill sync-saved" style="display: none;" onclick="Portal.Graph.initialSync()" title="Click to sync database now">
+            <span class="sync-status-dot" style="width: 6px; height: 6px; border-radius: 50%; display: inline-block;"></span>
+            <span class="sync-status-text">Cloud Synced</span>
+          </div>
+
+          <!-- SharePoint Backup Button (Hidden Legacy) -->
+          <button id="sp-sync-btn" style="display: none;" onclick="Portal.Graph.backupDatabase()"></button>
+          <!-- SharePoint Restore Button (Hidden Legacy) -->
+          <button id="sp-restore-btn" style="display: none;" onclick="Portal.Graph.restoreDatabase()"></button>
 
           <!-- Clock -->
           <div class="clock-display">
@@ -3630,6 +3680,10 @@
 
       set: function(key, data) {
         localStorage.setItem('ax_' + key, JSON.stringify(data));
+        // Trigger auto-backup to SharePoint if in live mode
+        if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
+          Portal.Graph.queueAutoBackup();
+        }
       }
     };
 
@@ -3638,6 +3692,8 @@
        ------------------------------------------------------------- */
     Portal.Graph = {
       siteId: null,
+      autoBackupTimeout: null,
+      isSyncing: false,
 
       getSiteId: async function(token) {
         if (this.siteId) return this.siteId;
@@ -3669,31 +3725,47 @@
         return null;
       },
 
-      backupDatabase: async function() {
-        const btn = document.getElementById('sp-sync-btn');
-        const origContent = btn ? btn.innerHTML : '';
-        if (btn) {
-          btn.disabled = true;
-          btn.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="stroke:#34d399; margin-right:4px; animation: spin 1s linear infinite; width:14px; height:14px;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8" fill="none"></path></svg>
-            <span>Backing up...</span>
-          `;
+      updateStatusUI: function(state, text) {
+        const pill = document.getElementById('sp-sync-status-pill');
+        if (!pill) return;
+        pill.className = 'sync-status-pill ' + state;
+        const txtNode = pill.querySelector('.sync-status-text');
+        if (txtNode) txtNode.innerText = text;
+      },
+
+      queueAutoBackup: function() {
+        if (Portal.Auth.isMock) return;
+        this.updateStatusUI('sync-saving', 'Saving changes...');
+        
+        if (this.autoBackupTimeout) {
+          clearTimeout(this.autoBackupTimeout);
         }
+        
+        this.autoBackupTimeout = setTimeout(() => {
+          this.backupDatabaseLive();
+        }, 3000);
+      },
+
+      backupDatabaseLive: async function() {
+        if (this.isSyncing) return;
+        this.isSyncing = true;
+        this.updateStatusUI('sync-saving', 'Saving changes...');
 
         const token = await Portal.Auth.getAccessToken();
         if (!token) {
-          Portal.UI.showToast("Sync Failed", "Could not acquire M365 access token.", "error");
-          if (btn) { btn.disabled = false; btn.innerHTML = origContent; }
+          this.updateStatusUI('sync-error', 'Sync Offline (Token error)');
+          this.isSyncing = false;
           return false;
         }
 
         const siteId = await this.getSiteId(token);
         if (!siteId) {
-          Portal.UI.showToast("Sync Failed", "Could not resolve SharePoint Site ID.", "error");
-          if (btn) { btn.disabled = false; btn.innerHTML = origContent; }
+          this.updateStatusUI('sync-error', 'Sync Offline (Site error)');
+          this.isSyncing = false;
           return false;
         }
 
+        const lastUpdated = Date.now();
         const backupData = {
           employees: Portal.DB.get('employees'),
           offices: Portal.DB.get('offices'),
@@ -3706,12 +3778,12 @@
           overtime: Portal.DB.get('overtime'),
           audit: Portal.DB.get('audit'),
           timestamp: new Date().toISOString(),
+          lastUpdated: lastUpdated,
           backupBy: Portal.Auth.getCurrentUserEmail()
         };
 
-        const filename = `asterwix_backup_${new Date().toISOString().slice(0, 10)}_${Date.now()}.json`;
-
         try {
+          const filename = 'asterwix_database.json';
           const response = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
             method: 'PUT',
             headers: {
@@ -3722,22 +3794,151 @@
           });
 
           if (response.ok) {
-            Portal.UI.showToast("Backup Success", "Database backed up successfully to SharePoint!", "success");
-            Portal.Audit.log("System", "Backup", `Database backup uploaded to SharePoint: ${filename}`);
-            if (btn) { btn.disabled = false; btn.innerHTML = origContent; }
+            localStorage.setItem('ax_db_last_updated', lastUpdated.toString());
+            this.updateStatusUI('sync-saved', 'Cloud Synced');
+            this.isSyncing = false;
             return true;
           } else {
-            const err = await response.json();
+            const err = await response.json().catch(() => ({}));
             console.error("SharePoint upload failed", err);
-            Portal.UI.showToast("Backup Failed", "SharePoint rejected backup upload.", "error");
+            this.updateStatusUI('sync-error', 'Sync Error');
           }
         } catch (e) {
           console.error("Error backing up to SharePoint", e);
-          Portal.UI.showToast("Backup Error", "Network error during backup upload.", "error");
+          this.updateStatusUI('sync-error', 'Sync Offline');
         }
 
-        if (btn) { btn.disabled = false; btn.innerHTML = origContent; }
+        this.isSyncing = false;
         return false;
+      },
+
+      initialSync: async function() {
+        if (Portal.Auth.isMock) return;
+        this.updateStatusUI('sync-saving', 'Syncing cloud data...');
+
+        const token = await Portal.Auth.getAccessToken();
+        if (!token) {
+          this.updateStatusUI('sync-error', 'Sync Offline');
+          return;
+        }
+
+        const siteId = await this.getSiteId(token);
+        if (!siteId) {
+          this.updateStatusUI('sync-error', 'Sync Offline');
+          return;
+        }
+
+        try {
+          const filename = 'asterwix_database.json';
+          const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (res.ok) {
+            const cloudData = await res.json();
+            const cloudTimestamp = cloudData.lastUpdated || 0;
+            const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
+
+            if (cloudTimestamp > localTimestamp) {
+              const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
+              keys.forEach(k => {
+                if (cloudData[k]) {
+                  localStorage.setItem('ax_' + k, JSON.stringify(cloudData[k]));
+                }
+              });
+              localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
+              Portal.UI.showToast("Database Restored", "Your local database has been updated with the latest cloud data.", "success");
+              Portal.Audit.log("System", "Restore", `Database sync auto-restored version from SharePoint: ${cloudTimestamp}`);
+              
+              const initialPage = window.location.hash.slice(1) || 'dashboard';
+              Portal.Router.navigate(initialPage, false);
+              if (initialPage === 'my-profile') {
+                Portal.HR.loadProfileForm();
+              }
+            } else if (localTimestamp > cloudTimestamp) {
+              await this.backupDatabaseLive();
+            }
+            this.updateStatusUI('sync-saved', 'Cloud Synced');
+          } else if (res.status === 404) {
+            console.log("No cloud database file found. Uploading initial seeded file.");
+            await this.backupDatabaseLive();
+          } else {
+            this.updateStatusUI('sync-error', 'Sync Status Unknown');
+          }
+        } catch (e) {
+          console.error("Error doing initial sync with SharePoint", e);
+          this.updateStatusUI('sync-error', 'Sync Offline');
+        }
+      },
+
+      checkForRemoteUpdates: async function() {
+        if (Portal.Auth.isMock || this.isSyncing || this.autoBackupTimeout) return;
+
+        const token = await Portal.Auth.getAccessToken();
+        if (!token) return;
+
+        const siteId = await this.getSiteId(token);
+        if (!siteId) return;
+
+        try {
+          const filename = 'asterwix_database.json';
+          const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+
+          if (res.ok) {
+            const cloudData = await res.json();
+            const cloudTimestamp = cloudData.lastUpdated || 0;
+            const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
+
+            if (cloudTimestamp > localTimestamp) {
+              const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
+              keys.forEach(k => {
+                if (cloudData[k]) {
+                  localStorage.setItem('ax_' + k, JSON.stringify(cloudData[k]));
+                }
+              });
+              localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
+              
+              Portal.UI.showToast("Database Synced", "New updates pulled from cloud.", "info");
+              
+              const initialPage = window.location.hash.slice(1) || 'dashboard';
+              Portal.Router.navigate(initialPage, false);
+              if (initialPage === 'my-profile') {
+                Portal.HR.loadProfileForm();
+              }
+            }
+            this.updateStatusUI('sync-saved', 'Cloud Synced');
+          }
+        } catch (e) {
+          console.warn("Background remote check failed (likely network status)", e);
+          this.updateStatusUI('sync-error', 'Sync Offline');
+        }
+      },
+
+      backupDatabase: async function() {
+        this.updateStatusUI('sync-saving', 'Saving changes...');
+        const success = await this.backupDatabaseLive();
+        if (success) {
+          Portal.UI.showToast("Backup Success", "Database backed up to SharePoint!", "success");
+        } else {
+          Portal.UI.showToast("Backup Failed", "Could not back up database.", "error");
+        }
+      },
+
+      restoreDatabase: async function() {
+        if (!confirm("Are you sure you want to restore the database from SharePoint? This will overwrite your current local data with the latest cloud backup.")) return;
+        this.updateStatusUI('sync-saving', 'Syncing cloud data...');
+        const oldTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
+        localStorage.setItem('ax_db_last_updated', '0');
+        await this.initialSync();
+        const newTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
+        if (newTimestamp > oldTimestamp) {
+          Portal.UI.showToast("Database Restored", "Cloud database successfully loaded.", "success");
+        } else {
+          localStorage.setItem('ax_db_last_updated', oldTimestamp.toString());
+          Portal.UI.showToast("Database Up-to-date", "No newer backup found in cloud.", "info");
+        }
       }
     };
 
@@ -3915,6 +4116,10 @@
 
       logout: function() {
         Portal.Audit.log("Portal", "Logout", "Logged out of portal session.");
+        if (window.spSyncInterval) {
+          clearInterval(window.spSyncInterval);
+          window.spSyncInterval = null;
+        }
         sessionStorage.clear();
         currentUser = null;
         document.getElementById('login-overlay').style.display = 'flex';
@@ -3925,16 +4130,31 @@
       loadPortalShell: function() {
         document.getElementById('login-overlay').style.display = 'none';
         
-        // Show/hide SharePoint backup sync button
+        // Hide manual buttons and show sync status pill
         const syncBtn = document.getElementById('sp-sync-btn');
-        if (syncBtn) {
-          syncBtn.style.display = (!this.isMock) ? 'flex' : 'none';
+        if (syncBtn) syncBtn.style.display = 'none';
+        const restoreBtn = document.getElementById('sp-restore-btn');
+        if (restoreBtn) restoreBtn.style.display = 'none';
+
+        const statusPill = document.getElementById('sp-sync-status-pill');
+        if (statusPill) {
+          statusPill.style.display = (!this.isMock) ? 'flex' : 'none';
         }
 
         // Show/hide "+ Add Employee" button depending on Super Admin
         const addEmpBtn = document.getElementById('btn-add-employee-trigger');
         if (addEmpBtn) {
           addEmpBtn.style.display = (currentUser.email === 'connect@asterwix.com') ? 'block' : 'none';
+        }
+
+        // Initialize Live SharePoint Sync
+        if (!this.isMock && Portal.Graph) {
+          Portal.Graph.initialSync();
+          // Start 30-second interval check
+          if (window.spSyncInterval) clearInterval(window.spSyncInterval);
+          window.spSyncInterval = setInterval(() => {
+            Portal.Graph.checkForRemoteUpdates();
+          }, 30000);
         }
 
 
