@@ -2146,6 +2146,177 @@
         margin: 0;
       }
     }
+
+    /* ISO 19650 Workflow & CDE Metadata Grid Styles */
+    .iso-metadata-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin: 16px 0;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+    }
+    .iso-meta-card {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .iso-meta-card label {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      font-weight: 700;
+    }
+    .iso-meta-card span {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-light);
+    }
+    .iso-cde-badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      width: fit-content;
+    }
+    /* CDE Status Colors */
+    .cde-wip { background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3); }
+    .cde-shared { background: rgba(245, 158, 11, 0.15); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
+    .cde-published { background: rgba(16, 185, 129, 0.15); color: #34d399; border: 1px solid rgba(16, 185, 129, 0.3); }
+    .cde-archived { background: rgba(107, 114, 128, 0.15); color: #9ca3af; border: 1px solid rgba(107, 114, 128, 0.3); }
+
+    /* ISO 19650 Stepper Visualizer */
+    .cde-stepper {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: relative;
+      margin: 24px 0;
+      padding: 0 12px;
+    }
+    .cde-stepper::before {
+      content: '';
+      position: absolute;
+      top: 15px;
+      left: 24px;
+      right: 24px;
+      height: 2px;
+      background: var(--border-color);
+      z-index: 1;
+    }
+    .cde-step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      z-index: 2;
+      position: relative;
+      text-align: center;
+      cursor: default;
+    }
+    .cde-step-dot {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--bg-tertiary);
+      border: 2px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text-muted);
+      transition: all 0.3s ease;
+    }
+    .cde-step.active .cde-step-dot {
+      background: var(--accent-bim);
+      border-color: var(--accent-bim);
+      color: #fff;
+      box-shadow: 0 0 12px rgba(99, 102, 241, 0.4);
+    }
+    .cde-step.completed .cde-step-dot {
+      background: #059669;
+      border-color: #059669;
+      color: #fff;
+    }
+    .cde-step-label {
+      margin-top: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+    .cde-step.active .cde-step-label {
+      color: var(--text-light);
+    }
+    .cde-step-desc {
+      font-size: 10px;
+      color: var(--text-muted);
+      max-width: 110px;
+      margin-top: 2px;
+    }
+    
+    /* Gateway Control Panel */
+    .cde-control-panel {
+      background: rgba(255, 255, 255, 0.01);
+      border: 1px dashed var(--border-color);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+    }
+    .cde-control-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .cde-control-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-light);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .cde-control-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    /* Mobile responsiveness for ISO 19650 workflow stepper */
+    @media (max-width: 768px) {
+      .cde-step-desc {
+        display: none !important; /* Hide long description text to prevent overlaps */
+      }
+      .cde-step-label {
+        font-size: 10px;
+      }
+      .cde-stepper::before {
+        top: 13px; /* Align line with smaller dots */
+      }
+      .cde-step-dot {
+        width: 26px;
+        height: 26px;
+        font-size: 10px;
+      }
+      .cde-control-actions {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cde-control-actions .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -2504,8 +2675,11 @@
             </div>
             <div class="panel-header-row">
               <div>
-                <h2 id="pd-title" style="font-weight:800; font-size:24px;">Project Title</h2>
-                <p id="pd-client" style="color: var(--text-muted); margin-top:2px;">Client Details</p>
+                <div style="display:flex; align-items:center; gap: 12px; flex-wrap: wrap;">
+                  <h2 id="pd-title" style="font-weight:800; font-size:24px; margin:0;">Project Title</h2>
+                  <button class="btn" id="btn-edit-project-trigger" style="padding: 4px 8px; font-size:11px; display:none;" onclick="Portal.BIM.openEditProjectModal()">✏️ Edit Details</button>
+                </div>
+                <p id="pd-client" style="color: var(--text-muted); margin-top:4px;">Client Details</p>
               </div>
               <div style="display:flex; align-items:center; gap: 16px;">
                 <span class="role-chip" id="pd-phase" style="font-size:12px; background:var(--accent-bim); color:#fff; border:none;">LOD 300</span>
@@ -2517,6 +2691,42 @@
                   <div class="progress-percentage" id="pd-pct">0%</div>
                 </div>
               </div>
+            </div>
+
+            <!-- ISO 19650 Compliance Metadata Grid -->
+            <div id="pd-metadata-grid" class="iso-metadata-grid"></div>
+
+            <!-- ISO 19650 CDE Stepper Pathway & Gateway Control Panel -->
+            <div class="cde-control-panel">
+              <div class="cde-control-header">
+                <div class="cde-control-title">
+                  🌐 ISO 19650 Common Data Environment (CDE) Workflow
+                </div>
+                <div id="cde-gateway-badge" class="iso-cde-badge cde-wip">WIP</div>
+              </div>
+              <div class="cde-stepper">
+                <div class="cde-step" id="step-wip">
+                  <div class="cde-step-dot">W</div>
+                  <div class="cde-step-label">WIP</div>
+                  <div class="cde-step-desc">Work in Progress (S0)</div>
+                </div>
+                <div class="cde-step" id="step-shared">
+                  <div class="cde-step-dot">S</div>
+                  <div class="cde-step-label">Shared</div>
+                  <div class="cde-step-desc">Coordination (S1-S4)</div>
+                </div>
+                <div class="cde-step" id="step-published">
+                  <div class="cde-step-dot">P</div>
+                  <div class="cde-step-label">Published</div>
+                  <div class="cde-step-desc">Construction (A/B)</div>
+                </div>
+                <div class="cde-step" id="step-archived">
+                  <div class="cde-step-dot">A</div>
+                  <div class="cde-step-label">Archived</div>
+                  <div class="cde-step-desc">Historic Audit Trail</div>
+                </div>
+              </div>
+              <div class="cde-control-actions" id="cde-gateway-actions"></div>
             </div>
 
             <!-- Detail Subtabs -->
@@ -3386,7 +3596,7 @@
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label>Client Reference</label>
+              <label>Client Name</label>
               <input type="text" class="form-control" id="ap-client" required>
             </div>
             <div class="form-group">
@@ -3397,6 +3607,62 @@
                 <option value="LOD 300" selected>LOD 300 - Construction Documentation</option>
                 <option value="LOD 400">LOD 400 - Fabrication & Assembly</option>
               </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Project Type</label>
+              <select class="form-control" id="ap-type">
+                <option value="Commercial">Commercial</option>
+                <option value="Residential">Residential</option>
+                <option value="Infrastructure">Infrastructure</option>
+                <option value="Industrial">Industrial</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Stage of Project</label>
+              <select class="form-control" id="ap-stage">
+                <option value="Pre-Contract">Pre-Contract</option>
+                <option value="Schematic Design">Schematic Design</option>
+                <option value="Detailed Design">Detailed Design</option>
+                <option value="Construction Documentation">Construction Documentation</option>
+                <option value="Construction">Construction</option>
+                <option value="Operations / Handover">Operations / Handover</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Contact Person (Client Rep)</label>
+              <input type="text" class="form-control" id="ap-contact" placeholder="e.g. Amit Sharma" required>
+            </div>
+            <div class="form-group">
+              <label>ISO 19650 CDE Status</label>
+              <select class="form-control" id="ap-cde">
+                <option value="WIP" selected>WIP - Work in Progress</option>
+                <option value="Shared">Shared - Coordination/Review</option>
+                <option value="Published">Published - Approved for Use</option>
+                <option value="Archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>ISO 19650 Suitability Code</label>
+              <select class="form-control" id="ap-suitability">
+                <option value="S0" selected>S0 - Work in Progress</option>
+                <option value="S1">S1 - Suitable for Coordination</option>
+                <option value="S2">S2 - Suitable for Information</option>
+                <option value="S3">S3 - Suitable for Review and Comment</option>
+                <option value="S4">S4 - Suitable for Stage Approval</option>
+                <option value="A">A - Approved for Construction</option>
+                <option value="B">B - Approved for Tender</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ISO 19650 Revision Code</label>
+              <input type="text" class="form-control" id="ap-revision" placeholder="e.g. P01.01" value="P01.01" required>
             </div>
           </div>
           <div class="form-row">
@@ -3413,6 +3679,126 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Cancel</button>
           <button type="submit" class="btn">Deploy Project</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Project Modal -->
+  <div class="modal-overlay" id="modal-edit-project">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit BIM Project Details</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <form id="form-edit-project" onsubmit="event.preventDefault(); Portal.BIM.updateProject()">
+        <input type="hidden" id="ep-id">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Project Name</label>
+              <input type="text" class="form-control" id="ep-name" required>
+            </div>
+            <div class="form-group">
+              <label>Identifier Code</label>
+              <input type="text" class="form-control" id="ep-code" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Client Name</label>
+              <input type="text" class="form-control" id="ep-client" required>
+            </div>
+            <div class="form-group">
+              <label>Active LOD Phase</label>
+              <select class="form-control" id="ep-phase">
+                <option value="LOD 100">LOD 100 - Schematic Design</option>
+                <option value="LOD 200">LOD 200 - Design Development</option>
+                <option value="LOD 300">LOD 300 - Construction Documentation</option>
+                <option value="LOD 400">LOD 400 - Fabrication & Assembly</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Project Type</label>
+              <select class="form-control" id="ep-type">
+                <option value="Commercial">Commercial</option>
+                <option value="Residential">Residential</option>
+                <option value="Infrastructure">Infrastructure</option>
+                <option value="Industrial">Industrial</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Stage of Project</label>
+              <select class="form-control" id="ep-stage">
+                <option value="Pre-Contract">Pre-Contract</option>
+                <option value="Schematic Design">Schematic Design</option>
+                <option value="Detailed Design">Detailed Design</option>
+                <option value="Construction Documentation">Construction Documentation</option>
+                <option value="Construction">Construction</option>
+                <option value="Operations / Handover">Operations / Handover</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Contact Person (Client Rep)</label>
+              <input type="text" class="form-control" id="ep-contact" required>
+            </div>
+            <div class="form-group">
+              <label>ISO 19650 CDE Status</label>
+              <select class="form-control" id="ep-cde">
+                <option value="WIP">WIP - Work in Progress</option>
+                <option value="Shared">Shared - Coordination/Review</option>
+                <option value="Published">Published - Approved for Use</option>
+                <option value="Archived">Archived</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>ISO 19650 Suitability Code</label>
+              <select class="form-control" id="ep-suitability">
+                <option value="S0">S0 - Work in Progress</option>
+                <option value="S1">S1 - Suitable for Coordination</option>
+                <option value="S2">S2 - Suitable for Information</option>
+                <option value="S3">S3 - Suitable for Review and Comment</option>
+                <option value="S4">S4 - Suitable for Stage Approval</option>
+                <option value="A">A - Approved for Construction</option>
+                <option value="B">B - Approved for Tender</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>ISO 19650 Revision Code</label>
+              <input type="text" class="form-control" id="ep-revision" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Scheduled Start Date</label>
+              <input type="date" class="form-control" id="ep-start" required>
+            </div>
+            <div class="form-group">
+              <label>Scheduled Completion</label>
+              <input type="date" class="form-control" id="ep-end" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Project Status</label>
+              <select class="form-control" id="ep-status">
+                <option value="Active">Active</option>
+                <option value="On Hold">On Hold</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Cancel</button>
+          <button type="submit" class="btn">Save Changes</button>
         </div>
       </form>
     </div>
@@ -3970,8 +4356,8 @@
 
         // Projects Seeding
         const projects = [
-          { projectId: "PRJ-01", code: "DXB-MAR-01", name: "Marina Heights Residential Tower", client: "Emaar Properties", phase: "LOD 300", start: "2026-01-01", end: "2026-12-31", progress: 65, color: "var(--accent-bim)", status: "Active" },
-          { projectId: "PRJ-02", code: "DXB-DWT-02", name: "Downtown Office Hub", client: "Dubai Holding", phase: "LOD 200", start: "2026-03-15", end: "2027-02-28", progress: 30, color: "var(--accent-hr)", status: "Active" }
+          { projectId: "PRJ-01", code: "DXB-MAR-01", name: "Marina Heights Residential Tower", client: "Emaar Properties", phase: "LOD 300", start: "2026-01-01", end: "2026-12-31", progress: 65, color: "var(--accent-bim)", status: "Active", projectType: "Residential", projectStage: "Construction", contactPerson: "Amit Sharma", cdeStatus: "WIP", suitabilityCode: "S0", revision: "P01.01" },
+          { projectId: "PRJ-02", code: "DXB-DWT-02", name: "Downtown Office Hub", client: "Dubai Holding", phase: "LOD 200", start: "2026-03-15", end: "2027-02-28", progress: 30, color: "var(--accent-hr)", status: "Active", projectType: "Commercial", projectStage: "Detailed Design", contactPerson: "Deepak Rawat", cdeStatus: "Shared", suitabilityCode: "S1", revision: "P01.02" }
         ];
         localStorage.setItem('ax_projects', JSON.stringify(projects));
 
@@ -5630,6 +6016,98 @@
         document.getElementById('pd-client').innerText = `Client: ${proj.client} | Code: ${proj.code}`;
         document.getElementById('pd-phase').innerText = proj.phase;
 
+        // Toggle Edit Button based on Admin permission
+        const editBtn = document.getElementById('btn-edit-project-trigger');
+        if (editBtn) {
+          editBtn.style.display = (currentUser && currentUser.role === 'Admin') ? 'inline-block' : 'none';
+        }
+
+        // Render ISO 19650 Metadata Grid
+        const metaGrid = document.getElementById('pd-metadata-grid');
+        if (metaGrid) {
+          metaGrid.innerHTML = `
+            <div class="iso-meta-card">
+              <label>Project Type</label>
+              <span>${proj.projectType || 'Commercial'}</span>
+            </div>
+            <div class="iso-meta-card">
+              <label>Project Stage</label>
+              <span>${proj.projectStage || 'Pre-Contract'}</span>
+            </div>
+            <div class="iso-meta-card">
+              <label>Contact Person</label>
+              <span>👤 ${proj.contactPerson || 'N/A'}</span>
+            </div>
+            <div class="iso-meta-card">
+              <label>ISO 19650 Suitability</label>
+              <span><span class="iso-cde-badge cde-shared" style="background:rgba(139, 92, 246, 0.15); color:#a78bfa; border:1px solid rgba(139, 92, 246, 0.3);">${proj.suitabilityCode || 'S0'}</span></span>
+            </div>
+            <div class="iso-meta-card">
+              <label>ISO 19650 Revision</label>
+              <span><span class="iso-cde-badge cde-published" style="background:rgba(236, 72, 153, 0.15); color:#f472b6; border:1px solid rgba(236, 72, 153, 0.3);">${proj.revision || 'P01.01'}</span></span>
+            </div>
+            <div class="iso-meta-card">
+              <label>Start / Completion</label>
+              <span>📅 ${proj.start} to ${proj.end}</span>
+            </div>
+          `;
+        }
+
+        // CDE Stepper Pathway highlights
+        const steps = ['wip', 'shared', 'published', 'archived'];
+        const currentCde = (proj.cdeStatus || 'WIP').toLowerCase();
+        let currentIndex = steps.indexOf(currentCde);
+        if (currentIndex === -1) currentIndex = 0;
+
+        steps.forEach((step, idx) => {
+          const el = document.getElementById('step-' + step);
+          if (el) {
+            el.classList.remove('active', 'completed');
+            if (idx === currentIndex) {
+              el.classList.add('active');
+            } else if (idx < currentIndex) {
+              el.classList.add('completed');
+            }
+          }
+        });
+
+        // Set CDE top level badge
+        const cdeBadge = document.getElementById('cde-gateway-badge');
+        if (cdeBadge) {
+          cdeBadge.className = 'iso-cde-badge cde-' + currentCde;
+          cdeBadge.innerText = proj.cdeStatus || 'WIP';
+        }
+
+        // Render CDE workflow gateways controls
+        const actionsDiv = document.getElementById('cde-gateway-actions');
+        if (actionsDiv) {
+          actionsDiv.innerHTML = '';
+          if (!currentUser || currentUser.role !== 'Admin') {
+            actionsDiv.innerHTML = `<span style="font-size:12px; color:var(--text-muted);">⚠️ Workflow transitions are restricted to Administrators.</span>`;
+          } else {
+            if (currentCde === 'wip') {
+              actionsDiv.innerHTML = `
+                <button class="btn" style="background:var(--accent-bim); padding: 6px 12px; font-size:12px;" onclick="Portal.BIM.promoteCdeStatus('${proj.projectId}', 'Shared', 'S1', 'P01')">🚀 Share for Coordination (S1 | P01)</button>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size:12px;" onclick="Portal.BIM.promoteCdeStatus('${proj.projectId}', 'Shared', 'S2', 'P01')">📂 Share for Information (S2 | P01)</button>
+              `;
+            } else if (currentCde === 'shared') {
+              actionsDiv.innerHTML = `
+                <button class="btn btn-success" style="padding: 6px 12px; font-size:12px;" onclick="Portal.BIM.promoteCdeStatus('${proj.projectId}', 'Published', 'A', 'C01')">✅ Authorize & Publish for Construction (A | C01)</button>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size:12px;" onclick="Portal.BIM.promoteCdeStatus('${proj.projectId}', 'WIP', 'S0', 'P01.01')">↩️ Revise back to WIP (S0)</button>
+              `;
+            } else if (currentCde === 'published') {
+              actionsDiv.innerHTML = `
+                <button class="btn btn-danger" style="padding: 6px 12px; font-size:12px;" onclick="Portal.BIM.promoteCdeStatus('${proj.projectId}', 'Archived', 'S7', 'C01')">📦 Archive Project Container</button>
+                <button class="btn btn-secondary" style="padding: 6px 12px; font-size:12px;" onclick="Portal.BIM.promoteCdeStatus('${proj.projectId}', 'Shared', 'S4', 'P02')">↩️ Request Revision / Send back to Shared (S4)</button>
+              `;
+            } else if (currentCde === 'archived') {
+              actionsDiv.innerHTML = `
+                <button class="btn" style="padding: 6px 12px; font-size:12px;" onclick="Portal.BIM.promoteCdeStatus('${proj.projectId}', 'WIP', 'S0', 'P02.01')">♻️ Restore Container to WIP (S0 | P02.01)</button>
+              `;
+            }
+          }
+        }
+
         this.renderProjectDetailTabs();
       },
 
@@ -5922,10 +6400,21 @@
       },
 
       submitProject: function() {
+        if (!currentUser || currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can deploy projects.", "error");
+          return;
+        }
+
         const name = document.getElementById('ap-name').value;
         const code = document.getElementById('ap-code').value;
         const client = document.getElementById('ap-client').value;
         const phase = document.getElementById('ap-phase').value;
+        const type = document.getElementById('ap-type').value;
+        const stage = document.getElementById('ap-stage').value;
+        const contact = document.getElementById('ap-contact').value;
+        const cde = document.getElementById('ap-cde').value;
+        const suitability = document.getElementById('ap-suitability').value;
+        const revision = document.getElementById('ap-revision').value;
         const start = document.getElementById('ap-start').value;
         const end = document.getElementById('ap-end').value;
 
@@ -5936,6 +6425,12 @@
           name: name,
           client: client,
           phase: phase,
+          projectType: type,
+          projectStage: stage,
+          contactPerson: contact,
+          cdeStatus: cde,
+          suitabilityCode: suitability,
+          revision: revision,
           start: start,
           end: end,
           progress: 0,
@@ -5949,6 +6444,111 @@
         Portal.Audit.log("Project Hub", "Create Project", `New project details recorded: ${code}`);
 
         Portal.UI.closeModal();
+        this.renderProjectsGrid();
+      },
+
+      openEditProjectModal: function() {
+        if (!currentUser || currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can edit project metadata.", "error");
+          return;
+        }
+
+        const prjs = Portal.DB.get('projects');
+        const proj = prjs.find(p => p.projectId === this.activeProjectId);
+        if (!proj) return;
+
+        document.getElementById('ep-id').value = proj.projectId;
+        document.getElementById('ep-name').value = proj.name;
+        document.getElementById('ep-code').value = proj.code;
+        document.getElementById('ep-client').value = proj.client;
+        document.getElementById('ep-phase').value = proj.phase || 'LOD 300';
+        document.getElementById('ep-type').value = proj.projectType || 'Commercial';
+        document.getElementById('ep-stage').value = proj.projectStage || 'Pre-Contract';
+        document.getElementById('ep-contact').value = proj.contactPerson || '';
+        document.getElementById('ep-cde').value = proj.cdeStatus || 'WIP';
+        document.getElementById('ep-suitability').value = proj.suitabilityCode || 'S0';
+        document.getElementById('ep-revision').value = proj.revision || 'P01.01';
+        document.getElementById('ep-start').value = proj.start || '';
+        document.getElementById('ep-end').value = proj.end || '';
+        document.getElementById('ep-status').value = proj.status || 'Active';
+
+        Portal.UI.openModal('modal-edit-project');
+      },
+
+      updateProject: function() {
+        if (!currentUser || currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can edit projects.", "error");
+          return;
+        }
+
+        const id = document.getElementById('ep-id').value;
+        const name = document.getElementById('ep-name').value;
+        const code = document.getElementById('ep-code').value;
+        const client = document.getElementById('ep-client').value;
+        const phase = document.getElementById('ep-phase').value;
+        const type = document.getElementById('ep-type').value;
+        const stage = document.getElementById('ep-stage').value;
+        const contact = document.getElementById('ep-contact').value;
+        const cde = document.getElementById('ep-cde').value;
+        const suitability = document.getElementById('ep-suitability').value;
+        const revision = document.getElementById('ep-revision').value;
+        const start = document.getElementById('ep-start').value;
+        const end = document.getElementById('ep-end').value;
+        const status = document.getElementById('ep-status').value;
+
+        const prjs = Portal.DB.get('projects');
+        const idx = prjs.findIndex(p => p.projectId === id);
+        if (idx === -1) return;
+
+        prjs[idx].name = name;
+        prjs[idx].code = code;
+        prjs[idx].client = client;
+        prjs[idx].phase = phase;
+        prjs[idx].projectType = type;
+        prjs[idx].projectStage = stage;
+        prjs[idx].contactPerson = contact;
+        prjs[idx].cdeStatus = cde;
+        prjs[idx].suitabilityCode = suitability;
+        prjs[idx].revision = revision;
+        prjs[idx].start = start;
+        prjs[idx].end = end;
+        prjs[idx].status = status;
+
+        Portal.DB.set('projects', prjs);
+        Portal.UI.showToast("Project Updated", `Successfully saved details for ${code}.`, "success");
+        Portal.Audit.log("Project Hub", "Edit Project", `Project details updated: ${code}`);
+
+        Portal.UI.closeModal();
+        this.viewProjectDetail(id);
+        this.renderProjectsGrid();
+      },
+
+      promoteCdeStatus: function(projId, newStatus, newSuitability, newRevision) {
+        if (!currentUser || currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can perform ISO 19650 workflow transitions.", "error");
+          return;
+        }
+
+        const prjs = Portal.DB.get('projects');
+        const projIdx = prjs.findIndex(p => p.projectId === projId);
+        if (projIdx === -1) return;
+
+        const oldStatus = prjs[projIdx].cdeStatus || 'WIP';
+        
+        if (!confirm(`Are you sure you want to transition project container from [${oldStatus}] to [${newStatus}]?\nThis will adjust Suitability code to [${newSuitability}] and Revision to [${newRevision}].`)) {
+          return;
+        }
+
+        prjs[projIdx].cdeStatus = newStatus;
+        prjs[projIdx].suitabilityCode = newSuitability;
+        prjs[projIdx].revision = newRevision;
+
+        Portal.DB.set('projects', prjs);
+        Portal.UI.showToast("CDE Status Updated", `Transitioned project to ${newStatus} (${newSuitability}).`, "success");
+        Portal.Audit.log("Project Hub", "ISO 19650 Transition", `Project ${prjs[projIdx].code} container state changed from ${oldStatus} to ${newStatus}. Suitability: ${newSuitability}. Revision: ${newRevision}`);
+
+        // Re-render
+        this.viewProjectDetail(projId);
         this.renderProjectsGrid();
       },
 
