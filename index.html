@@ -1748,6 +1748,244 @@
       }
     }
 
+    /* Dashboard Operations Map */
+    #dashboard-map-panel {
+      margin-top: 24px;
+    }
+    #dashboard-map {
+      height: 320px;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      z-index: 10;
+      background: var(--bg-secondary);
+    }
+    .leaflet-popup-content-wrapper {
+      background: var(--bg-secondary) !important;
+      color: #fff !important;
+      border: 1px solid var(--border-color) !important;
+      border-radius: 8px !important;
+      font-family: var(--font-sans);
+    }
+    .leaflet-popup-tip {
+      background: var(--bg-secondary) !important;
+      border: 1px solid var(--border-color) !important;
+    }
+    
+    /* Kanban Board Layout */
+    .kanban-board {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 16px;
+    }
+    @media (max-width: 1024px) {
+      .kanban-board {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+    @media (max-width: 600px) {
+      .kanban-board {
+        grid-template-columns: 1fr;
+      }
+    }
+    .kanban-column {
+      background: rgba(15, 23, 42, 0.3);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 12px;
+      min-height: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .kanban-column-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 4px;
+    }
+    .kanban-column-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+    }
+    .kanban-column-count {
+      font-size: 11px;
+      background: var(--border-color);
+      padding: 2px 6px;
+      border-radius: 10px;
+      font-weight: bold;
+      color: var(--text-main);
+    }
+    .kanban-cards-container {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex-grow: 1;
+      overflow-y: auto;
+      max-height: 500px;
+    }
+    .kanban-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 12px;
+      cursor: grab;
+      transition: all 0.2s ease;
+      position: relative;
+      box-shadow: var(--shadow-sm);
+    }
+    .kanban-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-hover);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .kanban-card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      line-height: 1.4;
+    }
+    .kanban-card-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .kanban-card-badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .kanban-card-badge.priority-high {
+      background: rgba(239, 68, 68, 0.15);
+      color: #ef4444;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .kanban-card-badge.priority-medium {
+      background: rgba(245, 158, 11, 0.15);
+      color: #f59e0b;
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .kanban-card-badge.priority-low {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .kanban-card-actions {
+      display: flex;
+      gap: 4px;
+      margin-top: 8px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      padding-top: 8px;
+      justify-content: flex-end;
+    }
+    .kanban-action-btn {
+      padding: 3px 6px;
+      font-size: 10px;
+      border-radius: 4px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .kanban-action-btn:hover {
+      background: var(--border-color);
+      color: var(--text-main);
+    }
+    
+    /* Clash Matrix Styles */
+    .clash-matrix-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 20px;
+      margin-top: 12px;
+    }
+    @media (max-width: 900px) {
+      .clash-matrix-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .clash-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+    @media (max-width: 600px) {
+      .clash-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .clash-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+    .clash-card-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .clash-card-value {
+      font-size: 24px;
+      font-weight: 800;
+      font-family: var(--font-mono);
+      margin-bottom: 6px;
+    }
+    .clash-card-status {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 12px;
+      display: inline-block;
+    }
+    .clash-scanner-screen {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      height: 100%;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      padding: 20px;
+      text-align: center;
+    }
+    .scanner-line {
+      position: absolute;
+      left: 0;
+      width: 100%;
+      height: 2px;
+      background: #10b981;
+      box-shadow: 0 0 10px #10b981;
+      animation: scan-vertical 2s linear infinite;
+      display: none;
+    }
+    @keyframes scan-vertical {
+      0% { top: 0%; }
+      50% { top: 100%; }
+      100% { top: 0%; }
+    }
+
     /* Virtual ID Card Styling */
     .id-card-wrapper {
       display: flex;
@@ -2054,6 +2292,7 @@
           <h2 class="page-title" id="current-page-title">Dashboard</h2>
         </div>
 
+        <div class="topbar-right">
           <!-- Cloud Sync Status Pill -->
           <div id="sp-sync-status-pill" class="sync-status-pill sync-saved" style="display: none;" onclick="Portal.Graph.initialSync()" title="Click to sync database now">
             <span class="sync-status-dot" style="width: 6px; height: 6px; border-radius: 50%; display: inline-block;"></span>
@@ -2141,6 +2380,17 @@
           <h4 class="kpi-section-title">Key Performance Indicators</h4>
           <div class="kpis-grid" id="dashboard-kpis">
             <!-- Rendered Dynamically by JS -->
+          </div>
+
+          <!-- Global Operations Map -->
+          <div class="card-panel" id="dashboard-map-panel">
+            <div class="panel-header-row" style="margin-bottom: 12px;">
+              <div>
+                <h3 class="panel-title">Global Operational Hub Map</h3>
+                <p style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">Real-time engineering projects and active check-ins globally.</p>
+              </div>
+            </div>
+            <div id="dashboard-map"></div>
           </div>
         </div>
 
@@ -2277,12 +2527,19 @@
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'drawings')">Drawing Sheet Log</span>
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'team')">Assigned Team</span>
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'timeline')">Timeline Gantt</span>
+                <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'clash')">Clash Coordination</span>
               </div>
 
               <!-- Tasks Tab -->
               <div class="tab-content active" id="pd-tab-tasks">
                 <div class="panel-header-row" style="margin-bottom: 12px;">
-                  <h4 style="font-size: 15px;">Project Deliverables</h4>
+                  <div style="display:flex; align-items:center; gap:16px;">
+                    <h4 style="font-size: 15px;">Project Deliverables</h4>
+                    <div style="display:flex; background:rgba(255,255,255,0.05); padding:2px; border-radius:6px; border:1px solid var(--border-color);">
+                      <button class="btn" style="padding:2px 8px; font-size:10px; background:var(--accent-bim); border-radius:4px; font-weight:700;" id="task-view-table-btn" onclick="Portal.BIM.setTaskView('table')">Table</button>
+                      <button class="btn" style="padding:2px 8px; font-size:10px; background:transparent; border-radius:4px; font-weight:700;" id="task-view-kanban-btn" onclick="Portal.BIM.setTaskView('kanban')">Kanban</button>
+                    </div>
+                  </div>
                   <button class="btn" style="padding: 4px 10px; font-size:12px;" id="btn-add-task" onclick="Portal.UI.openModal('modal-add-task')">+ Add Task</button>
                 </div>
                 <div class="responsive-table-wrapper">
@@ -2302,6 +2559,13 @@
                     </thead>
                     <tbody id="pd-table-tasks"></tbody>
                   </table>
+                </div>
+                
+                <!-- Kanban View Container -->
+                <div id="pd-task-kanban-wrapper" style="display: none;">
+                  <div class="kanban-board" id="pd-kanban-board">
+                    <!-- Columns rendered dynamically -->
+                  </div>
                 </div>
               </div>
 
@@ -2377,6 +2641,29 @@
               <!-- Timeline Tab -->
               <div class="tab-content" id="pd-tab-timeline">
                 <div class="gantt-chart-container" id="project-local-gantt"></div>
+              </div>
+
+              <!-- Clash Coordination Tab -->
+              <div class="tab-content" id="pd-tab-clash">
+                <div class="panel-header-row" style="margin-bottom: 12px;">
+                  <h4 style="font-size: 15px;">BIM Clash Detection Grid & Navisworks Sync</h4>
+                  <button class="btn" style="padding: 4px 10px; font-size:12px; background:#047857; border-color:#059669;" id="btn-sync-navisworks" onclick="Portal.BIM.runClashScanner()">Run Navisworks Clash Sync</button>
+                </div>
+                
+                <div class="clash-matrix-container">
+                  <div class="clash-grid" id="pd-clash-grid-cards">
+                    <!-- Cards rendered dynamically -->
+                  </div>
+
+                  <div class="clash-scanner-screen" id="pd-clash-scanner">
+                    <div class="scanner-line" id="pd-scanner-line"></div>
+                    <div id="pd-scanner-status-text">
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="margin-bottom:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line><circle cx="12" cy="12" r="3"></circle></svg>
+                      <h4 style="color:#10b981; font-weight:700;">Navisworks Engine Standby</h4>
+                      <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">No active scans running. Press button to execute coordination checks.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -4340,7 +4627,9 @@
           targetPage.classList.add('active');
           
           // Page specifics init
-          if (pageId === 'gps-punch') {
+          if (pageId === 'dashboard') {
+            setTimeout(() => { Portal.BIM.initDashboardMap(); }, 100);
+          } else if (pageId === 'gps-punch') {
             setTimeout(() => { Portal.GPS.initMap(); }, 100);
           } else if (pageId === 'attendance-log') {
             Portal.GPS.renderDailyLogs();
@@ -5044,6 +5333,224 @@
        ------------------------------------------------------------- */
     Portal.BIM = {
       activeProjectId: null,
+      dashboardMapInstance: null,
+      activeTaskView: 'table',
+
+      initDashboardMap: function() {
+        const mapContainer = document.getElementById('dashboard-map');
+        if (!mapContainer) return;
+
+        // Cleanup previous instance
+        if (this.dashboardMapInstance) {
+          try {
+            this.dashboardMapInstance.remove();
+          } catch(e) {
+            console.warn("Error removing previous dashboard map instance:", e);
+          }
+          this.dashboardMapInstance = null;
+        }
+
+        // Initialize leaflet map centered globally to cover UAE and India
+        try {
+          this.dashboardMapInstance = L.map('dashboard-map').setView([21.0, 68.0], 3.5);
+          
+          L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            maxZoom: 19,
+            attribution: '&copy; CartoDB'
+          }).addTo(this.dashboardMapInstance);
+
+          // Get checked-in stats today
+          const logs = Portal.DB.get('attendance') || [];
+          const today = new Date().toISOString().slice(0, 10);
+          const todayLogs = logs.filter(l => l.date === today);
+
+          const getHeadcount = (locKeyword) => {
+            return todayLogs.filter(l => l.location && l.location.toLowerCase().includes(locKeyword.toLowerCase())).length;
+          };
+
+          const offices = [
+            { 
+              name: "Dubai Headquarters (HQ)", 
+              coords: [25.2048, 55.2708], 
+              tz: "Asia/Dubai", 
+              code: "DXB-HQ", 
+              projects: ["DXB-MAR-01", "DXB-DWT-02"],
+              locKeyword: "Dubai"
+            },
+            { 
+              name: "India Engineering Office", 
+              coords: [12.9716, 77.5946], 
+              tz: "Asia/Kolkata", 
+              code: "BLR-IND", 
+              projects: ["DXB-MAR-01"],
+              locKeyword: "India"
+            },
+            { 
+              name: "Remote Site Project (Burj Area)", 
+              coords: [25.1972, 55.2744], 
+              tz: "Asia/Dubai", 
+              code: "DXB-SITE", 
+              projects: ["DXB-DWT-02"],
+              locKeyword: "Site"
+            }
+          ];
+
+          offices.forEach(off => {
+            const headcount = getHeadcount(off.locKeyword);
+            const timeOptions = { timeZone: off.tz, hour: '2-digit', minute: '2-digit', hour12: true };
+            const localTimeStr = new Intl.DateTimeFormat('en-US', timeOptions).format(new Date());
+
+            const popupContent = `
+              <div style="font-family: var(--font-sans); color: #fff;">
+                <h4 style="margin: 0 0 6px 0; color: var(--accent-bim); font-weight:700; font-size:13px;">${off.name}</h4>
+                <p style="margin: 0 0 4px 0; font-size:11px; color:#94a3b8;">Local Time: <strong>${localTimeStr}</strong></p>
+                <p style="margin: 0 0 4px 0; font-size:11px;">Active Projects: <code>${off.projects.join(', ')}</code></p>
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); font-size:11px; display:flex; justify-content:space-between; align-items:center;">
+                  <span>Active Headcount:</span>
+                  <span class="role-chip" style="background:#065f46; color:#a7f3d0; border:none; padding:2px 6px; border-radius:10px; font-weight:bold; font-size:10px;">${headcount} checked-in</span>
+                </div>
+              </div>
+            `;
+
+            L.marker(off.coords).addTo(this.dashboardMapInstance).bindPopup(popupContent);
+          });
+        } catch(e) {
+          console.error("Leaflet initialization failed for Dashboard map:", e);
+        }
+      },
+
+      setTaskView: function(view) {
+        this.activeTaskView = view;
+        const tblBtn = document.getElementById('task-view-table-btn');
+        const kbnBtn = document.getElementById('task-view-kanban-btn');
+        
+        if (view === 'kanban') {
+          document.getElementById('pd-task-table-wrapper').style.display = 'none';
+          document.getElementById('pd-task-kanban-wrapper').style.display = 'block';
+          if (tblBtn) tblBtn.style.background = 'transparent';
+          if (kbnBtn) kbnBtn.style.background = 'var(--accent-bim)';
+          this.renderKanbanBoard(this.activeProjectId);
+        } else {
+          document.getElementById('pd-task-table-wrapper').style.display = 'block';
+          document.getElementById('pd-task-kanban-wrapper').style.display = 'none';
+          if (tblBtn) tblBtn.style.background = 'var(--accent-bim)';
+          if (kbnBtn) kbnBtn.style.background = 'transparent';
+          this.renderProjectDetailTabs(); // Renders table
+        }
+      },
+
+      renderKanbanBoard: function(projId) {
+        const board = document.getElementById('pd-kanban-board');
+        if (!board) return;
+        board.innerHTML = '';
+
+        const tasks = Portal.DB.get('tasks');
+        const projTasks = tasks.filter(t => t.projectId === projId);
+        const emps = Portal.DB.get('employees');
+
+        const columns = [
+          { name: "To Do", status: "Not Started", color: "#94a3b8" },
+          { name: "In Progress", status: "In Progress", color: "#3b82f6" },
+          { name: "Under Review", status: "Delay / Hold", color: "#f59e0b" },
+          { name: "Completed", status: "Completed", color: "#10b981" }
+        ];
+
+        columns.forEach(col => {
+          const colTasks = projTasks.filter(t => {
+            if (col.status === 'Delay / Hold') {
+              return t.status === 'Delay / Hold' || t.status === 'Under Review' || t.status === 'On Hold';
+            }
+            return t.status === col.status;
+          });
+
+          const colEl = document.createElement('div');
+          colEl.className = 'kanban-column';
+          colEl.innerHTML = `
+            <div class="kanban-column-header">
+              <span class="kanban-column-title" style="border-bottom: 2px solid ${col.color}; padding-bottom: 2px;">${col.name}</span>
+              <span class="kanban-column-count">${colTasks.length}</span>
+            </div>
+            <div class="kanban-cards-container" data-status="${col.status}"></div>
+          `;
+
+          const container = colEl.querySelector('.kanban-cards-container');
+
+          colTasks.forEach(t => {
+            const staff = emps.find(e => e.empId === t.assigneeId);
+            const isOverdue = t.status !== 'Completed' && t.end < new Date().toISOString().split('T')[0];
+            const pClass = `priority-${t.priority.toLowerCase()}`;
+            
+            const card = document.createElement('div');
+            card.className = 'kanban-card';
+            card.innerHTML = `
+              <div class="kanban-card-title">${t.name}</div>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom: 8px;">
+                Discipline: <strong>${t.discipline}</strong>
+              </div>
+              <div class="kanban-card-meta">
+                <span class="kanban-card-badge ${pClass}">${t.priority}</span>
+                <span style="font-weight:600; color:var(--accent-bim);">${t.progress}%</span>
+              </div>
+              <div style="font-size:11px; margin-top:8px; color:${isOverdue ? '#ef4444' : 'var(--text-muted)'}; display:flex; justify-content:space-between;">
+                <span>Assignee: <strong>${staff ? staff.name.split(' ')[0] : 'Unassigned'}</strong></span>
+                <span>${t.end} ${isOverdue ? '⚠️' : ''}</span>
+              </div>
+              <div class="kanban-card-actions">
+                ${t.status === 'Not Started' ? `
+                  <button class="kanban-action-btn" onclick="Portal.BIM.changeTaskStatus('${t.taskId}', 'In Progress')">Start →</button>
+                ` : ''}
+                ${t.status === 'In Progress' ? `
+                  <button class="kanban-action-btn" onclick="Portal.BIM.changeTaskStatus('${t.taskId}', 'Not Started')">← Put Back</button>
+                  <button class="kanban-action-btn" onclick="Portal.BIM.changeTaskStatus('${t.taskId}', 'Delay / Hold')">Hold</button>
+                  <button class="kanban-action-btn" onclick="Portal.BIM.changeTaskStatus('${t.taskId}', 'Completed')">Complete →</button>
+                ` : ''}
+                ${t.status === 'Delay / Hold' || t.status === 'Under Review' || t.status === 'On Hold' ? `
+                  <button class="kanban-action-btn" onclick="Portal.BIM.changeTaskStatus('${t.taskId}', 'In Progress')">Resume →</button>
+                  <button class="kanban-action-btn" onclick="Portal.BIM.changeTaskStatus('${t.taskId}', 'Completed')">Complete →</button>
+                ` : ''}
+                ${t.status === 'Completed' ? `
+                  <span style="color:#10b981; font-size:10px; font-weight:700;">✔️ Done</span>
+                ` : ''}
+              </div>
+            `;
+            container.appendChild(card);
+          });
+
+          board.appendChild(colEl);
+        });
+      },
+
+      changeTaskStatus: function(taskId, nextStatus) {
+        const tasks = Portal.DB.get('tasks');
+        const task = tasks.find(t => t.taskId === taskId);
+        if (!task) return;
+
+        const oldStatus = task.status;
+        task.status = nextStatus;
+
+        if (nextStatus === 'Completed') {
+          const today = new Date().toISOString().split('T')[0];
+          if (today > task.end) {
+            document.getElementById('delay-task-id').value = taskId;
+            Portal.UI.openModal('modal-delay-acknowledgement');
+            return;
+          }
+          task.progress = 100;
+        } else if (nextStatus === 'In Progress' && task.progress === 0) {
+          task.progress = 10;
+        } else if (nextStatus === 'Not Started') {
+          task.progress = 0;
+        }
+
+        Portal.DB.set('tasks', tasks);
+        Portal.UI.showToast("Task Updated", `Moved deliverable to ${nextStatus}`, "success");
+        Portal.Audit.log("Project Hub", "Update Task Status", `Task ${taskId} moved from ${oldStatus} to ${nextStatus}.`);
+
+        this.renderProjectDetailTabs();
+        if (this.activeTaskView === 'kanban') {
+          this.renderKanbanBoard(this.activeProjectId);
+        }
+      },
 
       initReportFilters: function() {
         const select = document.getElementById('report-project-select');
@@ -5111,9 +5618,14 @@
         this.activeProjectId = projId;
         Portal.Router.navigate('project-detail');
 
+        // Reset to tasks subtab
+        const trigger = document.querySelector('.tabs-header-row .tab-trigger');
+        this.setDetailTab(trigger, 'tasks');
+        
+        // Populate project card in detail
         const prjs = Portal.DB.get('projects');
         const proj = prjs.find(p => p.projectId === projId);
-
+        
         document.getElementById('pd-title').innerText = proj.name;
         document.getElementById('pd-client').innerText = `Client: ${proj.client} | Code: ${proj.code}`;
         document.getElementById('pd-phase').innerText = proj.phase;
@@ -5123,103 +5635,118 @@
 
       renderProjectDetailTabs: function() {
         const id = this.activeProjectId;
-        
-        // --- 1. Tasks Rendering ---
-        const tasks = Portal.DB.get('tasks');
-        const projTasks = tasks.filter(t => t.projectId === id);
-        const taskTbody = document.getElementById('pd-table-tasks');
-        taskTbody.innerHTML = '';
-
         const emps = Portal.DB.get('employees');
 
-        projTasks.forEach(t => {
-          const staff = emps.find(e => e.empId === t.assigneeId);
-          const isOverdue = t.status !== 'Completed' && t.end < new Date().toISOString().split('T')[0];
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><strong>${t.name}</strong></td>
-            <td><span class="role-chip" style="font-size:10px;">${t.phase}</span></td>
-            <td>${t.discipline}</td>
-            <td>${staff ? staff.name : 'Unassigned'}</td>
-            <td style="font-size:12px; color:${isOverdue ? '#ef4444':'inherit'};">${t.start} to ${t.end} ${isOverdue ? '⚠️' : ''}</td>
-            <td><span class="role-chip" style="background:${t.status === 'Completed' ? '#065f46':'#1e293b'}; color:${t.status === 'Completed' ? '#a7f3d0':'#94a3b8'}; border:none;">${t.status}</span></td>
-            <td>${t.priority}</td>
-            <td>${t.progress}%</td>
-            <td>
-              ${t.status !== 'Completed' ? `
-                <button class="btn btn-success" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.completeTask('${t.taskId}')">Complete</button>
-                <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.returnTask('${t.taskId}')">Return</button>
-              ` : 'Done'}
-            </td>
-          `;
-          taskTbody.appendChild(tr);
-        });
-
-        // Seed deliverable assignees dropdown
+        // Seed deliverable assignees dropdown (run first so modal works)
         const assigneeSelect = document.getElementById('at-assignee');
-        assigneeSelect.innerHTML = '';
-        emps.forEach(e => {
-          const opt = document.createElement('option');
-          opt.value = e.empId;
-          opt.innerText = e.name;
-          assigneeSelect.appendChild(opt);
-        });
+        if (assigneeSelect) {
+          assigneeSelect.innerHTML = '';
+          emps.forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = e.empId;
+            opt.innerText = e.name;
+            assigneeSelect.appendChild(opt);
+          });
+        }
 
-        // Progress dials
+        // Render Kanban or Table depending on active state
+        if (this.activeTaskView === 'kanban') {
+          this.renderKanbanBoard(id);
+        } else {
+          // --- 1. Tasks Table Rendering ---
+          const tasks = Portal.DB.get('tasks');
+          const projTasks = tasks.filter(t => t.projectId === id);
+          const taskTbody = document.getElementById('pd-table-tasks');
+          if (taskTbody) {
+            taskTbody.innerHTML = '';
+            projTasks.forEach(t => {
+              const staff = emps.find(e => e.empId === t.assigneeId);
+              const isOverdue = t.status !== 'Completed' && t.end < new Date().toISOString().split('T')[0];
+
+              const tr = document.createElement('tr');
+              tr.innerHTML = `
+                <td><strong>${t.name}</strong></td>
+                <td><span class="role-chip" style="font-size:10px;">${t.phase}</span></td>
+                <td>${t.discipline}</td>
+                <td>${staff ? staff.name : 'Unassigned'}</td>
+                <td style="font-size:12px; color:${isOverdue ? '#ef4444':'inherit'};">${t.start} to ${t.end} ${isOverdue ? '⚠️' : ''}</td>
+                <td><span class="role-chip" style="background:${t.status === 'Completed' ? '#065f46':'#1e293b'}; color:${t.status === 'Completed' ? '#a7f3d0':'#94a3b8'}; border:none;">${t.status}</span></td>
+                <td>${t.priority}</td>
+                <td>${t.progress}%</td>
+                <td>
+                  ${t.status !== 'Completed' ? `
+                    <button class="btn btn-success" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.completeTask('${t.taskId}')">Complete</button>
+                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.returnTask('${t.taskId}')">Return</button>
+                  ` : 'Done'}
+                </td>
+              `;
+              taskTbody.appendChild(tr);
+            });
+          }
+        }
+
+        // Shared progress ring updates
+        const tasks = Portal.DB.get('tasks');
+        const projTasks = tasks.filter(t => t.projectId === id);
         const completed = projTasks.filter(t => t.status === 'Completed').length;
         const pct = projTasks.length > 0 ? Math.round((completed / projTasks.length) * 100) : 0;
-        document.getElementById('pd-ring').setAttribute('stroke-dashoffset', 113 - (113 * pct) / 100);
-        document.getElementById('pd-pct').innerText = `${pct}%`;
+        
+        const pdRing = document.getElementById('pd-ring');
+        if (pdRing) pdRing.setAttribute('stroke-dashoffset', 113 - (113 * pct) / 100);
+        const pdPct = document.getElementById('pd-pct');
+        if (pdPct) pdPct.innerText = `${pct}%`;
 
-        // Update Project Master list progress as well
+        // Update Project Master list progress as well (direct save to avoid sync loop)
         const prjs = Portal.DB.get('projects');
         const matchIdx = prjs.findIndex(p => p.projectId === id);
         if (matchIdx !== -1) {
           prjs[matchIdx].progress = pct;
-          Portal.DB.set('projects', prjs);
+          localStorage.setItem('ax_projects', JSON.stringify(prjs));
         }
 
         // --- 2. Model Prep Logs Rendering ---
         const models = Portal.DB.get('models').filter(m => m.projectId === id);
         const modelTbody = document.getElementById('pd-table-models');
-        modelTbody.innerHTML = '';
+        if (modelTbody) {
+          modelTbody.innerHTML = '';
+          models.forEach(m => {
+            const author = emps.find(e => e.empId === m.authorId);
+            const checker = emps.find(e => e.empId === m.checkerId);
 
-        models.forEach(m => {
-          const author = emps.find(e => e.empId === m.authorId);
-          const checker = emps.find(e => e.empId === m.checkerId);
-
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td><code>${m.modelName}</code></td>
-            <td>${m.fileType}</td>
-            <td>${m.lod}</td>
-            <td>${author ? author.name : '--'}</td>
-            <td>${checker ? checker.name : '--'}</td>
-            <td>${m.planDate}</td>
-            <td>${m.actualDate || 'In Progress'}</td>
-            <td>
-              <div style="display:flex; gap:6px;">
-                <span class="role-chip" style="background:${m.stageData.stage >= 1 ? '#047857':'#1e293b'}; color:#fff; font-size:10px;">Setup</span>
-                <span class="role-chip" style="background:${m.stageData.stage >= 2 ? '#0284c7':'#1e293b'}; color:#fff; font-size:10px;">Modelling</span>
-                <span class="role-chip" style="background:${m.stageData.stage >= 3 ? '#b45309':'#1e293b'}; color:#fff; font-size:10px;">Coord</span>
-                <span class="role-chip" style="background:${m.stageData.stage >= 4 ? '#4f46e5':'#1e293b'}; color:#fff; font-size:10px;">QC</span>
-                <span class="role-chip" style="background:${m.stageData.stage >= 5 ? '#6d28d9':'#1e293b'}; color:#fff; font-size:10px;">Issue</span>
-              </div>
-            </td>
-          `;
-          modelTbody.appendChild(tr);
-        });
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td><code>${m.modelName}</code></td>
+              <td>${m.fileType}</td>
+              <td>${m.lod}</td>
+              <td>${author ? author.name : '--'}</td>
+              <td>${checker ? checker.name : '--'}</td>
+              <td>${m.planDate}</td>
+              <td>${m.actualDate || 'In Progress'}</td>
+              <td>
+                <div style="display:flex; gap:6px;">
+                  <span class="role-chip" style="background:${m.stageData.stage >= 1 ? '#047857':'#1e293b'}; color:#fff; font-size:10px;">Setup</span>
+                  <span class="role-chip" style="background:${m.stageData.stage >= 2 ? '#0284c7':'#1e293b'}; color:#fff; font-size:10px;">Modelling</span>
+                  <span class="role-chip" style="background:${m.stageData.stage >= 3 ? '#b45309':'#1e293b'}; color:#fff; font-size:10px;">Coord</span>
+                  <span class="role-chip" style="background:${m.stageData.stage >= 4 ? '#4f46e5':'#1e293b'}; color:#fff; font-size:10px;">QC</span>
+                  <span class="role-chip" style="background:${m.stageData.stage >= 5 ? '#6d28d9':'#1e293b'}; color:#fff; font-size:10px;">Issue</span>
+                </div>
+              </td>
+            `;
+            modelTbody.appendChild(tr);
+          });
+        }
 
         // Seed model authors / checkers dropdowns
         const mAuthor = document.getElementById('am-author');
         const mChecker = document.getElementById('am-checker');
-        mAuthor.innerHTML = '';
-        mChecker.innerHTML = '';
-        emps.forEach(e => {
+        if (mAuthor && mChecker) {
+          mAuthor.innerHTML = '';
+          mChecker.innerHTML = '';
+          emps.forEach(e => {
           const opt1 = document.createElement('option'); opt1.value = e.empId; opt1.innerText = e.name; mAuthor.appendChild(opt1);
           const opt2 = document.createElement('option'); opt2.value = e.empId; opt2.innerText = e.name; mChecker.appendChild(opt2);
-        });
+          });
+        }
 
         // --- 3. Drawing Sheets logs Rendering ---
         const drawings = Portal.DB.get('drawings').filter(d => d.projectId === id);
@@ -5277,6 +5804,16 @@
         // Active Content
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.getElementById(`pd-tab-${tabId}`).classList.add('active');
+
+        if (tabId === 'clash') {
+          this.renderClashTab(this.activeProjectId);
+        } else if (tabId === 'tasks') {
+          if (this.activeTaskView === 'kanban') {
+            this.renderKanbanBoard(this.activeProjectId);
+          } else {
+            this.renderProjectDetailTabs();
+          }
+        }
       },
 
       completeTask: function(taskId) {
@@ -5709,6 +6246,131 @@
             </ul>
           </div>
         `;
+      },
+
+      initClashData: function(proj) {
+        if (!proj.clashData) {
+          proj.clashData = {
+            strMep: Math.floor(Math.random() * 25) + 10,
+            archStr: Math.floor(Math.random() * 15) + 5,
+            archMep: Math.floor(Math.random() * 20) + 8,
+            resolved: Math.floor(Math.random() * 30) + 15
+          };
+          const prjs = Portal.DB.get('projects');
+          const idx = prjs.findIndex(p => p.projectId === proj.projectId);
+          if (idx !== -1) {
+            prjs[idx].clashData = proj.clashData;
+            localStorage.setItem('ax_projects', JSON.stringify(prjs));
+          }
+        }
+        return proj.clashData;
+      },
+
+      renderClashTab: function(projId) {
+        const prjs = Portal.DB.get('projects');
+        const proj = prjs.find(p => p.projectId === projId);
+        if (!proj) return;
+
+        const clashData = this.initClashData(proj);
+        const grid = document.getElementById('pd-clash-grid-cards');
+        if (!grid) return;
+
+        const totalClashes = clashData.strMep + clashData.archStr + clashData.archMep;
+        const resolutionPct = totalClashes + clashData.resolved > 0 
+          ? Math.round((clashData.resolved / (totalClashes + clashData.resolved)) * 100) 
+          : 100;
+
+        grid.innerHTML = `
+          <div class="clash-card">
+            <div class="clash-card-title">Structural vs MEP</div>
+            <div class="clash-card-value" style="color:#ef4444;">${clashData.strMep}</div>
+            <span class="clash-card-status" style="background:rgba(239,68,68,0.1); color:#ef4444;">${clashData.strMep > 0 ? 'Active Clashes':'Resolved'}</span>
+          </div>
+          <div class="clash-card">
+            <div class="clash-card-title">Architectural vs Structural</div>
+            <div class="clash-card-value" style="color:#fb923c;">${clashData.archStr}</div>
+            <span class="clash-card-status" style="background:rgba(251,146,60,0.1); color:#fb923c;">${clashData.archStr > 0 ? 'Active Clashes':'Resolved'}</span>
+          </div>
+          <div class="clash-card">
+            <div class="clash-card-title">Architectural vs MEP</div>
+            <div class="clash-card-value" style="color:#f59e0b;">${clashData.archMep}</div>
+            <span class="clash-card-status" style="background:rgba(245,158,11,0.1); color:#f59e0b;">${clashData.archMep > 0 ? 'Active Clashes':'Resolved'}</span>
+          </div>
+          <div class="clash-card" style="grid-column: span 3; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div style="text-align:left;">
+                <div class="clash-card-title" style="color:#10b981; margin:0 0 4px 0;">Resolved Clashes Summary</div>
+                <div style="font-size:18px; font-weight:800; color:#10b981; font-family:var(--font-mono);">${clashData.resolved} resolved</div>
+              </div>
+              <div style="text-align:right;">
+                <span style="font-size:12px; color:#10b981; font-weight:700;">${resolutionPct}% Resolved</span>
+              </div>
+            </div>
+            <div style="width:100%; background:rgba(255,255,255,0.05); height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
+              <div style="width:${resolutionPct}%; background:#10b981; height:100%; border-radius:3px;"></div>
+            </div>
+          </div>
+        `;
+      },
+
+      runClashScanner: function() {
+        const projId = this.activeProjectId;
+        const prjs = Portal.DB.get('projects');
+        const idx = prjs.findIndex(p => p.projectId === projId);
+        if (idx === -1) return;
+
+        const proj = prjs[idx];
+        const clashData = this.initClashData(proj);
+
+        if (clashData.strMep === 0 && clashData.archStr === 0 && clashData.archMep === 0) {
+          Portal.UI.showToast("BIM Model Clean", "No unresolved clashes found in coordination space.", "success");
+          return;
+        }
+
+        const scanBtn = document.getElementById('btn-sync-navisworks');
+        const screenText = document.getElementById('pd-scanner-status-text');
+        const scanLine = document.getElementById('pd-scanner-line');
+
+        // Start scan simulation animation
+        scanBtn.disabled = true;
+        scanBtn.innerText = 'Scanning...';
+        scanLine.style.display = 'block';
+        screenText.innerHTML = `
+          <svg class="spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" style="margin-bottom:8px; animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8" fill="none"></path></svg>
+          <h4 style="color:#3b82f6; font-weight:700;">Navisworks Interference Checking...</h4>
+          <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Intersecting Architectural, Structural, and MEP geometry coordinates.</p>
+        `;
+
+        setTimeout(() => {
+          const resolvedStrMep = Math.min(clashData.strMep, Math.floor(Math.random() * 4) + 2);
+          const resolvedArchStr = Math.min(clashData.archStr, Math.floor(Math.random() * 3) + 1);
+          const resolvedArchMep = Math.min(clashData.archMep, Math.floor(Math.random() * 3) + 1);
+
+          clashData.strMep -= resolvedStrMep;
+          clashData.archStr -= resolvedArchStr;
+          clashData.archMep -= resolvedArchMep;
+          const resolvedTotal = resolvedStrMep + resolvedArchStr + resolvedArchMep;
+          clashData.resolved += resolvedTotal;
+
+          proj.clashData = clashData;
+          prjs[idx] = proj;
+          Portal.DB.set('projects', prjs); // Save changes and auto-sync!
+
+          // Reset UI
+          scanBtn.disabled = false;
+          scanBtn.innerText = 'Run Navisworks Clash Sync';
+          scanLine.style.display = 'none';
+          screenText.innerHTML = `
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="margin-bottom:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+            <h4 style="color:#10b981; font-weight:700;">Clash Sync Completed!</h4>
+            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Successfully checked coordination models. Resolved <strong>${resolvedTotal} conflicts</strong>.</p>
+          `;
+
+          Portal.UI.showToast("BIM Synced", `Resolved ${resolvedTotal} coordination conflicts.`, "success");
+          Portal.Audit.log("BIM Coordination", "Clash Scan", `Navisworks interference scan checked for Project ${proj.code}. Resolved ${resolvedTotal} clashes.`);
+          
+          this.renderClashTab(projId);
+        }, 2000);
       }
     };
 
