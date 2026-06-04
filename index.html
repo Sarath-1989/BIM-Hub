@@ -1605,6 +1605,59 @@
       .welcome-banner .banner-actions {
         width: 100%;
       }
+
+      /* Force tables to stack on mobile */
+      table.data-table {
+        display: block;
+        width: 100%;
+        border: none !important;
+      }
+      table.data-table thead {
+        display: none !important; /* Hide header rows */
+      }
+      table.data-table tbody,
+      table.data-table tr,
+      table.data-table td {
+        display: block;
+        width: 100%;
+      }
+      table.data-table tr {
+        background: var(--bg-secondary) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 12px !important;
+        margin-bottom: 16px !important;
+        padding: 12px 16px !important;
+        box-shadow: var(--shadow-sm) !important;
+      }
+      table.data-table td {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        text-align: right !important;
+        padding: 8px 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+        font-size: 13px !important;
+        background: transparent !important;
+      }
+      table.data-table td:last-child {
+        border-bottom: none !important;
+        padding-bottom: 4px !important;
+      }
+      table.data-table td::before {
+        content: attr(data-label);
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 11px;
+        text-transform: uppercase;
+        text-align: left;
+        margin-right: 12px;
+        flex-shrink: 0;
+      }
+      /* Clean flex alignments for button panels in stacked cells */
+      table.data-table td div {
+        justify-content: flex-end !important;
+        width: 100%;
+      }
     }
 
     @media (max-width: 600px) {
@@ -6652,6 +6705,22 @@
     window.addEventListener('DOMContentLoaded', () => {
       Portal.DB.init();
       Portal.Auth.init();
+
+      // Automatically apply responsive data-labels to all table cells
+      const observer = new MutationObserver(() => {
+        document.querySelectorAll('table.data-table').forEach(table => {
+          const headers = Array.from(table.querySelectorAll('thead th')).map(th => th.innerText.trim());
+          if (headers.length === 0) return;
+          table.querySelectorAll('tbody tr').forEach(row => {
+            row.querySelectorAll('td').forEach((cell, idx) => {
+              if (headers[idx] && !cell.hasAttribute('data-label')) {
+                cell.setAttribute('data-label', headers[idx]);
+              }
+            });
+          });
+        });
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
     });
 
   </script>
