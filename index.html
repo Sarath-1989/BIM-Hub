@@ -4854,7 +4854,8 @@
           let employees = JSON.parse(emps) || [];
           if (Array.isArray(employees)) {
             const hasSarath = employees.some(e => e.email === 'connect@asterwix.com');
-            const hasPhoto = employees.some(e => e.photo === 'assets/sarath.png');
+            const sarath = employees.find(e => e.email === 'connect@asterwix.com');
+            const hasPhoto = sarath && sarath.photo;
             if (!hasSarath || !hasPhoto) {
               // Remove old Sarath if exists but lacks photo, and insert/update
               employees = employees.filter(e => e.email !== 'connect@asterwix.com');
