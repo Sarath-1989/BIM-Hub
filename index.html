@@ -8979,17 +8979,14 @@
         const isDarkBackground = !img.classList.contains('payslip-logo-img');
         const textColor = isDarkBackground ? '#FFFFFF' : '#1E293B';
 
+        const isLoginLogo = img.parentElement && img.parentElement.classList.contains('login-card');
+        const textAnchor = isLoginLogo ? 'middle' : 'start';
+        const textX = isLoginLogo ? '50%' : '15';
+
         // Generate clean vector SVG with the "Asterwix" brand text in Poetsen One font
-        // and a double chevron arrow pointing top-right.
         const svgContent = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" width="280" height="60">
-            <text x="15" y="43" font-family="'Poetsen One', sans-serif" font-size="36" fill="${textColor}" letter-spacing="0.5px">Asterwix</text>
-            <g transform="translate(178, 4)" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
-              <!-- Back chevron -->
-              <path d="M12,24 L22,24 L22,34 M8,38 L22,24" />
-              <!-- Front chevron (shifted top-right) -->
-              <path d="M22,14 L32,14 L32,24 M18,28 L32,14" />
-            </g>
+            <text x="${textX}" y="43" font-family="'Poetsen One', sans-serif" font-size="36" fill="${textColor}" text-anchor="${textAnchor}" letter-spacing="0.5px">Asterwix</text>
           </svg>
         `.trim();
 
