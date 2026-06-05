@@ -4785,8 +4785,8 @@
     Portal.DB = {
       init: function() {
         const emps = localStorage.getItem('ax_employees');
-        // Auto re-seed if database cache has outdated employee records (checks for connect@asterwix.com and Super Admin)
-        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin')) {
+        // Auto re-seed if database cache has outdated employee records (checks for connect@asterwix.com, Super Admin, and profile photo)
+        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin') || !emps.includes('sarath.png')) {
           localStorage.removeItem('ax_employees');
           localStorage.removeItem('ax_offices');
           localStorage.removeItem('ax_attendance');
