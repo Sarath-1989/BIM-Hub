@@ -4833,20 +4833,72 @@
     Portal.DB = {
       init: function() {
         const emps = localStorage.getItem('ax_employees');
-        const tasksStr = localStorage.getItem('ax_tasks');
-        // Auto re-seed if database cache has outdated employee records or missing task category/subdiscipline field
-        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin') || !emps.includes('sarath.png') || !tasksStr || !tasksStr.includes('category') || !tasksStr.includes('subdiscipline')) {
-          localStorage.removeItem('ax_employees');
-          localStorage.removeItem('ax_offices');
-          localStorage.removeItem('ax_attendance');
-          localStorage.removeItem('ax_projects');
-          localStorage.removeItem('ax_tasks');
-          localStorage.removeItem('ax_models');
-          localStorage.removeItem('ax_drawings');
-          localStorage.removeItem('ax_leaves');
-          localStorage.removeItem('ax_overtime');
-          localStorage.removeItem('ax_audit');
+        if (!emps) {
+          // If no database exists at all, run initial seeding
           this.seedInitialData();
+          return;
+        }
+
+        // 1. Ensure Sarath Perucheril (Super Admin with the photo) exists in the employee list without wiping others
+        try {
+          let employees = JSON.parse(emps) || [];
+          if (Array.isArray(employees)) {
+            const hasSarath = employees.some(e => e.email === 'connect@asterwix.com');
+            const hasPhoto = employees.some(e => e.photo === 'assets/sarath.png');
+            if (!hasSarath || !hasPhoto) {
+              // Remove old Sarath if exists but lacks photo, and insert/update
+              employees = employees.filter(e => e.email !== 'connect@asterwix.com');
+              employees.unshift({
+                empId: "EMP-001",
+                name: "Sarath Perucheril",
+                email: "connect@asterwix.com",
+                dept: "HR & Admin",
+                role: "Admin",
+                designation: "Super Admin",
+                salaryBasic: 12000,
+                salaryHousing: 5000,
+                salaryTransport: 2000,
+                salaryOthers: 1000,
+                currency: "AED",
+                status: "Active",
+                location: "Dubai HQ",
+                managerId: "EMP-001",
+                photo: "assets/sarath.png"
+              });
+              localStorage.setItem('ax_employees', JSON.stringify(employees));
+            }
+          }
+        } catch (e) {
+          console.error("Employee list migration failed:", e);
+        }
+
+        // 2. Migrate tasks in-place if they don't have category or subdiscipline properties
+        const tasksStr = localStorage.getItem('ax_tasks');
+        if (tasksStr) {
+          try {
+            let tasks = JSON.parse(tasksStr);
+            if (Array.isArray(tasks)) {
+              let changed = false;
+              tasks.forEach(t => {
+                if (!t.hasOwnProperty('category')) {
+                  t.category = "Model (BIM)";
+                  changed = true;
+                }
+                if (!t.hasOwnProperty('subdiscipline')) {
+                  if (t.discipline === "Structural") t.subdiscipline = "Concrete";
+                  else if (t.discipline === "Coordination") t.subdiscipline = "Clash Detection";
+                  else if (t.discipline === "Architectural") t.subdiscipline = "Interior";
+                  else t.subdiscipline = "General";
+                  changed = true;
+                }
+              });
+              if (changed) {
+                localStorage.setItem('ax_tasks', JSON.stringify(tasks));
+              }
+            }
+          } catch (e) {
+            console.error("Task list migration failed:", e);
+          }
         }
       },
       
@@ -8843,86 +8895,25 @@
       const elements = document.querySelectorAll('.logo-processed');
       elements.forEach(img => {
         if (img.getAttribute('data-done-processing') === 'true') return;
-        const originalSrc = img.getAttribute('data-original-src');
-        if (!originalSrc) return;
 
-        const tempImg = new Image();
-        tempImg.onload = function() {
-          const canvas = document.createElement('canvas');
-          canvas.width = tempImg.naturalWidth;
-          canvas.height = tempImg.naturalHeight;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(tempImg, 0, 0);
+        // Generate clean vector SVG with green arrow and white text
+        const svgContent = `
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" width="280" height="60">
+            <g fill="#01EC9D">
+              <path d="M10,12 L35,12 L50,27 L50,48 L10,48 Z" />
+              <path d="M35,12 L35,27 L50,27 Z" opacity="0.65" />
+            </g>
+            <text x="62" y="41" font-family="'Outfit', sans-serif" font-weight="700" font-size="30" fill="#FFFFFF" letter-spacing="-0.5px">Asterwix</text>
+          </svg>
+        `.trim();
 
-          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imgData.data;
-
-          const width = canvas.width;
-          const height = canvas.height;
-          const columnAlphas = new Array(width).fill(false);
-
-          for (let x = 0; x < width; x++) {
-            for (let y = 0; y < height; y++) {
-              const idx = (y * width + x) * 4;
-              if (data[idx + 3] > 20) {
-                columnAlphas[x] = true;
-                break;
-              }
-            }
-          }
-
-          let contentStart = 0;
-          for (let x = 0; x < width; x++) {
-            if (columnAlphas[x]) {
-              contentStart = x;
-              break;
-            }
-          }
-
-          let gapStart = -1;
-          let gapEnd = -1;
-
-          for (let x = contentStart; x < width; x++) {
-            if (!columnAlphas[x]) {
-              if (gapStart === -1) {
-                gapStart = x;
-              }
-            } else {
-              if (gapStart !== -1) {
-                gapEnd = x;
-                break;
-              }
-            }
-          }
-
-          let threshold = width * 0.17;
-          if (gapStart !== -1 && gapEnd !== -1) {
-            threshold = (gapStart + gapEnd) / 2;
-          }
-
-          for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-              const idx = (y * width + x) * 4;
-              const alpha = data[idx + 3];
-              if (alpha > 0) {
-                if (x < threshold) {
-                  data[idx] = 1;
-                  data[idx + 1] = 236;
-                  data[idx + 2] = 157;
-                } else {
-                  data[idx] = 255;
-                  data[idx + 1] = 255;
-                  data[idx + 2] = 255;
-                }
-              }
-            }
-          }
-
-          ctx.putImageData(imgData, 0, 0);
-          img.src = canvas.toDataURL('image/png');
+        try {
+          const encoded = btoa(unescape(encodeURIComponent(svgContent)));
+          img.src = 'data:image/svg+xml;base64,' + encoded;
           img.setAttribute('data-done-processing', 'true');
-        };
-        tempImg.src = originalSrc;
+        } catch (e) {
+          console.error("Error generating vector logo SVG:", e);
+        }
       });
     };
 
