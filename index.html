@@ -8976,14 +8976,20 @@
       elements.forEach(img => {
         if (img.getAttribute('data-done-processing') === 'true') return;
 
-        // Generate clean vector SVG with green arrow and white text
+        const isDarkBackground = !img.classList.contains('payslip-logo-img');
+        const textColor = isDarkBackground ? '#FFFFFF' : '#1E293B';
+
+        // Generate clean vector SVG with the "Asterwix" brand text in Poetsen One font
+        // and a double chevron arrow pointing top-right.
         const svgContent = `
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" width="280" height="60">
-            <g fill="#01EC9D">
-              <path d="M10,12 L35,12 L50,27 L50,48 L10,48 Z" />
-              <path d="M35,12 L35,27 L50,27 Z" opacity="0.65" />
+            <text x="15" y="43" font-family="'Poetsen One', sans-serif" font-size="36" fill="${textColor}" letter-spacing="0.5px">Asterwix</text>
+            <g transform="translate(178, 4)" fill="none" stroke="#10b981" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+              <!-- Back chevron -->
+              <path d="M12,24 L22,24 L22,34 M8,38 L22,24" />
+              <!-- Front chevron (shifted top-right) -->
+              <path d="M22,14 L32,14 L32,24 M18,28 L32,14" />
             </g>
-            <text x="62" y="41" font-family="'Outfit', sans-serif" font-weight="700" font-size="30" fill="#FFFFFF" letter-spacing="-0.5px">Asterwix</text>
           </svg>
         `.trim();
 
