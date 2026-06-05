@@ -8974,7 +8974,7 @@
     Portal.UI.processLogo = function() {
       const elements = document.querySelectorAll('.logo-processed');
       elements.forEach(img => {
-        if (img.getAttribute('data-done-processing') === 'true') return;
+        if (img.tagName.toLowerCase() === 'svg') return; // Already processed/replaced
 
         const isDarkBackground = !img.classList.contains('payslip-logo-img');
         const textColor = isDarkBackground ? '#FFFFFF' : '#1E293B';
@@ -8982,18 +8982,31 @@
         const isLoginLogo = img.parentElement && img.parentElement.classList.contains('login-card');
         const textAnchor = isLoginLogo ? 'middle' : 'start';
         const textX = isLoginLogo ? '50%' : '15';
+        
+        const width = img.getAttribute('width') || img.style.width || (isLoginLogo ? '280' : '150');
+        const height = img.getAttribute('height') || img.style.height || '60';
 
         // Generate clean vector SVG with the "Asterwix" brand text in Poetsen One font
-        const svgContent = `
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 60" width="280" height="60">
+        const svgHTML = `
+          <svg class="${img.className}" id="${img.id || ''}" style="${img.style.cssText}" viewBox="0 0 280 60" width="${width}" height="${height}">
             <text x="${textX}" y="43" font-family="'Poetsen One', sans-serif" font-size="36" fill="${textColor}" text-anchor="${textAnchor}" letter-spacing="0.5px">Asterwix</text>
           </svg>
         `.trim();
 
         try {
-          const encoded = btoa(unescape(encodeURIComponent(svgContent)));
-          img.src = 'data:image/svg+xml;base64,' + encoded;
-          img.setAttribute('data-done-processing', 'true');
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = svgHTML;
+          const svgElement = tempDiv.firstChild;
+          
+          // Copy data attributes if any
+          Array.from(img.attributes).forEach(attr => {
+            if (attr.name.startsWith('data-') && attr.name !== 'data-done-processing') {
+              svgElement.setAttribute(attr.name, attr.value);
+            }
+          });
+          
+          svgElement.setAttribute('data-done-processing', 'true');
+          img.parentNode.replaceChild(svgElement, img);
         } catch (e) {
           console.error("Error generating vector logo SVG:", e);
         }
