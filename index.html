@@ -47,7 +47,7 @@
       
       --sidebar-width: 260px;
       --topbar-height: 56px;
-      --spbar-height: 28px;
+      --spbar-height: 0px;
     }
 
     /* Reset & Base */
@@ -99,6 +99,7 @@
        SHELL LAYOUT STYLES
        ------------------------------------------------------------- */
     #spbar {
+      display: none !important;
       height: var(--spbar-height);
       background-color: #1e293b;
       color: #94a3b8;
@@ -291,6 +292,7 @@
       border: 1px solid var(--border-color);
     }
     .m365-badge {
+      display: none !important;
       font-size: 9px;
       font-weight: 700;
       color: #0078d4;
@@ -298,6 +300,10 @@
       border: 1px solid rgba(0, 120, 212, 0.2);
       border-radius: 3px;
       padding: 0px 3px;
+    }
+
+    .sync-status-pill, #sp-sync-status-pill {
+      display: none !important;
     }
 
     .nav-area {
@@ -895,6 +901,9 @@
       border-bottom: 1px solid var(--border-color);
       gap: 16px;
       margin-bottom: 20px;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
     }
     .tab-trigger {
       padding: 10px 16px;
@@ -903,6 +912,7 @@
       border-bottom: 2px solid transparent;
       font-weight: 700;
       transition: all 0.2s;
+      flex-shrink: 0;
     }
     .tab-trigger:hover {
       color: #fff;
@@ -4824,6 +4834,20 @@
       Router: {}
     };
 
+    // HTML Sanitization Helper to prevent XSS
+    Portal.escapeHTML = function(str) {
+      if (typeof str !== 'string') return str === undefined || str === null ? '' : String(str);
+      return str.replace(/[&<>\'\"]/g, 
+        tag => ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          "'": '&#39;',
+          '"': '&quot;'
+        }[tag] || tag)
+      );
+    };
+
     // Shared global variables
     let currentUser = null;
     let mapInstance = null;
@@ -4981,11 +5005,23 @@
       },
 
       get: function(key) {
-        return JSON.parse(localStorage.getItem('ax_' + key)) || [];
+        try {
+          const val = localStorage.getItem('ax_' + key);
+          return val ? JSON.parse(val) : [];
+        } catch (e) {
+          console.error(`Error reading ${key} from LocalStorage:`, e);
+          return [];
+        }
       },
 
       set: function(key, data) {
-        localStorage.setItem('ax_' + key, JSON.stringify(data));
+        try {
+          localStorage.setItem('ax_' + key, JSON.stringify(data));
+          localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+        } catch (e) {
+          console.error(`Error saving ${key} to LocalStorage:`, e);
+          Portal.UI.showToast("Storage Limit Exceeded", "Could not save data locally. Browser quota may be full.", "error");
+        }
         // Trigger auto-backup to SharePoint if in live mode
         if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
           Portal.Graph.queueAutoBackup();
@@ -5101,6 +5137,7 @@
 
           if (response.ok) {
             localStorage.setItem('ax_db_last_updated', lastUpdated.toString());
+            localStorage.removeItem('ax_db_has_unsynced_changes');
             this.updateStatusUI('sync-saved', 'Cloud Synced');
             this.isSyncing = false;
             return true;
@@ -5145,7 +5182,9 @@
             const cloudTimestamp = cloudData.lastUpdated || 0;
             const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
 
-            if (cloudTimestamp > localTimestamp) {
+            const hasUnsynced = localStorage.getItem('ax_db_has_unsynced_changes') === 'true';
+
+            if (cloudTimestamp > localTimestamp && !hasUnsynced) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
               keys.forEach(k => {
                 if (cloudData[k]) {
@@ -5153,7 +5192,7 @@
                 }
               });
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
-              Portal.UI.showToast("Database Restored", "Your local database has been updated with the latest cloud data.", "success");
+              // Portal.UI.showToast("Database Restored", "Your local database has been updated with the latest cloud data.", "success");
               Portal.Audit.log("System", "Restore", `Database sync auto-restored version from SharePoint: ${cloudTimestamp}`);
               
               const initialPage = window.location.hash.slice(1) || 'dashboard';
@@ -5161,7 +5200,7 @@
               if (initialPage === 'my-profile') {
                 Portal.HR.loadProfileForm();
               }
-            } else if (localTimestamp > cloudTimestamp) {
+            } else if (localTimestamp > cloudTimestamp || hasUnsynced) {
               await this.backupDatabaseLive();
             }
             this.updateStatusUI('sync-saved', 'Cloud Synced');
@@ -5197,7 +5236,9 @@
             const cloudTimestamp = cloudData.lastUpdated || 0;
             const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
 
-            if (cloudTimestamp > localTimestamp) {
+            const hasUnsynced = localStorage.getItem('ax_db_has_unsynced_changes') === 'true';
+
+            if (cloudTimestamp > localTimestamp && !hasUnsynced) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
               keys.forEach(k => {
                 if (cloudData[k]) {
@@ -5206,13 +5247,15 @@
               });
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
               
-              Portal.UI.showToast("Database Synced", "New updates pulled from cloud.", "info");
+              // Portal.UI.showToast("Database Synced", "New updates pulled from cloud.", "info");
               
               const initialPage = window.location.hash.slice(1) || 'dashboard';
               Portal.Router.navigate(initialPage, false);
               if (initialPage === 'my-profile') {
                 Portal.HR.loadProfileForm();
               }
+            } else if (hasUnsynced) {
+              await this.backupDatabaseLive();
             }
             this.updateStatusUI('sync-saved', 'Cloud Synced');
           }
@@ -5571,6 +5614,13 @@
       currentPage: null,
 
       navigate: function(pageId, updateHash = true) {
+        // Close sidebar on mobile navigation if open
+        const sb = document.getElementById('sidebar');
+        if (sb && sb.classList.contains('open')) {
+          sb.classList.remove('open');
+          sb.style.transform = '';
+        }
+
         if (this.currentPage === pageId) return;
         this.currentPage = pageId;
 
@@ -6488,19 +6538,19 @@
             const card = document.createElement('div');
             card.className = 'kanban-card';
             card.innerHTML = `
-              <div class="kanban-card-title">${t.name}</div>
+              <div class="kanban-card-title">${Portal.escapeHTML(t.name)}</div>
               <div style="font-size:11px; color:var(--text-muted); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-                <span>Discipline: <strong>${t.discipline}</strong></span>
-                <span>Sub-Discipline: <strong>${t.subdiscipline || 'General'}</strong></span>
-                <span>Category: <strong>${t.category || 'Model (BIM)'}</strong></span>
+                <span>Discipline: <strong>${Portal.escapeHTML(t.discipline)}</strong></span>
+                <span>Sub-Discipline: <strong>${Portal.escapeHTML(t.subdiscipline || 'General')}</strong></span>
+                <span>Category: <strong>${Portal.escapeHTML(t.category || 'Model (BIM)')}</strong></span>
               </div>
               <div class="kanban-card-meta">
-                <span class="kanban-card-badge ${pClass}">${t.priority}</span>
+                <span class="kanban-card-badge ${pClass}">${Portal.escapeHTML(t.priority)}</span>
                 <span style="font-weight:600; color:var(--accent-bim);">${t.progress}%</span>
               </div>
               <div style="font-size:11px; margin-top:8px; color:${isOverdue ? '#ef4444' : 'var(--text-muted)'}; display:flex; justify-content:space-between;">
-                <span>Assignee: <strong>${staff ? staff.name.split(' ')[0] : 'Unassigned'}</strong></span>
-                <span>${t.end} ${isOverdue ? '⚠️' : ''}</span>
+                <span>Assignee: <strong>${staff ? Portal.escapeHTML(staff.name.split(' ')[0]) : 'Unassigned'}</strong></span>
+                <span>${Portal.escapeHTML(t.end)} ${isOverdue ? '⚠️' : ''}</span>
               </div>
               <div class="kanban-card-actions">
                 ${t.status === 'Not Started' ? `
@@ -6764,15 +6814,15 @@
 
               const tr = document.createElement('tr');
               tr.innerHTML = `
-                <td><strong>${t.name}</strong></td>
-                <td><span class="role-chip" style="font-size:10px;">${t.phase}</span></td>
-                <td>${t.discipline}</td>
-                <td>${t.subdiscipline || 'General'}</td>
-                <td>${t.category || 'Model (BIM)'}</td>
-                <td>${staff ? staff.name : 'Unassigned'}</td>
-                <td style="font-size:12px; color:${isOverdue ? '#ef4444':'inherit'};">${t.start} to ${t.end} ${isOverdue ? '⚠️' : ''}</td>
-                <td><span class="role-chip" style="background:${t.status === 'Completed' ? '#065f46':'#1e293b'}; color:${t.status === 'Completed' ? '#a7f3d0':'#94a3b8'}; border:none;">${t.status}</span></td>
-                <td>${t.priority}</td>
+                <td><strong>${Portal.escapeHTML(t.name)}</strong></td>
+                <td><span class="role-chip" style="font-size:10px;">${Portal.escapeHTML(t.phase)}</span></td>
+                <td>${Portal.escapeHTML(t.discipline)}</td>
+                <td>${Portal.escapeHTML(t.subdiscipline || 'General')}</td>
+                <td>${Portal.escapeHTML(t.category || 'Model (BIM)')}</td>
+                <td>${staff ? Portal.escapeHTML(staff.name) : 'Unassigned'}</td>
+                <td style="font-size:12px; color:${isOverdue ? '#ef4444':'inherit'};">${Portal.escapeHTML(t.start)} to ${Portal.escapeHTML(t.end)} ${isOverdue ? '⚠️' : ''}</td>
+                <td><span class="role-chip" style="background:${t.status === 'Completed' ? '#065f46':'#1e293b'}; color:${t.status === 'Completed' ? '#a7f3d0':'#94a3b8'}; border:none;">${Portal.escapeHTML(t.status)}</span></td>
+                <td>${Portal.escapeHTML(t.priority)}</td>
                 <td>${t.progress}%</td>
                 <td>
                   <div style="display:flex; gap:4px; align-items:center;">
@@ -7722,13 +7772,13 @@
 
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td><code style="font-family:var(--font-mono);">${e.empId}</code></td>
-            <td><strong>${e.name}</strong><br><span style="font-size:11px; color:var(--text-muted);">${e.email}</span></td>
-            <td>${e.dept}</td>
-            <td>${e.designation}</td>
-            <td>${e.location}</td>
-            <td>${manager ? manager.name : '--'}</td>
-            <td><strong style="color:var(--accent-hr); font-family:var(--font-mono);">${salaryValStr}</strong></td>
+            <td><code style="font-family:var(--font-mono);">${Portal.escapeHTML(e.empId)}</code></td>
+            <td><strong>${Portal.escapeHTML(e.name)}</strong><br><span style="font-size:11px; color:var(--text-muted);">${Portal.escapeHTML(e.email)}</span></td>
+            <td>${Portal.escapeHTML(e.dept)}</td>
+            <td>${Portal.escapeHTML(e.designation)}</td>
+            <td>${Portal.escapeHTML(e.location)}</td>
+            <td>${manager ? Portal.escapeHTML(manager.name) : '--'}</td>
+            <td><strong style="color:var(--accent-hr); font-family:var(--font-mono);">${Portal.escapeHTML(salaryValStr)}</strong></td>
             <td>
               ${currentUser.email === 'connect@asterwix.com' ? `
                 <div style="display: flex; gap: 6px;">
