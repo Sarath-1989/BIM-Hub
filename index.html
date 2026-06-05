@@ -2977,6 +2977,7 @@
                         <th>Deliverable Name</th>
                         <th>Phase</th>
                         <th>Discipline</th>
+                        <th>Category</th>
                         <th>Assignee</th>
                         <th>Timeline</th>
                         <th>Status</th>
@@ -4060,19 +4061,36 @@
               </select>
             </div>
             <div class="form-group">
-              <label>discipline Category</label>
+              <label>Discipline</label>
               <select class="form-control" id="at-discipline">
-                <option value="Structural">Structural Design</option>
-                <option value="Architectural">Architectural Modelling</option>
-                <option value="MEP Routing">MEP Routing</option>
+                <option value="Architectural">Architectural</option>
+                <option value="Structural">Structural</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Plumbing">Plumbing</option>
+                <option value="Civil">Civil</option>
+                <option value="Coordination">Coordination</option>
               </select>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
+              <label>Category (ISO 19650)</label>
+              <select class="form-control" id="at-category">
+                <option value="Model (BIM)">Model (BIM)</option>
+                <option value="Drawing">Drawing</option>
+                <option value="Specification">Specification</option>
+                <option value="Report">Report</option>
+                <option value="Clash Log">Clash Log</option>
+                <option value="Schedule">Schedule</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label>Assigned Engineer</label>
               <select class="form-control" id="at-assignee" required></select>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Task Priority</label>
               <select class="form-control" id="at-priority">
@@ -4081,15 +4099,17 @@
                 <option value="High">High</option>
               </select>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Start Date</label>
               <input type="date" class="form-control" id="at-start" required>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Plan Due Date</label>
               <input type="date" class="form-control" id="at-end" required>
+            </div>
+            <div class="form-group">
             </div>
           </div>
         </div>
@@ -4492,19 +4512,36 @@
               </select>
             </div>
             <div class="form-group">
-              <label>Discipline Category</label>
+              <label>Discipline</label>
               <select class="form-control" id="et-discipline">
-                <option value="Structural">Structural Design</option>
-                <option value="Architectural">Architectural Modelling</option>
-                <option value="MEP Routing">MEP Routing</option>
+                <option value="Architectural">Architectural</option>
+                <option value="Structural">Structural</option>
+                <option value="Mechanical">Mechanical</option>
+                <option value="Electrical">Electrical</option>
+                <option value="Plumbing">Plumbing</option>
+                <option value="Civil">Civil</option>
+                <option value="Coordination">Coordination</option>
               </select>
             </div>
           </div>
           <div class="form-row">
             <div class="form-group">
+              <label>Category (ISO 19650)</label>
+              <select class="form-control" id="et-category">
+                <option value="Model (BIM)">Model (BIM)</option>
+                <option value="Drawing">Drawing</option>
+                <option value="Specification">Specification</option>
+                <option value="Report">Report</option>
+                <option value="Clash Log">Clash Log</option>
+                <option value="Schedule">Schedule</option>
+              </select>
+            </div>
+            <div class="form-group">
               <label>Assigned Engineer</label>
               <select class="form-control" id="et-assignee" required></select>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Task Priority</label>
               <select class="form-control" id="et-priority">
@@ -4513,18 +4550,16 @@
                 <option value="High">High</option>
               </select>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Start Date</label>
               <input type="date" class="form-control" id="et-start" required>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Plan Due Date</label>
               <input type="date" class="form-control" id="et-end" required>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Status</label>
               <select class="form-control" id="et-status">
@@ -4534,9 +4569,13 @@
                 <option value="Completed">Completed</option>
               </select>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Progress (%)</label>
               <input type="number" class="form-control" id="et-progress" min="0" max="100" required>
+            </div>
+            <div class="form-group">
             </div>
           </div>
           <div class="form-group">
@@ -4785,8 +4824,9 @@
     Portal.DB = {
       init: function() {
         const emps = localStorage.getItem('ax_employees');
-        // Auto re-seed if database cache has outdated employee records (checks for connect@asterwix.com, Super Admin, and profile photo)
-        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin') || !emps.includes('sarath.png')) {
+        const tasksStr = localStorage.getItem('ax_tasks');
+        // Auto re-seed if database cache has outdated employee records or missing task category field
+        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin') || !emps.includes('sarath.png') || !tasksStr || !tasksStr.includes('category')) {
           localStorage.removeItem('ax_employees');
           localStorage.removeItem('ax_offices');
           localStorage.removeItem('ax_attendance');
@@ -4831,9 +4871,9 @@
 
         // Tasks Seeding
         const tasks = [
-          { taskId: "TSK-01", projectId: "PRJ-01", name: "Complete Level 15 Structural Framing", phase: "LOD 300", discipline: "Structural", assigneeId: "EMP-003", start: "2026-05-15", end: "2026-06-10", status: "In Progress", priority: "High", progress: 75, delayReason: "" },
-          { taskId: "TSK-02", projectId: "PRJ-01", name: "MEP Coordination Clash Detection", phase: "LOD 300", discipline: "MEP Routing", assigneeId: "EMP-004", start: "2026-05-20", end: "2026-06-01", status: "In Progress", priority: "Medium", progress: 90, delayReason: "" },
-          { taskId: "TSK-03", projectId: "PRJ-02", name: "Architectural Exterior Facade Drafting", phase: "LOD 200", discipline: "Architectural", assigneeId: "EMP-003", start: "2026-06-01", end: "2026-06-25", status: "Not Started", priority: "Medium", progress: 0, delayReason: "" }
+          { taskId: "TSK-01", projectId: "PRJ-01", name: "Complete Level 15 Structural Framing", phase: "LOD 300", discipline: "Structural", category: "Model (BIM)", assigneeId: "EMP-003", start: "2026-05-15", end: "2026-06-10", status: "In Progress", priority: "High", progress: 75, delayReason: "" },
+          { taskId: "TSK-02", projectId: "PRJ-01", name: "MEP Coordination Clash Detection", phase: "LOD 300", discipline: "Coordination", category: "Clash Log", assigneeId: "EMP-004", start: "2026-05-20", end: "2026-06-01", status: "In Progress", priority: "Medium", progress: 90, delayReason: "" },
+          { taskId: "TSK-03", projectId: "PRJ-02", name: "Architectural Exterior Facade Drafting", phase: "LOD 200", discipline: "Architectural", category: "Drawing", assigneeId: "EMP-003", start: "2026-06-01", end: "2026-06-25", status: "Not Started", priority: "Medium", progress: 0, delayReason: "" }
         ];
         localStorage.setItem('ax_tasks', JSON.stringify(tasks));
 
@@ -6350,8 +6390,9 @@
             card.className = 'kanban-card';
             card.innerHTML = `
               <div class="kanban-card-title">${t.name}</div>
-              <div style="font-size:11px; color:var(--text-muted); margin-bottom: 8px;">
-                Discipline: <strong>${t.discipline}</strong>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
+                <span>Discipline: <strong>${t.discipline}</strong></span>
+                <span>Category: <strong>${t.category || 'Model (BIM)'}</strong></span>
               </div>
               <div class="kanban-card-meta">
                 <span class="kanban-card-badge ${pClass}">${t.priority}</span>
@@ -6626,6 +6667,7 @@
                 <td><strong>${t.name}</strong></td>
                 <td><span class="role-chip" style="font-size:10px;">${t.phase}</span></td>
                 <td>${t.discipline}</td>
+                <td>${t.category || 'Model (BIM)'}</td>
                 <td>${staff ? staff.name : 'Unassigned'}</td>
                 <td style="font-size:12px; color:${isOverdue ? '#ef4444':'inherit'};">${t.start} to ${t.end} ${isOverdue ? '⚠️' : ''}</td>
                 <td><span class="role-chip" style="background:${t.status === 'Completed' ? '#065f46':'#1e293b'}; color:${t.status === 'Completed' ? '#a7f3d0':'#94a3b8'}; border:none;">${t.status}</span></td>
@@ -7045,6 +7087,7 @@
         const name = document.getElementById('at-name').value;
         const phase = document.getElementById('at-phase').value;
         const discipline = document.getElementById('at-discipline').value;
+        const category = document.getElementById('at-category').value;
         const assignee = document.getElementById('at-assignee').value;
         const priority = document.getElementById('at-priority').value;
         const start = document.getElementById('at-start').value;
@@ -7057,6 +7100,7 @@
           name: name,
           phase: phase,
           discipline: discipline,
+          category: category,
           assigneeId: assignee,
           start: start,
           end: end,
@@ -7346,6 +7390,7 @@
         document.getElementById('et-name').value = task.name;
         document.getElementById('et-phase').value = task.phase;
         document.getElementById('et-discipline').value = task.discipline;
+        document.getElementById('et-category').value = task.category || "Model (BIM)";
         
         // Populate assignee select and set value
         const emps = Portal.DB.get('employees') || [];
@@ -7376,6 +7421,7 @@
         const name = document.getElementById('et-name').value;
         const phase = document.getElementById('et-phase').value;
         const discipline = document.getElementById('et-discipline').value;
+        const category = document.getElementById('et-category').value;
         const assignee = document.getElementById('et-assignee').value;
         const priority = document.getElementById('et-priority').value;
         const start = document.getElementById('et-start').value;
@@ -7390,6 +7436,7 @@
           tasks[idx].name = name;
           tasks[idx].phase = phase;
           tasks[idx].discipline = discipline;
+          tasks[idx].category = category;
           tasks[idx].assigneeId = assignee;
           tasks[idx].priority = priority;
           tasks[idx].start = start;
