@@ -1514,12 +1514,12 @@
         color: #444 !important;
       }
       .payslip-logo-img {
-        filter: none !important;
+        filter: brightness(0) !important;
       }
     }
     
     .payslip-logo-img {
-      filter: brightness(0) invert(1);
+      filter: none;
     }
     
     .payslip-print-container {
@@ -2550,13 +2550,12 @@
   </div>
 
   <div id="app-container">
-
     <!-- -------------------------------------------------------------
          SIDEBAR NAVIGATION
          ------------------------------------------------------------- -->
     <aside id="sidebar">
       <div class="brand-area" style="padding: 12px 20px; display: flex; align-items: center; gap: 8px;">
-        <img src="data:image/avif;base64,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яp9x4A0cLSipsvb8F/ITcgEoDoBYuHzfOqy16gagoTkSnaRZOk4er5oT0dcW4i7DQRsS7+ABsjd4Xr2lbGt2gNSo1SB5Hph8EgqVlA4buLe+Yb+WFmTvPgpDRvb+/4Ww7U2POdMvXev+00dn/L17o6o74uxIOd7ZOJDlGhQMcfRDoYv83YvSSeWa0OG6V7/L1AK5K/DwnfHtPizT6WiZQZzH+oOUkSPDQQaiR/gB6q/Vsv4ZZk4/P/ajpHekbr8zUUTnBs9v7wsOnQmAj2CiXTSl7bONRUMX8ZJmK3jxXUZ505eV8jfjBDNQDY3HOcQfX5U84GjphWEDY6S64lcQvJ7MkOYUedVcEiQMxjWjjYcEnbkU5UvL+1b18DXpxwPXBkYJc7KS8g19xyQyTG3MuPnCpmXnBlB8NxClKGmUlWoksRnuJFInvKUDIRPUTGTtBg0jdM7APyyDbc8Zm0nT8Jbt5" alt="Asterwix" style="height: 33px; max-width: 145px; display: block; filter: brightness(0) invert(1) drop-shadow(0 0 8px rgba(37,99,235,0.1));">
+        <img class="logo-processed" data-original-src="data:image/avif;base64,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яp9x4A0cLSipsvb8F/ITcgEoDoBYuHzfOqy16gagoTkSnaRZOk4er5oT0dcW4i7DQRsS7+ABsjd4Xr2lbGt2gNSo1SB5Hph8EgqVlA4buLe+Yb+WFmTvPgpDRvb+/4Ww7U2POdMvXev+00dn/L17o6o74uxIOd7ZOJDlGhQMcfRDoYv83YvSSeWa0OG6V7/L1AK5K/DwnfHtPizT6WiZQZzH+oOUkSPDQQaiR/gB6q/Vsv4ZZk4/P/ajpHekbr8zUUTnBs9v7wsOnQmAj2CiXTSl7bONRUMX8ZJmK3jxXUZ505eV8jfjBDNQDY3HOcQfX5U84GjphWEDY6S64lcQvJ7MkOYUedVcEiQMxjWjjYcEnbkU5UvL+1b18DXpxwPXBkYJc7KS8g19xyQyTG3MuPnCpmXnBlB8NxClKGmUlWoksRnuJFInvKUDIRPUTGTtBg0jdM7APyyDbc8Zm0nT8Jbt5" alt="Asterwix" style="height: 33px; max-width: 145px; display: block; filter: drop-shadow(0 0 8px rgba(37,99,235,0.1));">
         <span class="brand-badge" style="margin-left: auto;">PORTAL</span>
       </div>
 
@@ -2957,7 +2956,6 @@
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'drawings')">Drawing Sheet Log</span>
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'team')">Assigned Team</span>
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'timeline')">Timeline Gantt</span>
-                <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'clash')">Clash Coordination</span>
               </div>
 
               <!-- Tasks Tab -->
@@ -3017,6 +3015,7 @@
                         <th>Plan Date</th>
                         <th>Actual Date</th>
                         <th>Stage Details</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody id="pd-table-models"></tbody>
@@ -3041,6 +3040,7 @@
                         <th>Author</th>
                         <th>Plan Date</th>
                         <th>Release Stage</th>
+                        <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody id="pd-table-drawings"></tbody>
@@ -3073,28 +3073,7 @@
                 <div class="gantt-chart-container" id="project-local-gantt"></div>
               </div>
 
-              <!-- Clash Coordination Tab -->
-              <div class="tab-content" id="pd-tab-clash">
-                <div class="panel-header-row" style="margin-bottom: 12px;">
-                  <h4 style="font-size: 15px;">BIM Clash Detection Grid & Navisworks Sync</h4>
-                  <button class="btn" style="padding: 4px 10px; font-size:12px; background:#047857; border-color:#059669;" id="btn-sync-navisworks" onclick="Portal.BIM.runClashScanner()">Run Navisworks Clash Sync</button>
-                </div>
-                
-                <div class="clash-matrix-container">
-                  <div class="clash-grid" id="pd-clash-grid-cards">
-                    <!-- Cards rendered dynamically -->
-                  </div>
 
-                  <div class="clash-scanner-screen" id="pd-clash-scanner">
-                    <div class="scanner-line" id="pd-scanner-line"></div>
-                    <div id="pd-scanner-status-text">
-                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="margin-bottom:8px;"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line><circle cx="12" cy="12" r="3"></circle></svg>
-                      <h4 style="color:#10b981; font-weight:700;">Navisworks Engine Standby</h4>
-                      <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">No active scans running. Press button to execute coordination checks.</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
 
           </div>
@@ -4236,14 +4215,20 @@
         <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
       </div>
       <form id="form-edit-employee" onsubmit="event.preventDefault(); Portal.HR.updateEmployee()">
-        <input type="hidden" id="ee-id">
+        <input type="hidden" id="ee-original-id">
         <div class="modal-body">
           <div class="form-row">
+            <div class="form-group">
+              <label>Employee Code (ID)</label>
+              <input type="text" class="form-control" id="ee-id" required>
+            </div>
             <div class="form-group">
               <label>Full Employee Name</label>
               <input type="text" class="form-control" id="ee-name" required>
             </div>
-            <div class="form-group">
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="width: 100%;">
               <label>Personal/Company Email</label>
               <input type="email" class="form-control" id="ee-email" required>
             </div>
@@ -4482,12 +4467,244 @@
     </div>
   </div>
 
+  <!-- Edit Task Modal -->
+  <div class="modal-overlay" id="modal-edit-task">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Deliverable Task</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <form id="form-edit-task" onsubmit="event.preventDefault(); Portal.BIM.updateTask()">
+        <input type="hidden" id="et-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Task Title / Deliverable Details</label>
+            <input type="text" class="form-control" id="et-name" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>BIM LOD Phase</label>
+              <select class="form-control" id="et-phase">
+                <option value="LOD 100">LOD 100</option>
+                <option value="LOD 200">LOD 200</option>
+                <option value="LOD 300">LOD 300</option>
+                <option value="LOD 400">LOD 400</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Discipline Category</label>
+              <select class="form-control" id="et-discipline">
+                <option value="Structural">Structural Design</option>
+                <option value="Architectural">Architectural Modelling</option>
+                <option value="MEP Routing">MEP Routing</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Assigned Engineer</label>
+              <select class="form-control" id="et-assignee" required></select>
+            </div>
+            <div class="form-group">
+              <label>Task Priority</label>
+              <select class="form-control" id="et-priority">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Start Date</label>
+              <input type="date" class="form-control" id="et-start" required>
+            </div>
+            <div class="form-group">
+              <label>Plan Due Date</label>
+              <input type="date" class="form-control" id="et-end" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select class="form-control" id="et-status">
+                <option value="Not Started">Not Started</option>
+                <option value="In Progress">In Progress</option>
+                <option value="Delay / Hold">Delay / Hold</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Progress (%)</label>
+              <input type="number" class="form-control" id="et-progress" min="0" max="100" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Delay Reason / Justification</label>
+            <textarea class="form-control" id="et-delay" rows="2" placeholder="e.g. Awaiting client RFI feedback"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Dismiss</button>
+          <button type="submit" class="btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Model Modal -->
+  <div class="modal-overlay" id="modal-edit-model">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit BIM Model Log</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <form id="form-edit-model" onsubmit="event.preventDefault(); Portal.BIM.updateModel()">
+        <input type="hidden" id="em-id">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Model File Name</label>
+            <input type="text" class="form-control" id="em-name" required>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>File Format</label>
+              <select class="form-control" id="em-format">
+                <option value="RVT">RVT (Revit Model)</option>
+                <option value="DWG">DWG (CAD Drafting)</option>
+                <option value="IFC">IFC (Open BIM)</option>
+                <option value="NWD">NWD (Navisworks Publish)</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Target LOD Stage</label>
+              <select class="form-control" id="em-lod">
+                <option value="LOD 100">LOD 100</option>
+                <option value="LOD 200">LOD 200</option>
+                <option value="LOD 300">LOD 300</option>
+                <option value="LOD 400">LOD 400</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Model Author</label>
+              <select class="form-control" id="em-author" required></select>
+            </div>
+            <div class="form-group">
+              <label>Model Quality Checker</label>
+              <select class="form-control" id="em-checker" required></select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Target Review Date</label>
+              <input type="date" class="form-control" id="em-plan" required>
+            </div>
+            <div class="form-group">
+              <label>Actual Release Date</label>
+              <input type="date" class="form-control" id="em-actual">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Status</label>
+              <select class="form-control" id="em-status">
+                <option value="Setup">Setup</option>
+                <option value="Modelling">Modelling</option>
+                <option value="Coordination">Coordination</option>
+                <option value="QC">QC</option>
+                <option value="Completed">Completed</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Workflow Stage (1-5)</label>
+              <select class="form-control" id="em-stage">
+                <option value="1">1 - Setup</option>
+                <option value="2">2 - Modelling</option>
+                <option value="3">3 - Coordination</option>
+                <option value="4">4 - QC</option>
+                <option value="5">5 - Issue</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Dismiss</button>
+          <button type="submit" class="btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Drawing Modal -->
+  <div class="modal-overlay" id="modal-edit-drawing">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Edit Sheet Log Entry</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <form id="form-edit-drawing" onsubmit="event.preventDefault(); Portal.BIM.updateDrawing()">
+        <input type="hidden" id="ed-id">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sheet Number</label>
+              <input type="text" class="form-control" id="ed-num" required>
+            </div>
+            <div class="form-group">
+              <label>Sheet Title</label>
+              <input type="text" class="form-control" id="ed-title" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Discipline</label>
+              <select class="form-control" id="ed-discipline">
+                <option value="Structural">Structural</option>
+                <option value="Architectural">Architectural</option>
+                <option value="MEP">MEP</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Revision ID</label>
+              <input type="text" class="form-control" id="ed-rev" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Sheet Drafter / Author</label>
+              <select class="form-control" id="ed-author" required></select>
+            </div>
+            <div class="form-group">
+              <label>Plan Release Date</label>
+              <input type="date" class="form-control" id="ed-plan" required>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Release Stage Status</label>
+            <select class="form-control" id="ed-status">
+              <option value="WIP">WIP</option>
+              <option value="Shared">Shared</option>
+              <option value="Published">Published</option>
+              <option value="Archived">Archived</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Dismiss</button>
+          <button type="submit" class="btn">Save Changes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- -------------------------------------------------------------
        FULL PAGE OVERLAY: LOGIN & SSO SELECTOR
        ------------------------------------------------------------- -->
   <div id="login-overlay">
     <div class="login-card">
-      <img src="data:image/avif;base64,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(etc)"" alt="Asterwix" style="height: 60px; max-width: 280px; margin: 0 auto 16px auto; display: block; filter: brightness(0) invert(1) drop-shadow(0 0 10px rgba(37,99,235,0.15));">
+      <img class="logo-processed" data-original-src="data:image/avif;base64,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яp9x4A0cLSipsvb8F/ITcgEoDoBYuHzfOqy16gagoTkSnaRZOk4er5oT0dcW4i7DQRsS7+ABsjd4Xr2lbGt2gNSo1SB5Hph8EgqVlA4buLe+Yb+WFmTvPgpDRvb+/4Ww7U2POdMvXev+00dn/L17o6o74uxIOd7ZOJDlGhQMcfRDoYv83YvSSeWa0OG6V7/L1AK5K/DwnfHtPizT6WiZQZzH+oOUkSPDQQaiR/gB6q/Vsv4ZZk4/P/ajpHekbr8zUUTnBs9v7wsOnQmAj2CiXTSl7bONRUMX8ZJmK3jxXUZ505eV8jfjBDNQDY3HOcQfX5U84GjphWEDY6S64lcQvJ7MkOYUedVcEiQMxjWjjYcEnbkU5UvL+1b18DXpxwPXBkYJc7KS8g19xyQyTG3MuPnCpmXnBlB8NxClKGmUlWoksRnuJFInvKUDIRPUTGTtBg0jdM7APyyDbc8Zm0nT8Jbt5" alt="Asterwix" style="height: 60px; max-width: 280px; margin: 0 auto 16px auto; display: block; filter: drop-shadow(0 0 10px rgba(37,99,235,0.15));">
       <h2 class="login-title" style="margin-bottom: 2px; font-family: 'Poetsen One', sans-serif; font-size: 16px; color: var(--accent-gps); letter-spacing: 0.5px;">Welcome to the Asterwix Employee Hub.</h2>
       <p class="login-subtitle" style="margin-top: 4px; font-family: 'Poetsen One', sans-serif; font-size: 13px; color: var(--text-muted); margin-bottom: 24px;">Building Futures Together</p>
 
@@ -4587,7 +4804,7 @@
       seedInitialData: function() {
         // Employees Seeding
         const employees = [
-          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
+          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001", photo: "assets/sarath.png" },
           { empId: "EMP-002", name: "Amit Sharma", email: "amit@asterwix.com", dept: "BIM Structural", role: "BIM Manager", designation: "BIM Structural Lead", salaryBasic: 10000, salaryHousing: 4000, salaryTransport: 1500, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
           { empId: "EMP-003", name: "Deepak Rawat", email: "deepak@asterwix.com", dept: "BIM Architectural", role: "Team Lead", designation: "Senior BIM Modeller", salaryBasic: 8000, salaryHousing: 3000, salaryTransport: 1000, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-002" },
           { empId: "EMP-004", name: "Sunita Roy", email: "sunita@asterwix.com", dept: "BIM MEP", role: "Staff", designation: "MEP Engineer", salaryBasic: 6000, salaryHousing: 2000, salaryTransport: 1000, salaryOthers: 200, currency: "INR", status: "Active", location: "India Office", managerId: "EMP-003" },
@@ -5031,7 +5248,8 @@
             name: match ? match.name : (defaultName || "Sarath Perucheril"),
             email: "connect@asterwix.com",
             role: "Admin",
-            designation: "Super Admin"
+            designation: "Super Admin",
+            photo: match ? match.photo : "assets/sarath.png"
           };
         }
 
@@ -5041,7 +5259,8 @@
             name: match.name,
             email: match.email,
             role: match.role,
-            designation: match.designation
+            designation: match.designation,
+            photo: match.photo || ""
           };
         }
 
@@ -5051,7 +5270,8 @@
           name: defaultName || email.split('@')[0],
           email: email,
           role: "Staff",
-          designation: "M365 Modeller"
+          designation: "M365 Modeller",
+          photo: ""
         };
       },
 
@@ -5139,7 +5359,13 @@
         // UI updates
         document.getElementById('side-profile-name').innerText = currentUser.name;
         document.getElementById('side-profile-role').innerText = currentUser.role;
-        document.getElementById('side-avatar').innerText = currentUser.name.split(' ').map(n => n[0]).join('');
+        
+        const avatarEl = document.getElementById('side-avatar');
+        if (currentUser.photo) {
+          avatarEl.innerHTML = `<img src="${currentUser.photo}" alt="${currentUser.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+        } else {
+          avatarEl.innerText = currentUser.name.split(' ').map(n => n[0]).join('');
+        }
 
         // Welcome banner title
         document.getElementById('welcome-message').innerText = `Welcome back, ${currentUser.name.split(' ')[0]}!`;
@@ -5192,6 +5418,7 @@
         hide('btn-add-project');
         hide('panel-leave-approvals');
         hide('btn-add-overtime');
+        hide('dashboard-map-panel');
 
         // Apply rules
         if (role === 'Admin') {
@@ -5201,7 +5428,7 @@
           if (currentUser.email === 'connect@asterwix.com') {
             show('nav-admin-gps');
           }
-          show('btn-add-manual-att'); show('btn-add-project'); show('panel-leave-approvals'); show('btn-add-overtime');
+          show('btn-add-manual-att'); show('btn-add-project'); show('panel-leave-approvals'); show('btn-add-overtime'); show('dashboard-map-panel');
         } else if (role === 'HR Admin') {
           show('header-bim'); show('nav-bim-projects');
           show('header-hr'); show('nav-hr-employees'); show('nav-hr-leave'); show('nav-hr-overtime'); show('nav-hr-payroll'); show('nav-hr-payslips');
@@ -5265,7 +5492,9 @@
           
           // Page specifics init
           if (pageId === 'dashboard') {
-            setTimeout(() => { Portal.BIM.initDashboardMap(); }, 100);
+            if (currentUser && currentUser.role === 'Admin') {
+              setTimeout(() => { Portal.BIM.initDashboardMap(); }, 100);
+            }
           } else if (pageId === 'gps-punch') {
             setTimeout(() => { Portal.GPS.initMap(); }, 100);
           } else if (pageId === 'attendance-log') {
@@ -6403,10 +6632,13 @@
                 <td>${t.priority}</td>
                 <td>${t.progress}%</td>
                 <td>
-                  ${t.status !== 'Completed' ? `
-                    <button class="btn btn-success" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.completeTask('${t.taskId}')">Complete</button>
-                    <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.returnTask('${t.taskId}')">Return</button>
-                  ` : 'Done'}
+                  <div style="display:flex; gap:4px; align-items:center;">
+                    ${t.status !== 'Completed' ? `
+                      <button class="btn btn-success" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.completeTask('${t.taskId}')">Complete</button>
+                      <button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.returnTask('${t.taskId}')">Return</button>
+                    ` : 'Done'}
+                    <button class="btn" style="padding:4px 8px; font-size:11px; background:rgba(59, 130, 246, 0.1); border-color:rgba(59, 130, 246, 0.3); color:#3b82f6;" onclick="Portal.BIM.openEditTaskModal('${t.taskId}')">Edit</button>
+                  </div>
                 </td>
               `;
               taskTbody.appendChild(tr);
@@ -6460,6 +6692,9 @@
                   <span class="role-chip" style="background:${m.stageData.stage >= 5 ? '#6d28d9':'#1e293b'}; color:#fff; font-size:10px;">Issue</span>
                 </div>
               </td>
+              <td>
+                <button class="btn" style="padding:4px 8px; font-size:11px; background:rgba(59, 130, 246, 0.1); border-color:rgba(59, 130, 246, 0.3); color:#3b82f6;" onclick="Portal.BIM.openEditModelModal('${m.logId}')">Edit</button>
+              </td>
             `;
             modelTbody.appendChild(tr);
           });
@@ -6493,6 +6728,9 @@
             <td>${author ? author.name : '--'}</td>
             <td>${d.planDate}</td>
             <td><span class="role-chip" style="background:#0284c7; color:#fff; border:none;">${d.status}</span></td>
+            <td>
+              <button class="btn" style="padding:4px 8px; font-size:11px; background:rgba(59, 130, 246, 0.1); border-color:rgba(59, 130, 246, 0.3); color:#3b82f6;" onclick="Portal.BIM.openEditDrawingModal('${d.logId}')">Edit</button>
+            </td>
           `;
           drawingTbody.appendChild(tr);
         });
@@ -7099,129 +7337,203 @@
         `;
       },
 
-      initClashData: function(proj) {
-        if (!proj.clashData) {
-          proj.clashData = {
-            strMep: Math.floor(Math.random() * 25) + 10,
-            archStr: Math.floor(Math.random() * 15) + 5,
-            archMep: Math.floor(Math.random() * 20) + 8,
-            resolved: Math.floor(Math.random() * 30) + 15
-          };
-          const prjs = Portal.DB.get('projects');
-          const idx = prjs.findIndex(p => p.projectId === proj.projectId);
-          if (idx !== -1) {
-            prjs[idx].clashData = proj.clashData;
-            localStorage.setItem('ax_projects', JSON.stringify(prjs));
-          }
-        }
-        return proj.clashData;
-      },
+      openEditTaskModal: function(taskId) {
+        const tasks = Portal.DB.get('tasks') || [];
+        const task = tasks.find(t => t.taskId === taskId);
+        if (!task) return;
 
-      renderClashTab: function(projId) {
-        const prjs = Portal.DB.get('projects');
-        const proj = prjs.find(p => p.projectId === projId);
-        if (!proj) return;
-
-        const clashData = this.initClashData(proj);
-        const grid = document.getElementById('pd-clash-grid-cards');
-        if (!grid) return;
-
-        const totalClashes = clashData.strMep + clashData.archStr + clashData.archMep;
-        const resolutionPct = totalClashes + clashData.resolved > 0 
-          ? Math.round((clashData.resolved / (totalClashes + clashData.resolved)) * 100) 
-          : 100;
-
-        grid.innerHTML = `
-          <div class="clash-card">
-            <div class="clash-card-title">Structural vs MEP</div>
-            <div class="clash-card-value" style="color:#ef4444;">${clashData.strMep}</div>
-            <span class="clash-card-status" style="background:rgba(239,68,68,0.1); color:#ef4444;">${clashData.strMep > 0 ? 'Active Clashes':'Resolved'}</span>
-          </div>
-          <div class="clash-card">
-            <div class="clash-card-title">Architectural vs Structural</div>
-            <div class="clash-card-value" style="color:#fb923c;">${clashData.archStr}</div>
-            <span class="clash-card-status" style="background:rgba(251,146,60,0.1); color:#fb923c;">${clashData.archStr > 0 ? 'Active Clashes':'Resolved'}</span>
-          </div>
-          <div class="clash-card">
-            <div class="clash-card-title">Architectural vs MEP</div>
-            <div class="clash-card-value" style="color:#f59e0b;">${clashData.archMep}</div>
-            <span class="clash-card-status" style="background:rgba(245,158,11,0.1); color:#f59e0b;">${clashData.archMep > 0 ? 'Active Clashes':'Resolved'}</span>
-          </div>
-          <div class="clash-card" style="grid-column: span 3; background: rgba(16, 185, 129, 0.05); border-color: rgba(16, 185, 129, 0.2);">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <div style="text-align:left;">
-                <div class="clash-card-title" style="color:#10b981; margin:0 0 4px 0;">Resolved Clashes Summary</div>
-                <div style="font-size:18px; font-weight:800; color:#10b981; font-family:var(--font-mono);">${clashData.resolved} resolved</div>
-              </div>
-              <div style="text-align:right;">
-                <span style="font-size:12px; color:#10b981; font-weight:700;">${resolutionPct}% Resolved</span>
-              </div>
-            </div>
-            <div style="width:100%; background:rgba(255,255,255,0.05); height:6px; border-radius:3px; margin-top:10px; overflow:hidden;">
-              <div style="width:${resolutionPct}%; background:#10b981; height:100%; border-radius:3px;"></div>
-            </div>
-          </div>
-        `;
-      },
-
-      runClashScanner: function() {
-        const projId = this.activeProjectId;
-        const prjs = Portal.DB.get('projects');
-        const idx = prjs.findIndex(p => p.projectId === projId);
-        if (idx === -1) return;
-
-        const proj = prjs[idx];
-        const clashData = this.initClashData(proj);
-
-        if (clashData.strMep === 0 && clashData.archStr === 0 && clashData.archMep === 0) {
-          Portal.UI.showToast("BIM Model Clean", "No unresolved clashes found in coordination space.", "success");
-          return;
+        document.getElementById('et-id').value = task.taskId;
+        document.getElementById('et-name').value = task.name;
+        document.getElementById('et-phase').value = task.phase;
+        document.getElementById('et-discipline').value = task.discipline;
+        
+        // Populate assignee select and set value
+        const emps = Portal.DB.get('employees') || [];
+        const assigneeSelect = document.getElementById('et-assignee');
+        if (assigneeSelect) {
+          assigneeSelect.innerHTML = '';
+          emps.forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = e.empId;
+            opt.innerText = e.name;
+            assigneeSelect.appendChild(opt);
+          });
+          assigneeSelect.value = task.assigneeId;
         }
 
-        const scanBtn = document.getElementById('btn-sync-navisworks');
-        const screenText = document.getElementById('pd-scanner-status-text');
-        const scanLine = document.getElementById('pd-scanner-line');
+        document.getElementById('et-priority').value = task.priority;
+        document.getElementById('et-start').value = task.start;
+        document.getElementById('et-end').value = task.end;
+        document.getElementById('et-status').value = task.status;
+        document.getElementById('et-progress').value = task.progress || 0;
+        document.getElementById('et-delay').value = task.delayReason || '';
 
-        // Start scan simulation animation
-        scanBtn.disabled = true;
-        scanBtn.innerText = 'Scanning...';
-        scanLine.style.display = 'block';
-        screenText.innerHTML = `
-          <svg class="spin" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2" style="margin-bottom:8px; animation:spin 1s linear infinite;"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"></circle><path d="M4 12a8 8 0 0 1 8-8" fill="none"></path></svg>
-          <h4 style="color:#3b82f6; font-weight:700;">Navisworks Interference Checking...</h4>
-          <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Intersecting Architectural, Structural, and MEP geometry coordinates.</p>
-        `;
+        Portal.UI.openModal('modal-edit-task');
+      },
 
-        setTimeout(() => {
-          const resolvedStrMep = Math.min(clashData.strMep, Math.floor(Math.random() * 4) + 2);
-          const resolvedArchStr = Math.min(clashData.archStr, Math.floor(Math.random() * 3) + 1);
-          const resolvedArchMep = Math.min(clashData.archMep, Math.floor(Math.random() * 3) + 1);
+      updateTask: function() {
+        const taskId = document.getElementById('et-id').value;
+        const name = document.getElementById('et-name').value;
+        const phase = document.getElementById('et-phase').value;
+        const discipline = document.getElementById('et-discipline').value;
+        const assignee = document.getElementById('et-assignee').value;
+        const priority = document.getElementById('et-priority').value;
+        const start = document.getElementById('et-start').value;
+        const end = document.getElementById('et-end').value;
+        const status = document.getElementById('et-status').value;
+        const progress = Number(document.getElementById('et-progress').value) || 0;
+        const delay = document.getElementById('et-delay').value;
 
-          clashData.strMep -= resolvedStrMep;
-          clashData.archStr -= resolvedArchStr;
-          clashData.archMep -= resolvedArchMep;
-          const resolvedTotal = resolvedStrMep + resolvedArchStr + resolvedArchMep;
-          clashData.resolved += resolvedTotal;
+        const tasks = Portal.DB.get('tasks') || [];
+        const idx = tasks.findIndex(t => t.taskId === taskId);
+        if (idx !== -1) {
+          tasks[idx].name = name;
+          tasks[idx].phase = phase;
+          tasks[idx].discipline = discipline;
+          tasks[idx].assigneeId = assignee;
+          tasks[idx].priority = priority;
+          tasks[idx].start = start;
+          tasks[idx].end = end;
+          tasks[idx].status = status;
+          tasks[idx].progress = progress;
+          tasks[idx].delayReason = delay;
 
-          proj.clashData = clashData;
-          prjs[idx] = proj;
-          Portal.DB.set('projects', prjs); // Save changes and auto-sync!
+          Portal.DB.set('tasks', tasks);
+          Portal.UI.showToast("Task Updated", `Deliverable ${taskId} has been updated.`, "success");
+          Portal.Audit.log("Project Hub", "Update Task", `Updated task record: ${taskId} (${name})`);
+          Portal.UI.closeModal();
+          this.renderProjectDetailTabs();
+        }
+      },
 
-          // Reset UI
-          scanBtn.disabled = false;
-          scanBtn.innerText = 'Run Navisworks Clash Sync';
-          scanLine.style.display = 'none';
-          screenText.innerHTML = `
-            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="margin-bottom:8px;"><circle cx="12" cy="12" r="10"></circle><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-            <h4 style="color:#10b981; font-weight:700;">Clash Sync Completed!</h4>
-            <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Successfully checked coordination models. Resolved <strong>${resolvedTotal} conflicts</strong>.</p>
-          `;
+      openEditModelModal: function(logId) {
+        const models = Portal.DB.get('models') || [];
+        const m = models.find(x => x.logId === logId);
+        if (!m) return;
 
-          Portal.UI.showToast("BIM Synced", `Resolved ${resolvedTotal} coordination conflicts.`, "success");
-          Portal.Audit.log("BIM Coordination", "Clash Scan", `Navisworks interference scan checked for Project ${proj.code}. Resolved ${resolvedTotal} clashes.`);
+        document.getElementById('em-id').value = m.logId;
+        document.getElementById('em-name').value = m.modelName;
+        document.getElementById('em-format').value = m.fileType;
+        document.getElementById('em-lod').value = m.lod;
+
+        const emps = Portal.DB.get('employees') || [];
+        const mAuthor = document.getElementById('em-author');
+        const mChecker = document.getElementById('em-checker');
+        if (mAuthor && mChecker) {
+          mAuthor.innerHTML = '';
+          mChecker.innerHTML = '';
+          emps.forEach(e => {
+            const opt1 = document.createElement('option'); opt1.value = e.empId; opt1.innerText = e.name; mAuthor.appendChild(opt1);
+            const opt2 = document.createElement('option'); opt2.value = e.empId; opt2.innerText = e.name; mChecker.appendChild(opt2);
+          });
+          mAuthor.value = m.authorId;
+          mChecker.value = m.checkerId;
+        }
+
+        document.getElementById('em-plan').value = m.planDate;
+        document.getElementById('em-actual').value = m.actualDate || '';
+        document.getElementById('em-status').value = m.status || 'Setup';
+        document.getElementById('em-stage').value = m.stageData ? m.stageData.stage : 1;
+
+        Portal.UI.openModal('modal-edit-model');
+      },
+
+      updateModel: function() {
+        const logId = document.getElementById('em-id').value;
+        const name = document.getElementById('em-name').value;
+        const format = document.getElementById('em-format').value;
+        const lod = document.getElementById('em-lod').value;
+        const author = document.getElementById('em-author').value;
+        const checker = document.getElementById('em-checker').value;
+        const plan = document.getElementById('em-plan').value;
+        const actual = document.getElementById('em-actual').value;
+        const status = document.getElementById('em-status').value;
+        const stage = Number(document.getElementById('em-stage').value) || 1;
+
+        const models = Portal.DB.get('models') || [];
+        const idx = models.findIndex(x => x.logId === logId);
+        if (idx !== -1) {
+          models[idx].modelName = name;
+          models[idx].fileType = format;
+          models[idx].lod = lod;
+          models[idx].authorId = author;
+          models[idx].checkerId = checker;
+          models[idx].planDate = plan;
+          models[idx].actualDate = actual;
+          models[idx].status = status;
           
-          this.renderClashTab(projId);
-        }, 2000);
+          let stageName = "Setup";
+          if (stage === 2) stageName = "Modelling";
+          if (stage === 3) stageName = "Coordination";
+          if (stage === 4) stageName = "QC";
+          if (stage === 5) stageName = "Issue";
+          models[idx].stageData = { stage: stage, name: stageName };
+
+          Portal.DB.set('models', models);
+          Portal.UI.showToast("Model Updated", `BIM model log has been updated.`, "success");
+          Portal.Audit.log("Project Hub", "Update Model", `Updated model sheet log: ${name}`);
+          Portal.UI.closeModal();
+          this.renderProjectDetailTabs();
+        }
+      },
+
+      openEditDrawingModal: function(logId) {
+        const drawings = Portal.DB.get('drawings') || [];
+        const d = drawings.find(x => x.logId === logId);
+        if (!d) return;
+
+        document.getElementById('ed-id').value = d.logId;
+        document.getElementById('ed-num').value = d.sheetNum;
+        document.getElementById('ed-title').value = d.sheetName;
+        document.getElementById('ed-discipline').value = d.discipline;
+        document.getElementById('ed-rev').value = d.revision;
+
+        const emps = Portal.DB.get('employees') || [];
+        const dAuthor = document.getElementById('ed-author');
+        if (dAuthor) {
+          dAuthor.innerHTML = '';
+          emps.forEach(e => {
+            const opt = document.createElement('option');
+            opt.value = e.empId;
+            opt.innerText = e.name;
+            dAuthor.appendChild(opt);
+          });
+          dAuthor.value = d.authorId;
+        }
+
+        document.getElementById('ed-plan').value = d.planDate;
+        document.getElementById('ed-status').value = d.status || 'WIP';
+
+        Portal.UI.openModal('modal-edit-drawing');
+      },
+
+      updateDrawing: function() {
+        const logId = document.getElementById('ed-id').value;
+        const num = document.getElementById('ed-num').value;
+        const title = document.getElementById('ed-title').value;
+        const discipline = document.getElementById('ed-discipline').value;
+        const rev = document.getElementById('ed-rev').value;
+        const author = document.getElementById('ed-author').value;
+        const plan = document.getElementById('ed-plan').value;
+        const status = document.getElementById('ed-status').value;
+
+        const drawings = Portal.DB.get('drawings') || [];
+        const idx = drawings.findIndex(x => x.logId === logId);
+        if (idx !== -1) {
+          drawings[idx].sheetNum = num;
+          drawings[idx].sheetName = title;
+          drawings[idx].discipline = discipline;
+          drawings[idx].revision = rev;
+          drawings[idx].authorId = author;
+          drawings[idx].planDate = plan;
+          drawings[idx].status = status;
+
+          Portal.DB.set('drawings', drawings);
+          Portal.UI.showToast("Drawing Updated", `Sheet record ${num} has been updated.`, "success");
+          Portal.Audit.log("Project Hub", "Update Drawing", `Updated drawing: ${num}`);
+          Portal.UI.closeModal();
+          this.renderProjectDetailTabs();
+        }
       }
     };
 
@@ -7329,6 +7641,7 @@
         const emp = emps.find(e => e.empId === empId);
         if (!emp) return;
 
+        document.getElementById('ee-original-id').value = emp.empId;
         document.getElementById('ee-id').value = emp.empId;
         document.getElementById('ee-name').value = emp.name;
         document.getElementById('ee-email').value = emp.email;
@@ -7365,7 +7678,8 @@
           return;
         }
 
-        const id = document.getElementById('ee-id').value;
+        const originalId = document.getElementById('ee-original-id').value;
+        const newId = document.getElementById('ee-id').value.trim();
         const name = document.getElementById('ee-name').value;
         const email = document.getElementById('ee-email').value;
         const dept = document.getElementById('ee-dept').value;
@@ -7379,8 +7693,18 @@
         const others = Number(document.getElementById('ee-sal-others').value) || 0;
 
         const emps = Portal.DB.get('employees');
-        const idx = emps.findIndex(e => e.empId === id);
+
+        if (newId !== originalId) {
+          const idExists = emps.some(e => e.empId === newId);
+          if (idExists) {
+            Portal.UI.showToast("ID Conflict", "The Employee Code is already assigned to another employee.", "error");
+            return;
+          }
+        }
+
+        const idx = emps.findIndex(e => e.empId === originalId);
         if (idx !== -1) {
+          emps[idx].empId = newId;
           emps[idx].name = name;
           emps[idx].email = email;
           emps[idx].dept = dept;
@@ -7407,8 +7731,46 @@
           emps[idx].passportExpiry = document.getElementById('ee-passport-expiry').value;
 
           Portal.DB.set('employees', emps);
-          Portal.UI.showToast("Employee Updated", `Record ${id} has been updated.`, "success");
-          Portal.Audit.log("HR Accounts", "Update Employee", `Updated employee record: ${id} (${name})`);
+
+          // If ID changed, cascade updates to all references
+          if (newId !== originalId) {
+            // Update tasks assigneeId
+            const tasks = Portal.DB.get('tasks') || [];
+            tasks.forEach(t => {
+              if (t.assigneeId === originalId) t.assigneeId = newId;
+            });
+            Portal.DB.set('tasks', tasks);
+
+            // Update attendance empId
+            const attendance = Portal.DB.get('attendance') || [];
+            attendance.forEach(a => {
+              if (a.empId === originalId) a.empId = newId;
+            });
+            Portal.DB.set('attendance', attendance);
+
+            // Update leaves empId
+            const leaves = Portal.DB.get('leaves') || [];
+            leaves.forEach(l => {
+              if (l.empId === originalId) l.empId = newId;
+            });
+            Portal.DB.set('leaves', leaves);
+
+            // Update overtime empId
+            const overtime = Portal.DB.get('overtime') || [];
+            overtime.forEach(o => {
+              if (o.empId === originalId) o.empId = newId;
+            });
+            Portal.DB.set('overtime', overtime);
+
+            // Update manager references
+            emps.forEach((e, idx2) => {
+              if (e.managerId === originalId) emps[idx2].managerId = newId;
+            });
+            Portal.DB.set('employees', emps);
+          }
+
+          Portal.UI.showToast("Employee Updated", `Record ${newId} has been updated.`, "success");
+          Portal.Audit.log("HR Accounts", "Update Employee", `Updated employee record: ${newId} (${name})`);
           
           Portal.UI.closeModal();
           this.renderEmployees();
@@ -7906,7 +8268,7 @@
             <div class="payslip-header">
               <div style="display: flex; align-items: center; gap: 12px;">
                 <!-- Loaded from assets/logo.svg -->
-                <img src="data:image/avif;base64,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(etc)"" alt="Asterwix" class="payslip-logo-img" style="height: 36px; max-width: 170px; display: block;">
+                <img class="logo-processed payslip-logo-img" data-original-src="data:image/avif;base64,AAAAGGZ0eXBhdmlmAAAAAG1pZjFtaWFmAAABaG1ldGEAAAAAAAAAIWhkbHIAAAAAAAAAAHBpY3QAAAAAAAAAAAAAAAAAAAAADnBpdG0AAAAAAAEAAAAsaWxvYwAAAABEAAACAAIAAAABAAABiAAAJ18AAQAAAAEAACjnAAAj9gAAADhpaW5mAAAAAAACAAAAFWluZmUCAAAAAAEAAGF2MDEAAAAAFWluZmUCAAAAAAIAAGF2MDEAAAAAGmlyZWYAAAAAAAAADmF1eGwAAgABAAEAAACvaXBycAAAAIppcGNvAAAAFGlzcGUAAAAAAAADAAAAAKIAAAAMYXYxQ4E/QAAAAAAQcGl4aQAAAAADCgoKAAAADGF2MUOBH1wAAAAADnBpeGkAAAAAAQoAAAA4YXV4QwAAAAB1cm46bXBlZzptcGVnQjpjaWNwOnN5c3RlbXM6YXV4aWxpYXJ5OmFscGhhAAAAAB1pcG1hAAAAAAAAAAIAAQMBggMAAgQBhAYFAABLXW1kYXQSAAoGH+Xv+hL1MtJOZwVmMf1AfuAgUBB4CFAAAAAAccEEQACTCPYKJdNKXts41FQxfyyUV3XJhx9+IXKHXEoCtsC73angFWdD22EdSP94t6KB28mhOD+C8mvpJZdLXXUCkAmeAVDCddZXaNAZSR5ZyMAVODK+hBohC2C8SyrBoLW0AVFRYNSDamMyUtr93pEo0w7X62rmAbXzRkDNOyKmYobHv5OndFAAmZ3EwaPyKykGeM1fQB6XsO1xHp3x89llPUggWl9wmVvjrdoqc0yOVGZ3ftZzvCL10/p9cKC+1ANy8Jo2q3grZ+TtdN1u8Rybld+BH9qYP7bnCiwzXZhdd77mEgcXmThG6T9VUb5HRozLb0j0HFJ1wOR59fjiP9rOUcFlOw/jC4SvMiieRLWMowlitGZ6924+Tl3yqAd/Y+gSyEeivdDGwHJmhhYQLVy3SvRDwNWO3S0e1zY7pLDJcpoRHhKRWblCqBnu6gCWyboKzCihtHz+qKqT/q4oUclIJxwRhGgbwTxazGlhXNJHELfBLcbgK76hqOa9BVuIGZOFEBZgJzVJNCzzSyhxHecqXqaO2ESHg1yKoly23JPexHHqOfBROBad1jUEhg+AZC/5VjlR1wTkLnyn+5mjwJ7qc83ZYLr25+eGO/hYcOtmM4KtbwIKpjQFOgYDrfKFnKRSn5uWoi2M5zRzY7ab85nRmdqZHwwZOAP/o79PXb/Iif0cf7l3z7sHmlDtyyfXZUJVjs4TCrrCbLIfXgoXRCTTUER54rIu8EryEm9nmmJEmWDI7kk6Hrqh6O9M0pjWnnhODVALToq1IhUVZCG3618+qsfcgu94dMLe18fPe1oOHYQT5R9C1uEh/Tts6W92LdsaSFL7uEC+i0LkW6H6SriYjrpQdAmFvrypd6EFk29Yb0GptzkJfentxI7oSAKv9oGcf53RydfcmSCJG+uqtKWrZimPFXCXL2W8Rm8YVTY3dC6QOjyIOWcr4oWQ1YhkBtzDGjfh3ig7qnA+gxlOyOyFIPeBpSlpFBPCYT+rsJMP9UggpU4tkEzo9lt4iedil5yocbQ8Gl0V/55qrmCQFo9ZyW8PRXf6JfjXX1IEhq1gU2eZ9Rs823Tu/1N8YDMLjVkYri3S2AHLEn8FfPv1Jw8G7CswXhH7ONlCfBrIdgMN80YS8b/Zbd9L+GtnBEHHzUTZMriQWfNTyhj1ZT8ibzux7tbVIdULhenAAKGaiXDyDFg+8giL1AISya8pIpMc/hpSojoxh3eqvN/4X9NWz+fYoztJ/UFKIHOmWJKniGEEOGGws/FqFVm0oTUHN8VOicRD2WC/wYPoMM7Y3cwUAeY2t8aolAelETywPClxqFaVeTJphpFsmJoySp4hWaYo8XsZ6mOF72S3/EGN3PrwHH1ttnRxDbfKwmJeltVCJ0eSh6AMCTFQEv6p1TVA9Tw14GOjy6JmlL6/333Hpi+JorlH16sEiXwkxHZekBI3TJ8zH1JyYB2ylaGkaktOOFwyrBH4ZMgdgV8Fykzx1PwYqHSn714p+y0cPA36iZXdYJAryzeZeoyLRc7s0IJ++7DZCTFLgzXLlZx5EfDjzSqPSGn+Cvm2GBwEcHiOBVJtE63ulFt8bMzg27xR9JaqzxUjTX7A0G81KErWzP+KH0i6IhcDFSYdxjTr+NlhZo6owWG+jSmfEzEnlpHB3bs0j8AhfhlxNoLF/NhDGRdajWhqR" alt="Asterwix" style="height: 36px; max-width: 170px; display: block;">
                 <div style="border-left: 1px solid var(--border-color); padding-left: 12px; margin-left: 4px;">
                   <span style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; display: block; line-height: 1;">BIM & Engineering</span>
                   <span style="font-size: 8px; color: var(--text-muted); letter-spacing: 0.5px; display: block; margin-top: 2px;">Consultancy</span>
@@ -8099,10 +8461,10 @@
               <div style="text-align: right;">
                 <p style="margin: 0; color: var(--text-main);">Authorized Signature: <strong>Asterwix HR Admin</strong></p>
                 <p style="color: var(--text-muted); font-size: 9px; margin: 4px 0 0 0;">This is a system generated statement and does not require physical stamp.</p>
-              </div>
             </div>
           </div>
         `;
+        Portal.UI.processLogo();
       },
 
       handlePhotoUpload: function(input) {
@@ -8386,6 +8748,93 @@
       });
     };
 
+    Portal.UI.processLogo = function() {
+      const elements = document.querySelectorAll('.logo-processed');
+      elements.forEach(img => {
+        if (img.getAttribute('data-done-processing') === 'true') return;
+        const originalSrc = img.getAttribute('data-original-src');
+        if (!originalSrc) return;
+
+        const tempImg = new Image();
+        tempImg.onload = function() {
+          const canvas = document.createElement('canvas');
+          canvas.width = tempImg.naturalWidth;
+          canvas.height = tempImg.naturalHeight;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(tempImg, 0, 0);
+
+          const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+          const data = imgData.data;
+
+          const width = canvas.width;
+          const height = canvas.height;
+          const columnAlphas = new Array(width).fill(false);
+
+          for (let x = 0; x < width; x++) {
+            for (let y = 0; y < height; y++) {
+              const idx = (y * width + x) * 4;
+              if (data[idx + 3] > 20) {
+                columnAlphas[x] = true;
+                break;
+              }
+            }
+          }
+
+          let contentStart = 0;
+          for (let x = 0; x < width; x++) {
+            if (columnAlphas[x]) {
+              contentStart = x;
+              break;
+            }
+          }
+
+          let gapStart = -1;
+          let gapEnd = -1;
+
+          for (let x = contentStart; x < width; x++) {
+            if (!columnAlphas[x]) {
+              if (gapStart === -1) {
+                gapStart = x;
+              }
+            } else {
+              if (gapStart !== -1) {
+                gapEnd = x;
+                break;
+              }
+            }
+          }
+
+          let threshold = width * 0.17;
+          if (gapStart !== -1 && gapEnd !== -1) {
+            threshold = (gapStart + gapEnd) / 2;
+          }
+
+          for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+              const idx = (y * width + x) * 4;
+              const alpha = data[idx + 3];
+              if (alpha > 0) {
+                if (x < threshold) {
+                  data[idx] = 1;
+                  data[idx + 1] = 236;
+                  data[idx + 2] = 157;
+                } else {
+                  data[idx] = 255;
+                  data[idx + 1] = 255;
+                  data[idx + 2] = 255;
+                }
+              }
+            }
+          }
+
+          ctx.putImageData(imgData, 0, 0);
+          img.src = canvas.toDataURL('image/png');
+          img.setAttribute('data-done-processing', 'true');
+        };
+        tempImg.src = originalSrc;
+      });
+    };
+
     /* -------------------------------------------------------------
        AUDIT LOGGING LAYER
        ------------------------------------------------------------- */
@@ -8408,6 +8857,7 @@
     window.addEventListener('DOMContentLoaded', () => {
       Portal.DB.init();
       Portal.Auth.init();
+      Portal.UI.processLogo();
 
       // Automatically apply responsive data-labels to all table cells
       const observer = new MutationObserver(() => {
