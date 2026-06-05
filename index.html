@@ -2977,6 +2977,7 @@
                         <th>Deliverable Name</th>
                         <th>Phase</th>
                         <th>Discipline</th>
+                        <th>Sub-Discipline</th>
                         <th>Category</th>
                         <th>Assignee</th>
                         <th>Timeline</th>
@@ -4062,7 +4063,7 @@
             </div>
             <div class="form-group">
               <label>Discipline</label>
-              <select class="form-control" id="at-discipline">
+              <select class="form-control" id="at-discipline" onchange="Portal.BIM.handleDisciplineChange('at')">
                 <option value="Architectural">Architectural</option>
                 <option value="Structural">Structural</option>
                 <option value="Mechanical">Mechanical</option>
@@ -4075,6 +4076,12 @@
           </div>
           <div class="form-row">
             <div class="form-group">
+              <label>Sub-Discipline</label>
+              <select class="form-control" id="at-subdiscipline">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div class="form-group">
               <label>Category (ISO 19650)</label>
               <select class="form-control" id="at-category">
                 <option value="Model (BIM)">Model (BIM)</option>
@@ -4085,12 +4092,12 @@
                 <option value="Schedule">Schedule</option>
               </select>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Assigned Engineer</label>
               <select class="form-control" id="at-assignee" required></select>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Task Priority</label>
               <select class="form-control" id="at-priority">
@@ -4099,17 +4106,15 @@
                 <option value="High">High</option>
               </select>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Start Date</label>
               <input type="date" class="form-control" id="at-start" required>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Plan Due Date</label>
               <input type="date" class="form-control" id="at-end" required>
-            </div>
-            <div class="form-group">
             </div>
           </div>
         </div>
@@ -4513,7 +4518,7 @@
             </div>
             <div class="form-group">
               <label>Discipline</label>
-              <select class="form-control" id="et-discipline">
+              <select class="form-control" id="et-discipline" onchange="Portal.BIM.handleDisciplineChange('et')">
                 <option value="Architectural">Architectural</option>
                 <option value="Structural">Structural</option>
                 <option value="Mechanical">Mechanical</option>
@@ -4526,6 +4531,12 @@
           </div>
           <div class="form-row">
             <div class="form-group">
+              <label>Sub-Discipline</label>
+              <select class="form-control" id="et-subdiscipline">
+                <!-- Dynamically populated -->
+              </select>
+            </div>
+            <div class="form-group">
               <label>Category (ISO 19650)</label>
               <select class="form-control" id="et-category">
                 <option value="Model (BIM)">Model (BIM)</option>
@@ -4536,12 +4547,12 @@
                 <option value="Schedule">Schedule</option>
               </select>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Assigned Engineer</label>
               <select class="form-control" id="et-assignee" required></select>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Task Priority</label>
               <select class="form-control" id="et-priority">
@@ -4550,16 +4561,18 @@
                 <option value="High">High</option>
               </select>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Start Date</label>
               <input type="date" class="form-control" id="et-start" required>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Plan Due Date</label>
               <input type="date" class="form-control" id="et-end" required>
             </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Status</label>
               <select class="form-control" id="et-status">
@@ -4569,13 +4582,9 @@
                 <option value="Completed">Completed</option>
               </select>
             </div>
-          </div>
-          <div class="form-row">
             <div class="form-group">
               <label>Progress (%)</label>
               <input type="number" class="form-control" id="et-progress" min="0" max="100" required>
-            </div>
-            <div class="form-group">
             </div>
           </div>
           <div class="form-group">
@@ -4825,8 +4834,8 @@
       init: function() {
         const emps = localStorage.getItem('ax_employees');
         const tasksStr = localStorage.getItem('ax_tasks');
-        // Auto re-seed if database cache has outdated employee records or missing task category field
-        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin') || !emps.includes('sarath.png') || !tasksStr || !tasksStr.includes('category')) {
+        // Auto re-seed if database cache has outdated employee records or missing task category/subdiscipline field
+        if (!emps || !emps.includes('connect@asterwix.com') || !emps.includes('Super Admin') || !emps.includes('sarath.png') || !tasksStr || !tasksStr.includes('category') || !tasksStr.includes('subdiscipline')) {
           localStorage.removeItem('ax_employees');
           localStorage.removeItem('ax_offices');
           localStorage.removeItem('ax_attendance');
@@ -4871,9 +4880,9 @@
 
         // Tasks Seeding
         const tasks = [
-          { taskId: "TSK-01", projectId: "PRJ-01", name: "Complete Level 15 Structural Framing", phase: "LOD 300", discipline: "Structural", category: "Model (BIM)", assigneeId: "EMP-003", start: "2026-05-15", end: "2026-06-10", status: "In Progress", priority: "High", progress: 75, delayReason: "" },
-          { taskId: "TSK-02", projectId: "PRJ-01", name: "MEP Coordination Clash Detection", phase: "LOD 300", discipline: "Coordination", category: "Clash Log", assigneeId: "EMP-004", start: "2026-05-20", end: "2026-06-01", status: "In Progress", priority: "Medium", progress: 90, delayReason: "" },
-          { taskId: "TSK-03", projectId: "PRJ-02", name: "Architectural Exterior Facade Drafting", phase: "LOD 200", discipline: "Architectural", category: "Drawing", assigneeId: "EMP-003", start: "2026-06-01", end: "2026-06-25", status: "Not Started", priority: "Medium", progress: 0, delayReason: "" }
+          { taskId: "TSK-01", projectId: "PRJ-01", name: "Complete Level 15 Structural Framing", phase: "LOD 300", discipline: "Structural", subdiscipline: "Concrete", category: "Model (BIM)", assigneeId: "EMP-003", start: "2026-05-15", end: "2026-06-10", status: "In Progress", priority: "High", progress: 75, delayReason: "" },
+          { taskId: "TSK-02", projectId: "PRJ-01", name: "MEP Coordination Clash Detection", phase: "LOD 300", discipline: "Coordination", subdiscipline: "Clash Detection", category: "Clash Log", assigneeId: "EMP-004", start: "2026-05-20", end: "2026-06-01", status: "In Progress", priority: "Medium", progress: 90, delayReason: "" },
+          { taskId: "TSK-03", projectId: "PRJ-02", name: "Architectural Exterior Facade Drafting", phase: "LOD 200", discipline: "Architectural", subdiscipline: "Interior", category: "Drawing", assigneeId: "EMP-003", start: "2026-06-01", end: "2026-06-25", status: "Not Started", priority: "Medium", progress: 0, delayReason: "" }
         ];
         localStorage.setItem('ax_tasks', JSON.stringify(tasks));
 
@@ -6242,6 +6251,33 @@
       dashboardMapInstance: null,
       activeTaskView: 'table',
 
+      subDisciplineMapping: {
+        "Architectural": ["Interior", "Landscape", "Flooring", "General Architecture"],
+        "Structural": ["General Structural", "Concrete", "Steel"],
+        "Mechanical": ["General Mechanical", "HVAC", "Piping"],
+        "Electrical": ["General Electrical", "Lighting", "Power", "ELV"],
+        "Plumbing": ["General Plumbing", "Drainage", "Water Supply"],
+        "Civil": ["General Civil", "Infrastructure", "Grading"],
+        "Coordination": ["General Coordination", "Clash Detection"]
+      },
+
+      handleDisciplineChange: function(prefix) {
+        const discSelect = document.getElementById(`${prefix}-discipline`);
+        const subdiscSelect = document.getElementById(`${prefix}-subdiscipline`);
+        if (!discSelect || !subdiscSelect) return;
+        
+        const disc = discSelect.value;
+        const opts = this.subDisciplineMapping[disc] || ["General"];
+        
+        subdiscSelect.innerHTML = '';
+        opts.forEach(opt => {
+          const option = document.createElement('option');
+          option.value = opt;
+          option.innerText = opt;
+          subdiscSelect.appendChild(option);
+        });
+      },
+
       initDashboardMap: function() {
         const mapContainer = document.getElementById('dashboard-map');
         if (!mapContainer) return;
@@ -6392,6 +6428,7 @@
               <div class="kanban-card-title">${t.name}</div>
               <div style="font-size:11px; color:var(--text-muted); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
                 <span>Discipline: <strong>${t.discipline}</strong></span>
+                <span>Sub-Discipline: <strong>${t.subdiscipline || 'General'}</strong></span>
                 <span>Category: <strong>${t.category || 'Model (BIM)'}</strong></span>
               </div>
               <div class="kanban-card-meta">
@@ -6667,6 +6704,7 @@
                 <td><strong>${t.name}</strong></td>
                 <td><span class="role-chip" style="font-size:10px;">${t.phase}</span></td>
                 <td>${t.discipline}</td>
+                <td>${t.subdiscipline || 'General'}</td>
                 <td>${t.category || 'Model (BIM)'}</td>
                 <td>${staff ? staff.name : 'Unassigned'}</td>
                 <td style="font-size:12px; color:${isOverdue ? '#ef4444':'inherit'};">${t.start} to ${t.end} ${isOverdue ? '⚠️' : ''}</td>
@@ -7087,6 +7125,7 @@
         const name = document.getElementById('at-name').value;
         const phase = document.getElementById('at-phase').value;
         const discipline = document.getElementById('at-discipline').value;
+        const subdiscipline = document.getElementById('at-subdiscipline').value;
         const category = document.getElementById('at-category').value;
         const assignee = document.getElementById('at-assignee').value;
         const priority = document.getElementById('at-priority').value;
@@ -7100,6 +7139,7 @@
           name: name,
           phase: phase,
           discipline: discipline,
+          subdiscipline: subdiscipline,
           category: category,
           assigneeId: assignee,
           start: start,
@@ -7390,6 +7430,8 @@
         document.getElementById('et-name').value = task.name;
         document.getElementById('et-phase').value = task.phase;
         document.getElementById('et-discipline').value = task.discipline;
+        this.handleDisciplineChange('et');
+        document.getElementById('et-subdiscipline').value = task.subdiscipline || "General";
         document.getElementById('et-category').value = task.category || "Model (BIM)";
         
         // Populate assignee select and set value
@@ -7421,6 +7463,7 @@
         const name = document.getElementById('et-name').value;
         const phase = document.getElementById('et-phase').value;
         const discipline = document.getElementById('et-discipline').value;
+        const subdiscipline = document.getElementById('et-subdiscipline').value;
         const category = document.getElementById('et-category').value;
         const assignee = document.getElementById('et-assignee').value;
         const priority = document.getElementById('et-priority').value;
@@ -7436,6 +7479,7 @@
           tasks[idx].name = name;
           tasks[idx].phase = phase;
           tasks[idx].discipline = discipline;
+          tasks[idx].subdiscipline = subdiscipline;
           tasks[idx].category = category;
           tasks[idx].assigneeId = assignee;
           tasks[idx].priority = priority;
@@ -8905,6 +8949,7 @@
       Portal.DB.init();
       Portal.Auth.init();
       Portal.UI.processLogo();
+      Portal.BIM.handleDisciplineChange('at');
 
       // Automatically apply responsive data-labels to all table cells
       const observer = new MutationObserver(() => {
