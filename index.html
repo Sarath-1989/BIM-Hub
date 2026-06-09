@@ -4937,6 +4937,89 @@
        DATABASE SYSTEM LAYER (LOCALSTORAGE PERSISTENCE)
        ------------------------------------------------------------- */
     Portal.DB = {
+      merge: function(local, cloud) {
+        const merged = {};
+        const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
+        
+        keys.forEach(k => {
+          const lData = local[k] || [];
+          const cData = cloud[k] || [];
+          
+          if (k === 'employees') {
+            const map = {};
+            cData.forEach(e => {
+              map[e.empId.toLowerCase()] = e;
+            });
+            lData.forEach(le => {
+              const key = le.empId.toLowerCase();
+              const ce = map[key];
+              if (ce) {
+                const lTime = le.lastUpdated || 0;
+                const cTime = ce.lastUpdated || 0;
+                if (lTime > cTime) {
+                  map[key] = le;
+                } else {
+                  map[key] = ce;
+                }
+              } else {
+                map[key] = le;
+              }
+            });
+            merged[k] = Object.values(map);
+          } else if (k === 'attendance') {
+            const map = {};
+            cData.forEach(r => {
+              const key = `${r.empId.toLowerCase()}_${r.date}`;
+              map[key] = r;
+            });
+            lData.forEach(r => {
+              const key = `${r.empId.toLowerCase()}_${r.date}`;
+              const cr = map[key];
+              if (cr) {
+                const lTime = r.lastUpdated || 0;
+                const cTime = cr.lastUpdated || 0;
+                if (lTime > cTime) map[key] = r;
+              } else {
+                map[key] = r;
+              }
+            });
+            merged[k] = Object.values(map);
+          } else if (k === 'offices') {
+            const map = {};
+            cData.forEach(r => { map[r.name.toLowerCase()] = r; });
+            lData.forEach(r => { map[r.name.toLowerCase()] = r; });
+            merged[k] = Object.values(map);
+          } else {
+            let idField = 'id';
+            if (k === 'projects') idField = 'projectId';
+            else if (k === 'leaves') idField = 'leaveId';
+            else if (k === 'overtime') idField = 'overtimeId';
+            
+            const map = {};
+            cData.forEach(r => {
+              const idVal = (r[idField] || '').toString().toLowerCase();
+              if (idVal) map[idVal] = r;
+            });
+            lData.forEach(r => {
+              const idVal = (r[idField] || '').toString().toLowerCase();
+              if (idVal) {
+                const cr = map[idVal];
+                if (cr) {
+                  const lTime = r.lastUpdated || 0;
+                  const cTime = cr.lastUpdated || 0;
+                  if (lTime > cTime) map[idVal] = r;
+                } else {
+                  map[idVal] = r;
+                }
+              }
+            });
+            merged[k] = Object.values(map);
+          }
+        });
+        
+        return merged;
+      },
+
       init: function() {
         const emps = localStorage.getItem('ax_employees');
         if (!emps) {
@@ -5467,6 +5550,34 @@
           lastUpdated: lastUpdated,
           backupBy: Portal.Auth.getCurrentUserEmail()
         };
+
+        // Pull latest from cloud and merge to prevent overwriting other users' updates
+        try {
+          const filename = 'asterwix_database.json';
+          const getRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (getRes.ok) {
+            const cloudData = await getRes.json();
+            const cloudTimestamp = cloudData.lastUpdated || 0;
+            const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
+            
+            if (cloudTimestamp > localTimestamp) {
+              console.log("Cloud has newer data than local base. Merging cloud data into local edits...");
+              const merged = Portal.DB.merge(backupData, cloudData);
+              const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
+              keys.forEach(k => {
+                if (merged[k]) {
+                  localStorage.setItem('ax_' + k, JSON.stringify(merged[k]));
+                  backupData[k] = merged[k]; // update upload payload
+                }
+              });
+              Portal.DB.migrateEmployeeIDsToNewFormat();
+            }
+          }
+        } catch (mergeErr) {
+          console.warn("Could not pre-fetch cloud database for merge:", mergeErr);
+        }
 
         try {
           const filename = 'asterwix_database.json';
@@ -8348,7 +8459,8 @@
           location: location,
           managerId: managerId,
           dob: dob,
-          joinDate: joinDate
+          joinDate: joinDate,
+          lastUpdated: Date.now()
         };
 
         emps.push(newEmp);
@@ -8504,6 +8616,7 @@
           emps[idx].iban = document.getElementById('ee-iban').value;
           emps[idx].docNum = document.getElementById('ee-passport-num').value;
           emps[idx].passportExpiry = document.getElementById('ee-passport-expiry').value;
+          emps[idx].lastUpdated = Date.now();
 
           Portal.DB.set('employees', emps);
 
@@ -9455,6 +9568,7 @@
         emps[staffIdx].iban = iban;
         emps[staffIdx].docNum = docNum;
         emps[staffIdx].passportExpiry = passportExpiry;
+        emps[staffIdx].lastUpdated = Date.now();
 
         Portal.DB.set('employees', emps);
         Portal.UI.showToast("Profile Updated", "Personal profile and account data saved successfully.", "success");
