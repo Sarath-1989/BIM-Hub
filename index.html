@@ -4351,7 +4351,7 @@
               </select>
             </div>
           </div>
-          <div class="form-row">
+          <div class="form-row" id="ee-manager-container">
             <div class="form-group" style="width: 100%;">
               <label>Reporting Person (Manager)</label>
               <select class="form-control" id="ee-manager" required>
@@ -4947,7 +4947,7 @@
                 currency: "AED",
                 status: "Active",
                 location: "Dubai HQ",
-                managerId: "EMP-001",
+                managerId: "",
                 photo: "assets/sarath.png"
               });
               localStorage.setItem('ax_employees', JSON.stringify(employees));
@@ -4990,7 +4990,7 @@
       seedInitialData: function() {
         // Employees Seeding
         const employees = [
-          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001", photo: "assets/sarath.png" },
+          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "", photo: "assets/sarath.png" },
           { empId: "EMP-002", name: "Amit Sharma", email: "amit@asterwix.com", dept: "BIM Structural", role: "BIM Manager", designation: "BIM Structural Lead", salaryBasic: 10000, salaryHousing: 4000, salaryTransport: 1500, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
           { empId: "EMP-003", name: "Deepak Rawat", email: "deepak@asterwix.com", dept: "BIM Architectural", role: "Team Lead", designation: "Senior BIM Modeller", salaryBasic: 8000, salaryHousing: 3000, salaryTransport: 1000, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-002" },
           { empId: "EMP-004", name: "Sunita Roy", email: "sunita@asterwix.com", dept: "BIM MEP", role: "Staff", designation: "MEP Engineer", salaryBasic: 6000, salaryHousing: 2000, salaryTransport: 1000, salaryOthers: 200, currency: "INR", status: "Active", location: "India Office", managerId: "EMP-003" },
@@ -8025,10 +8025,24 @@
 
         // Populate manager options, filtering out self to prevent circular reporting loop
         const managerSelect = document.getElementById('ee-manager');
-        if (managerSelect) {
-          const potentialManagers = emps.filter(e => e.empId !== empId);
-          managerSelect.innerHTML = potentialManagers.map(e => `<option value="${e.empId}">${e.name} (${e.empId})</option>`).join('');
-          managerSelect.value = emp.managerId || "EMP-001";
+        const managerContainer = document.getElementById('ee-manager-container');
+        const isSuperAdmin = emp.email.toLowerCase() === 'connect@asterwix.com';
+
+        if (isSuperAdmin) {
+          if (managerContainer) managerContainer.style.display = 'none';
+          if (managerSelect) {
+            managerSelect.innerHTML = `<option value="">None (Super Admin)</option>`;
+            managerSelect.value = "";
+            managerSelect.removeAttribute('required');
+          }
+        } else {
+          if (managerContainer) managerContainer.style.display = 'flex';
+          if (managerSelect) {
+            managerSelect.setAttribute('required', 'true');
+            const potentialManagers = emps.filter(e => e.empId !== empId);
+            managerSelect.innerHTML = potentialManagers.map(e => `<option value="${e.empId}">${e.name} (${e.empId})</option>`).join('');
+            managerSelect.value = emp.managerId || "EMP-001";
+          }
         }
 
         document.getElementById('ee-original-id').value = emp.empId;
@@ -8118,7 +8132,8 @@
           emps[idx].designation = designation;
           emps[idx].location = location;
           emps[idx].currency = currency;
-          emps[idx].managerId = document.getElementById('ee-manager').value || "EMP-001";
+          const isSuperAdmin = email.toLowerCase() === 'connect@asterwix.com';
+          emps[idx].managerId = isSuperAdmin ? "" : (document.getElementById('ee-manager').value || "EMP-001");
           emps[idx].salaryBasic = basic;
           emps[idx].salaryHousing = housing;
           emps[idx].salaryTransport = transport;
