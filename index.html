@@ -3162,7 +3162,7 @@
           <div class="card-panel">
             <div class="panel-header-row">
               <h3 class="panel-title">Employee Registry</h3>
-              <button class="btn" onclick="Portal.UI.openModal('modal-add-employee')">+ Add Employee</button>
+              <button class="btn" onclick="Portal.HR.openAddEmployeeModal()">+ Add Employee</button>
             </div>
             
             <!-- Table Search -->
@@ -4216,6 +4216,13 @@
               </select>
             </div>
           </div>
+          <div class="form-row">
+            <div class="form-group" style="width: 100%;">
+              <label>Reporting Person (Manager)</label>
+              <select class="form-control" id="ae-manager" required>
+              </select>
+            </div>
+          </div>
           
           <h4 style="font-size:13px; font-weight:700; color:var(--accent-hr); margin-top:16px; margin-bottom:8px;">Salary Compensation Breakdown</h4>
           <div class="form-row">
@@ -4313,6 +4320,13 @@
               <select class="form-control" id="ee-currency" required>
                 <option value="AED">AED (UAE Dirham)</option>
                 <option value="INR">INR (Indian Rupee)</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group" style="width: 100%;">
+              <label>Reporting Person (Manager)</label>
+              <select class="form-control" id="ee-manager" required>
               </select>
             </div>
           </div>
@@ -7803,6 +7817,19 @@
         });
       },
 
+      openAddEmployeeModal: function() {
+        const form = document.getElementById('form-add-employee');
+        if (form) form.reset();
+
+        const emps = Portal.DB.get('employees') || [];
+        const managerSelect = document.getElementById('ae-manager');
+        if (managerSelect) {
+          managerSelect.innerHTML = emps.map(e => `<option value="${e.empId}">${e.name} (${e.empId})</option>`).join('');
+          managerSelect.value = currentUser.empId || "EMP-001";
+        }
+        Portal.UI.openModal('modal-add-employee');
+      },
+
       submitEmployee: function() {
         if (currentUser.email !== 'connect@asterwix.com') {
           Portal.UI.showToast("Permission Denied", "Only the Super Admin can add employees.", "error");
@@ -7823,6 +7850,7 @@
 
         const emps = Portal.DB.get('employees');
         const id = "EMP-" + (emps.length + 1).toString().padStart(3, '0');
+        const managerId = document.getElementById('ae-manager').value || currentUser.empId;
 
         const newEmp = {
           empId: id,
@@ -7838,7 +7866,7 @@
           currency: currency,
           status: "Active",
           location: location,
-          managerId: currentUser.empId // Set current logged user as manager
+          managerId: managerId
         };
 
         emps.push(newEmp);
@@ -7855,6 +7883,14 @@
         const emps = Portal.DB.get('employees');
         const emp = emps.find(e => e.empId === empId);
         if (!emp) return;
+
+        // Populate manager options, filtering out self to prevent circular reporting loop
+        const managerSelect = document.getElementById('ee-manager');
+        if (managerSelect) {
+          const potentialManagers = emps.filter(e => e.empId !== empId);
+          managerSelect.innerHTML = potentialManagers.map(e => `<option value="${e.empId}">${e.name} (${e.empId})</option>`).join('');
+          managerSelect.value = emp.managerId || "EMP-001";
+        }
 
         document.getElementById('ee-original-id').value = emp.empId;
         document.getElementById('ee-id').value = emp.empId;
@@ -7943,6 +7979,7 @@
           emps[idx].designation = designation;
           emps[idx].location = location;
           emps[idx].currency = currency;
+          emps[idx].managerId = document.getElementById('ee-manager').value || "EMP-001";
           emps[idx].salaryBasic = basic;
           emps[idx].salaryHousing = housing;
           emps[idx].salaryTransport = transport;
