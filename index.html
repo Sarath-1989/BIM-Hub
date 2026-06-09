@@ -5499,9 +5499,9 @@
         }
         sessionStorage.clear();
         currentUser = null;
-        document.getElementById('login-overlay').style.display = 'flex';
-        // Reset navigation
-        Portal.Router.navigate('dashboard');
+        
+        // Force a page reload to completely wipe the in-memory JavaScript state and DOM elements
+        window.location.reload();
       },
 
       loadPortalShell: function() {
