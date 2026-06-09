@@ -302,8 +302,14 @@
       padding: 0px 3px;
     }
 
-    .sync-status-pill, #sp-sync-status-pill {
-      display: none !important;
+    .sync-status-pill.sync-sandbox {
+      border: 1px solid rgba(251, 191, 36, 0.2);
+      background: rgba(251, 191, 36, 0.05);
+      color: #fbbf24;
+    }
+    .sync-status-pill.sync-sandbox .sync-status-dot {
+      background-color: #fbbf24;
+      box-shadow: 0 0 8px #fbbf24;
     }
 
     .nav-area {
@@ -3475,6 +3481,28 @@
                   Print ID Card
                 </button>
               </div>
+
+              <!-- Local Database Backup & Restore Failsafe -->
+              <div class="card-panel" style="margin-top: 20px;">
+                <h3 class="panel-title" style="margin-bottom: 12px; font-size: 14px;">Local Database Failsafe</h3>
+                <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 16px; line-height: 1.4;">
+                  If Cloud Sync is not configured or in Sandbox mode, you can manually backup your database and import it on other devices.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                  <button type="button" class="btn btn-secondary" style="width: 100%; justify-content: center; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6;" onclick="Portal.DB.exportDatabase()">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                    Export Database (JSON)
+                  </button>
+                  
+                  <div style="position: relative; width: 100%;">
+                    <input type="file" id="db-import-file" accept=".json" style="display: none;" onchange="Portal.DB.importDatabase(this)">
+                    <button type="button" class="btn btn-success" style="width: 100%; justify-content: center; background: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.3); color: #10b981;" onclick="document.getElementById('db-import-file').click()">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                      Import Database (JSON)
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
             
             <!-- Right panel: Document storage and details -->
@@ -5048,6 +5076,107 @@
         if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
           Portal.Graph.queueAutoBackup();
         }
+      },
+
+      exportDatabase: function() {
+        try {
+          const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
+          const exportData = {};
+          keys.forEach(k => {
+            const val = localStorage.getItem('ax_' + k);
+            exportData[k] = val ? JSON.parse(val) : [];
+          });
+          
+          exportData.timestamp = new Date().toISOString();
+          exportData.appVersion = "1.0.0";
+          exportData.exportedBy = currentUser ? currentUser.email : "Unknown";
+
+          const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(exportData, null, 2));
+          const dlAnchorElem = document.createElement('a');
+          const dateStr = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "_");
+          dlAnchorElem.setAttribute("href", dataStr);
+          dlAnchorElem.setAttribute("download", `asterwix_database_backup_${dateStr}.json`);
+          dlAnchorElem.click();
+          
+          Portal.UI.showToast("Database Exported", "Your local data has been successfully downloaded as a JSON file.", "success");
+          Portal.Audit.log("Database", "Export", `Manually exported database backup.`);
+        } catch (e) {
+          console.error("Export database failed:", e);
+          Portal.UI.showToast("Export Failed", "Could not package database. " + e.message, "error");
+        }
+      },
+
+      importDatabase: function(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        
+        if (!confirm("WARNING: Importing this database will completely OVERWRITE all current local records (Employees, Projects, Attendance, etc.). Do you want to proceed?")) {
+          input.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          try {
+            const importedData = JSON.parse(e.target.result);
+            
+            // Basic structure validation
+            if (!importedData || typeof importedData !== 'object') {
+              throw new Error("Invalid file format. Must be a JSON object.");
+            }
+            
+            const requiredKeys = ['employees', 'offices', 'attendance', 'projects', 'tasks'];
+            const missing = requiredKeys.filter(k => !importedData.hasOwnProperty(k) || !Array.isArray(importedData[k]));
+            if (missing.length > 0) {
+              throw new Error("Missing required tables: " + missing.join(', '));
+            }
+
+            // Write to localstorage
+            const allKeys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit'];
+            allKeys.forEach(k => {
+              if (importedData[k]) {
+                localStorage.setItem('ax_' + k, JSON.stringify(importedData[k]));
+              } else {
+                localStorage.setItem('ax_' + k, JSON.stringify([]));
+              }
+            });
+
+            // Set timestamps
+            localStorage.setItem('ax_db_last_updated', Date.now().toString());
+            localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+
+            Portal.UI.showToast("Database Restored", "Import successful. Portal will now reload.", "success");
+            
+            // Audit log manually before reload
+            let currentAudit = [];
+            try {
+              currentAudit = JSON.parse(localStorage.getItem('ax_audit') || '[]');
+            } catch(ex){}
+            currentAudit.push({
+              timestamp: new Date().toISOString(),
+              username: currentUser ? currentUser.email : "system",
+              module: "Database",
+              action: "Import Database",
+              details: `Manually imported database backup file: ${file.name}`
+            });
+            localStorage.setItem('ax_audit', JSON.stringify(currentAudit));
+
+            // Force auto-sync trigger if live mode is active
+            if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
+              Portal.Graph.queueAutoBackup();
+            }
+
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
+
+          } catch (err) {
+            console.error("Import database failed:", err);
+            Portal.UI.showToast("Import Failed", err.message || "Invalid file content.", "error");
+          }
+          input.value = '';
+        };
+        reader.readAsText(file);
       }
     };
 
@@ -5090,6 +5219,7 @@
       },
 
       updateStatusUI: function(state, text) {
+        if (Portal.Auth.isMock) return;
         const pill = document.getElementById('sp-sync-status-pill');
         if (!pill) return;
         pill.className = 'sync-status-pill ' + state;
@@ -5515,7 +5645,16 @@
 
         const statusPill = document.getElementById('sp-sync-status-pill');
         if (statusPill) {
-          statusPill.style.display = (!this.isMock) ? 'flex' : 'none';
+          statusPill.style.display = 'flex';
+          if (this.isMock) {
+            statusPill.className = 'sync-status-pill sync-sandbox';
+            statusPill.querySelector('.sync-status-text').innerText = 'Sandbox (Local Storage Only)';
+            statusPill.setAttribute('title', 'This portal is running in simulation mode. Data is stored only on this browser and will not sync to other computers.');
+          } else {
+            statusPill.className = 'sync-status-pill sync-saved';
+            statusPill.querySelector('.sync-status-text').innerText = 'Cloud Synced';
+            statusPill.setAttribute('title', 'Click to sync database now');
+          }
         }
 
         // Show/hide "+ Add Employee" button depending on Super Admin
