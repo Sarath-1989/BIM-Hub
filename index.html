@@ -3225,7 +3225,7 @@
           <div class="card-panel">
             <div class="panel-header-row">
               <h3 class="panel-title">My Leave History</h3>
-              <button class="btn" onclick="Portal.UI.openModal('modal-apply-leave')">Apply Leave</button>
+              <button class="btn" onclick="Portal.HR.openLeaveModal()">Apply Leave</button>
             </div>
             <div class="responsive-table-wrapper" style="margin-top:16px;">
               <table class="data-table" id="table-my-leaves">
@@ -8033,6 +8033,26 @@
         this.renderEmployees();
       },
 
+      openLeaveModal: function() {
+        const form = document.getElementById('form-apply-leave');
+        if (form) form.reset();
+
+        const isIndia = (currentUser.location === 'India Office');
+        const optAnnual = document.querySelector('#al-type option[value="Annual"]');
+        if (optAnnual) {
+          if (isIndia) {
+            optAnnual.disabled = true;
+            optAnnual.style.display = 'none';
+            document.getElementById('al-type').value = 'Sick';
+          } else {
+            optAnnual.disabled = false;
+            optAnnual.style.display = 'block';
+            document.getElementById('al-type').value = 'Annual';
+          }
+        }
+        Portal.UI.openModal('modal-apply-leave');
+      },
+
       renderLeaves: function() {
         const leaves = Portal.DB.get('leaves');
         
@@ -8062,7 +8082,8 @@
         const usedEmerg = approved.filter(l => l.type === 'Emergency').reduce((sum, current) => sum + current.days, 0);
         const usedUnpaid = approved.filter(l => l.type === 'Unpaid').reduce((sum, current) => sum + current.days, 0);
 
-        document.getElementById('leave-bal-annual').innerText = 30 - usedAnnual;
+        const isIndia = (currentUser.location === 'India Office');
+        document.getElementById('leave-bal-annual').innerText = isIndia ? 'N/A' : (30 - usedAnnual);
         document.getElementById('leave-bal-sick').innerText = 15 - usedSick;
         document.getElementById('leave-bal-emerg').innerText = 5 - usedEmerg;
         document.getElementById('leave-bal-unpaid').innerText = usedUnpaid;
@@ -8127,6 +8148,12 @@
 
         if (days <= 0) {
           Portal.UI.showToast("Verification Error", "Leave duration cannot resolve to zero days.", "error");
+          return;
+        }
+
+        const isIndia = (currentUser.location === 'India Office');
+        if (isIndia && type === 'Annual') {
+          Portal.UI.showToast("Verification Error", "Annual leave is not valid for India Office employees.", "error");
           return;
         }
 
