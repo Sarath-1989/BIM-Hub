@@ -4202,6 +4202,12 @@
       <form id="form-add-employee" onsubmit="event.preventDefault(); Portal.HR.submitEmployee()">
         <div class="modal-body">
           <div class="form-row">
+            <div class="form-group" style="width: 100%;">
+              <label>Generated Employee ID Preview (Based on DOB & Join Date)</label>
+              <input type="text" class="form-control" id="ae-id" placeholder="AWX-DDYY-YY-NNNN" disabled style="background: var(--bg-tertiary); font-family: var(--font-mono); font-weight: bold; color: var(--accent-hr);">
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Full Employee Name</label>
               <input type="text" class="form-control" id="ae-name" required>
@@ -4247,11 +4253,11 @@
           <div class="form-row">
             <div class="form-group">
               <label>Date of Birth (DOB)</label>
-              <input type="date" class="form-control" id="ae-dob" required>
+              <input type="date" class="form-control" id="ae-dob" required onchange="Portal.HR.updateAddEmployeeIDPreview()">
             </div>
             <div class="form-group">
               <label>Joining Date</label>
-              <input type="date" class="form-control" id="ae-join-date" required>
+              <input type="date" class="form-control" id="ae-join-date" required onchange="Portal.HR.updateAddEmployeeIDPreview()">
             </div>
           </div>
           <div class="form-row">
@@ -4395,11 +4401,11 @@
           <div class="form-row">
             <div class="form-group">
               <label>Date of Birth</label>
-              <input type="date" class="form-control" id="ee-dob">
+              <input type="date" class="form-control" id="ee-dob" onchange="Portal.HR.updateEditEmployeeIDPreview()">
             </div>
             <div class="form-group">
               <label>Joining Date</label>
-              <input type="date" class="form-control" id="ee-join-date">
+              <input type="date" class="form-control" id="ee-join-date" onchange="Portal.HR.updateEditEmployeeIDPreview()">
             </div>
           </div>
           <div class="form-row">
@@ -5000,6 +5006,132 @@
           } catch (e) {
             console.error("Task list migration failed:", e);
           }
+        }
+
+        // Migrate all existing employee IDs to the new format (AWX-DDYY-YY-NNNN)
+        this.migrateEmployeeIDsToNewFormat();
+      },
+
+      migrateEmployeeIDsToNewFormat: function() {
+        const emps = this.get('employees');
+        if (!emps || emps.length === 0) return;
+        
+        let migrated = false;
+        const idMap = {}; // oldId -> newId
+
+        emps.forEach((emp, index) => {
+          if (emp.dob && emp.joinDate) {
+            const dobDateObj = new Date(emp.dob);
+            const joinDateObj = new Date(emp.joinDate);
+            if (!isNaN(dobDateObj.getTime()) && !isNaN(joinDateObj.getTime())) {
+              const joinDay = String(joinDateObj.getDate()).padStart(2, '0');
+              const dobYear = String(dobDateObj.getFullYear()).slice(-2);
+              const joinYear = String(joinDateObj.getFullYear()).slice(-2);
+              const serial = (index + 1).toString().padStart(4, '0');
+              const newId = `AWX-${joinDay}${dobYear}-${joinYear}-${serial}`;
+              
+              if (emp.empId !== newId) {
+                idMap[emp.empId] = newId;
+                emp.empId = newId;
+                migrated = true;
+              }
+            }
+          } else {
+            // Default fallback DOB/JoinDate for initial seed employees
+            if (emp.email.toLowerCase() === 'connect@asterwix.com') {
+              emp.dob = '1989-05-24';
+              emp.joinDate = '2026-06-05';
+              const serial = (index + 1).toString().padStart(4, '0');
+              const newId = `AWX-0589-26-${serial}`;
+              if (emp.empId !== newId) {
+                idMap[emp.empId] = newId;
+                emp.empId = newId;
+                migrated = true;
+              }
+            } else if (emp.email.toLowerCase() === 'amit@asterwix.com') {
+              emp.dob = '1991-03-12';
+              emp.joinDate = '2026-06-05';
+              const serial = (index + 1).toString().padStart(4, '0');
+              const newId = `AWX-0591-26-${serial}`;
+              if (emp.empId !== newId) {
+                idMap[emp.empId] = newId;
+                emp.empId = newId;
+                migrated = true;
+              }
+            } else if (emp.email.toLowerCase() === 'deepak@asterwix.com') {
+              emp.dob = '1993-07-19';
+              emp.joinDate = '2026-06-05';
+              const serial = (index + 1).toString().padStart(4, '0');
+              const newId = `AWX-0593-26-${serial}`;
+              if (emp.empId !== newId) {
+                idMap[emp.empId] = newId;
+                emp.empId = newId;
+                migrated = true;
+              }
+            } else if (emp.email.toLowerCase() === 'sunita@asterwix.com') {
+              emp.dob = '1995-11-08';
+              emp.joinDate = '2026-06-05';
+              const serial = (index + 1).toString().padStart(4, '0');
+              const newId = `AWX-0595-26-${serial}`;
+              if (emp.empId !== newId) {
+                idMap[emp.empId] = newId;
+                emp.empId = newId;
+                migrated = true;
+              }
+            } else if (emp.email.toLowerCase() === 'john@asterwix.com') {
+              emp.dob = '1987-12-15';
+              emp.joinDate = '2026-06-05';
+              const serial = (index + 1).toString().padStart(4, '0');
+              const newId = `AWX-0587-26-${serial}`;
+              if (emp.empId !== newId) {
+                idMap[emp.empId] = newId;
+                emp.empId = newId;
+                migrated = true;
+              }
+            } else {
+              // Generic fallback for custom records with missing DOB/JoinDate
+              emp.dob = '1990-01-01';
+              emp.joinDate = '2026-06-05';
+              const serial = (index + 1).toString().padStart(4, '0');
+              const newId = `AWX-0590-26-${serial}`;
+              if (emp.empId !== newId) {
+                idMap[emp.empId] = newId;
+                emp.empId = newId;
+                migrated = true;
+              }
+            }
+          }
+        });
+
+        if (migrated) {
+          this.set('employees', emps);
+
+          // Cascade ID updates to other tables
+          const tables = ['tasks', 'attendance', 'leaves', 'overtime'];
+          tables.forEach(tKey => {
+            const data = this.get(tKey) || [];
+            let changed = false;
+            data.forEach(item => {
+              const oldId = item.empId || item.assigneeId;
+              if (oldId && idMap[oldId]) {
+                if (item.hasOwnProperty('empId')) item.empId = idMap[oldId];
+                if (item.hasOwnProperty('assigneeId')) item.assigneeId = idMap[oldId];
+                changed = true;
+              }
+            });
+            if (changed) {
+              this.set(tKey, data);
+            }
+          });
+
+          // Cascade manager references
+          emps.forEach((e, idx) => {
+            if (e.managerId && idMap[e.managerId]) {
+              emps[idx].managerId = idMap[e.managerId];
+            }
+          });
+          this.set('employees', emps);
+          localStorage.removeItem('ax_db_has_unsynced_changes'); // avoid false unsynced alert for local cleanup
         }
       },
       
@@ -7927,6 +8059,68 @@
     Portal.HR = {
       filterEmployees: function() {
         this.renderEmployees();
+      },
+
+      updateAddEmployeeIDPreview: function() {
+        const dob = document.getElementById('ae-dob').value;
+        const joinDate = document.getElementById('ae-join-date').value;
+        const aeIdInput = document.getElementById('ae-id');
+        if (!aeIdInput) return;
+
+        if (!dob || !joinDate) {
+          aeIdInput.value = "AWX-DDYY-YY-NNNN";
+          return;
+        }
+
+        const emps = Portal.DB.get('employees') || [];
+        const dobDateObj = new Date(dob);
+        const joinDateObj = new Date(joinDate);
+        
+        let joinDay = "01";
+        let dobYear = "00";
+        let joinYear = "00";
+
+        if (!isNaN(joinDateObj.getTime())) {
+          joinDay = String(joinDateObj.getDate()).padStart(2, '0');
+          joinYear = String(joinDateObj.getFullYear()).slice(-2);
+        }
+        if (!isNaN(dobDateObj.getTime())) {
+          dobYear = String(dobDateObj.getFullYear()).slice(-2);
+        }
+
+        const nextSerial = (emps.length + 1).toString().padStart(4, '0');
+        aeIdInput.value = `AWX-${joinDay}${dobYear}-${joinYear}-${nextSerial}`;
+      },
+
+      updateEditEmployeeIDPreview: function() {
+        const dob = document.getElementById('ee-dob').value;
+        const joinDate = document.getElementById('ee-join-date').value;
+        const eeIdInput = document.getElementById('ee-id');
+        const originalId = document.getElementById('ee-original-id').value;
+        if (!eeIdInput || !originalId) return;
+
+        if (!dob || !joinDate) return;
+
+        const dobDateObj = new Date(dob);
+        const joinDateObj = new Date(joinDate);
+        
+        let joinDay = "01";
+        let dobYear = "00";
+        let joinYear = "00";
+
+        if (!isNaN(joinDateObj.getTime())) {
+          joinDay = String(joinDateObj.getDate()).padStart(2, '0');
+          joinYear = String(joinDateObj.getFullYear()).slice(-2);
+        }
+        if (!isNaN(dobDateObj.getTime())) {
+          dobYear = String(dobDateObj.getFullYear()).slice(-2);
+        }
+
+        // Extract serial from original ID (e.g. from AWX-2601-0001, get 0001)
+        const parts = originalId.split('-');
+        const serial = parts[parts.length - 1] || "0001";
+        
+        eeIdInput.value = `AWX-${joinDay}${dobYear}-${joinYear}-${serial}`;
       },
 
       renderEmployees: function() {
