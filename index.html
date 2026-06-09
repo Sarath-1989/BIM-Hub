@@ -8395,7 +8395,7 @@
           // If updating current user's profile, update the local session
           if (originalId === currentUser.empId) {
             currentUser = emps[idx];
-            Portal.UI.loadPortalShell();
+            Portal.Auth.loadPortalShell();
           }
 
           // If ID changed, cascade updates to all references
