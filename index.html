@@ -4245,6 +4245,16 @@
             </div>
           </div>
           <div class="form-row">
+            <div class="form-group">
+              <label>Date of Birth (DOB)</label>
+              <input type="date" class="form-control" id="ae-dob" required>
+            </div>
+            <div class="form-group">
+              <label>Joining Date</label>
+              <input type="date" class="form-control" id="ae-join-date" required>
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-group" style="width: 100%;">
               <label>Reporting Person (Manager)</label>
               <select class="form-control" id="ae-manager" required>
@@ -4387,6 +4397,12 @@
               <label>Date of Birth</label>
               <input type="date" class="form-control" id="ee-dob">
             </div>
+            <div class="form-group">
+              <label>Joining Date</label>
+              <input type="date" class="form-control" id="ee-join-date">
+            </div>
+          </div>
+          <div class="form-row">
             <div class="form-group">
               <label>Mobile Number</label>
               <input type="tel" class="form-control" id="ee-phone">
@@ -7988,7 +8004,27 @@
         const others = Number(document.getElementById('ae-sal-others').value) || 0;
 
         const emps = Portal.DB.get('employees');
-        const id = "EMP-" + (emps.length + 1).toString().padStart(3, '0');
+        const dob = document.getElementById('ae-dob').value;
+        const joinDate = document.getElementById('ae-join-date').value;
+
+        // Parse dates to form employee ID: AWX-JOIN_DATE_DAY_DOB_YEAR-JOIN_YEAR-SERIAL
+        const dobDateObj = new Date(dob);
+        const joinDateObj = new Date(joinDate);
+        
+        let joinDay = "01";
+        let dobYear = "00";
+        let joinYear = "00";
+
+        if (!isNaN(joinDateObj.getTime())) {
+          joinDay = String(joinDateObj.getDate()).padStart(2, '0');
+          joinYear = String(joinDateObj.getFullYear()).slice(-2);
+        }
+        if (!isNaN(dobDateObj.getTime())) {
+          dobYear = String(dobDateObj.getFullYear()).slice(-2);
+        }
+
+        const nextSerial = (emps.length + 1).toString().padStart(4, '0');
+        const id = `AWX-${joinDay}${dobYear}-${joinYear}-${nextSerial}`;
         const managerId = document.getElementById('ae-manager').value || currentUser.empId;
 
         const newEmp = {
@@ -8005,7 +8041,9 @@
           currency: currency,
           status: "Active",
           location: location,
-          managerId: managerId
+          managerId: managerId,
+          dob: dob,
+          joinDate: joinDate
         };
 
         emps.push(newEmp);
@@ -8078,6 +8116,8 @@
 
         // Expanded personal fields
         document.getElementById('ee-dob').value = emp.dob || '';
+        const eeJoinInput = document.getElementById('ee-join-date');
+        if (eeJoinInput) eeJoinInput.value = emp.joinDate || '';
         document.getElementById('ee-phone').value = emp.phone || '';
         document.getElementById('ee-personal-email').value = emp.personalEmail || '';
         document.getElementById('ee-address').value = emp.address || '';
@@ -8142,6 +8182,8 @@
           // Save expanded personal fields
           emps[idx].photo = document.getElementById('ee-photo-data').value;
           emps[idx].dob = document.getElementById('ee-dob').value;
+          const eeJoinInput = document.getElementById('ee-join-date');
+          if (eeJoinInput) emps[idx].joinDate = eeJoinInput.value;
           emps[idx].phone = document.getElementById('ee-phone').value;
           emps[idx].personalEmail = document.getElementById('ee-personal-email').value;
           emps[idx].address = document.getElementById('ee-address').value;
