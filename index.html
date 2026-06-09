@@ -8349,15 +8349,19 @@
 
         const emps = Portal.DB.get('employees');
 
-        if (newId !== originalId) {
-          const idExists = emps.some(e => e.empId === newId);
+        const idx = emps.findIndex(e => e.empId.toLowerCase() === originalId.toLowerCase());
+        if (idx === -1) {
+          Portal.UI.showToast("Error", "Employee record not found.", "error");
+          return;
+        }
+
+        if (newId.toLowerCase() !== originalId.toLowerCase()) {
+          const idExists = emps.some((e, i) => e.empId.toLowerCase() === newId.toLowerCase() && i !== idx);
           if (idExists) {
             Portal.UI.showToast("ID Conflict", "The Employee Code is already assigned to another employee.", "error");
             return;
           }
         }
-
-        const idx = emps.findIndex(e => e.empId === originalId);
         if (idx !== -1) {
           emps[idx].empId = newId;
           emps[idx].name = name;
