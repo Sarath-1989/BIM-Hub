@@ -1360,23 +1360,28 @@
     }
     .m365-login-btn {
       width: 100%;
-      background: #fff;
-      color: #323130;
-      font-weight: 700;
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      font-weight: 600;
       font-size: 14px;
       padding: 12px;
-      border-radius: 6px;
+      border-radius: 8px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      border: 1px solid #d2d0ce;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-      transition: all 0.2s;
+      gap: 10px;
+      border: none;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .m365-login-btn:hover {
-      background: #f3f2f1;
+      background: linear-gradient(135deg, #059669 0%, #047857 100%);
+      box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+      transform: translateY(-1px);
+    }
+    .m365-login-btn:active {
+      transform: translateY(1px);
     }
     .login-divider {
       display: flex;
@@ -2553,7 +2558,7 @@
 </head>
 <body>
 
-  <!-- SharePoint / MS Graph Live Connection Indicator -->
+  <!-- Live Cloud Sync Connection Indicator -->
   <div id="spbar" class="sync-offline">
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
     <span>Offline Sandbox Mode (Simulation)</span>
@@ -2699,9 +2704,9 @@
             <span class="sync-status-text">Cloud Synced</span>
           </div>
 
-          <!-- SharePoint Backup Button (Hidden Legacy) -->
+          <!-- Cloud Storage Backup Button (Hidden Legacy) -->
           <button id="sp-sync-btn" style="display: none;" onclick="Portal.Graph.backupDatabase()"></button>
-          <!-- SharePoint Restore Button (Hidden Legacy) -->
+          <!-- Cloud Storage Restore Button (Hidden Legacy) -->
           <button id="sp-restore-btn" style="display: none;" onclick="Portal.Graph.restoreDatabase()"></button>
 
           <!-- Clock -->
@@ -4793,18 +4798,21 @@
         letter-spacing: 0.5px;
       ">
         <svg width="8" height="8" viewBox="0 0 8 8"><circle cx="4" cy="4" r="4" fill="#fbbf24"/></svg>
-        <span id="login-mode-text">OFFLINE MODE &mdash; Checking Microsoft connection...</span>
+        <span id="login-mode-text">SECURE PORTAL &mdash; Preparing environment...</span>
       </div>
 
       <div class="login-error-banner" id="login-err-banner">
-        Microsoft 365 sign-in failed. Please check your network or contact your administrator.
+        SSO authentication failed. Please check your network or contact your administrator.
       </div>
 
-      <!-- Microsoft 365 SSO -->
+      <!-- Secure Portal SSO -->
       <button class="m365-login-btn" onclick="Portal.Auth.loginSSO()">
-        <!-- Microsoft Logo SVG -->
-        <svg width="21" height="21" viewBox="0 0 23 23"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>
-        <span>Sign in with Microsoft 365</span>
+        <!-- Premium Lock SVG -->
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="sso-icon" style="margin-right: 2px;">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+          <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+        </svg>
+        <span>Sign in with Asterwix SSO</span>
       </button>
     </div>
   </div>
@@ -5057,12 +5065,12 @@
             return this.siteId;
           } else {
             const errData = await response.json().catch(() => ({}));
-            console.error("SharePoint API error:", response.status, errData);
-            Portal.UI.showToast("SharePoint Sync Failed", `Error ${response.status}: ${errData.error?.message || 'Access denied'}`, "error");
+            console.error("Cloud Storage API error:", response.status, errData);
+            Portal.UI.showToast("Cloud Sync Failed", `Error ${response.status}: ${errData.error?.message || 'Access denied'}`, "error");
           }
         } catch (e) {
-          console.error("Failed to resolve SharePoint Site ID", e);
-          Portal.UI.showToast("Network Error", "Could not connect to Microsoft Graph API.", "error");
+          console.error("Failed to resolve Cloud Storage Site ID", e);
+          Portal.UI.showToast("Network Error", "Could not connect to Cloud Storage API.", "error");
         }
         return null;
       },
@@ -5143,11 +5151,11 @@
             return true;
           } else {
             const err = await response.json().catch(() => ({}));
-            console.error("SharePoint upload failed", err);
+            console.error("Cloud Storage upload failed", err);
             this.updateStatusUI('sync-error', 'Sync Error');
           }
         } catch (e) {
-          console.error("Error backing up to SharePoint", e);
+          console.error("Error backing up to Cloud Storage", e);
           this.updateStatusUI('sync-error', 'Sync Offline');
         }
 
@@ -5193,7 +5201,7 @@
               });
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
               // Portal.UI.showToast("Database Restored", "Your local database has been updated with the latest cloud data.", "success");
-              Portal.Audit.log("System", "Restore", `Database sync auto-restored version from SharePoint: ${cloudTimestamp}`);
+              Portal.Audit.log("System", "Restore", `Database sync auto-restored version from Cloud Storage: ${cloudTimestamp}`);
               
               const initialPage = window.location.hash.slice(1) || 'dashboard';
               Portal.Router.navigate(initialPage, false);
@@ -5211,7 +5219,7 @@
             this.updateStatusUI('sync-error', 'Sync Status Unknown');
           }
         } catch (e) {
-          console.error("Error doing initial sync with SharePoint", e);
+          console.error("Error doing initial sync with Cloud Storage", e);
           this.updateStatusUI('sync-error', 'Sync Offline');
         }
       },
@@ -5269,14 +5277,14 @@
         this.updateStatusUI('sync-saving', 'Saving changes...');
         const success = await this.backupDatabaseLive();
         if (success) {
-          Portal.UI.showToast("Backup Success", "Database backed up to SharePoint!", "success");
+          Portal.UI.showToast("Backup Success", "Database backed up to Cloud Storage!", "success");
         } else {
           Portal.UI.showToast("Backup Failed", "Could not back up database.", "error");
         }
       },
 
       restoreDatabase: async function() {
-        if (!confirm("Are you sure you want to restore the database from SharePoint? This will overwrite your current local data with the latest cloud backup.")) return;
+        if (!confirm("Are you sure you want to restore the database from Cloud Storage? This will overwrite your current local data with the latest cloud backup.")) return;
         this.updateStatusUI('sync-saving', 'Syncing cloud data...');
         const oldTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
         localStorage.setItem('ax_db_last_updated', '0');
@@ -5323,8 +5331,8 @@
         if (window.ASTERWIX_CONFIG && !window.ASTERWIX_CONFIG.MOCK_MODE_ENABLED && window.ASTERWIX_CONFIG.auth.clientId !== 'YOUR_CLIENT_ID_HERE') {
           this.isMock = false;
           document.getElementById('spbar').className = 'sync-live';
-          document.getElementById('spbar').querySelector('span').innerText = 'Connected: Live Microsoft 365 Core';
-          document.getElementById('side-m365-status').innerText = 'CONNECTED';
+          document.getElementById('spbar').querySelector('span').innerText = 'Portal Engine Connected';
+          document.getElementById('side-m365-status').innerText = 'ACTIVE';
           document.getElementById('side-m365-status').style.background = 'rgba(16, 185, 129, 0.1)';
           document.getElementById('side-m365-status').style.color = '#10b981';
           // Update login badge to LIVE
@@ -5354,7 +5362,7 @@
               // Show visual feedback on failure
               const badgeText = document.getElementById('login-mode-text');
               if (badgeText) {
-                badgeText.innerText = 'INITIALIZATION ERROR: ' + (initErr.message || 'MSAL Init Failed');
+                badgeText.innerText = 'INITIALIZATION ERROR: ' + (initErr.message || 'SSO Init Failed');
               }
             });
           } catch(e) {
@@ -5421,11 +5429,11 @@
 
         // Fallback for other live accounts
         return {
-          empId: "EMP-M365",
+          empId: "EMP-SSO",
           name: defaultName || email.split('@')[0],
           email: email,
           role: "Staff",
-          designation: "M365 Modeller",
+          designation: "SSO Modeller",
           photo: ""
         };
       },
@@ -5444,23 +5452,26 @@
 
       loginSSO: function() {
         if (!this.msalInstance) {
-          Portal.UI.showToast("Configuration Error", "Microsoft 365 is not configured. Please enter your Client ID and Tenant ID in config/app-config.js.", "error");
+          Portal.UI.showToast("Configuration Error", "SSO is not configured. Please enter your Client ID and Tenant ID in config/app-config.js.", "error");
           return;
         }
 
-        this.msalInstance.loginPopup({ scopes: ["User.Read", "Sites.ReadWrite.All"] }).then(response => {
+        this.msalInstance.loginPopup({ 
+          scopes: ["User.Read", "Sites.ReadWrite.All"],
+          prompt: "login"
+        }).then(response => {
           this.msalInstance.setActiveAccount(response.account);
           const email = response.account.username;
           const name = response.account.name;
           currentUser = this.resolveUserProfile(email, name);
           sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-          Portal.Audit.log("Portal", "Login", `Successfully signed in via Microsoft 365 SSO (${email}).`);
+          Portal.Audit.log("Portal", "Login", `Successfully signed in via Secure SSO (${email}).`);
           this.loadPortalShell();
         }).catch(err => {
           document.getElementById('login-err-banner').style.display = 'block';
-          console.error("MSAL Login Error:", err);
+          console.error("SSO Login Error:", err);
           // Show error message as a toast for visibility
-          Portal.UI.showToast("Microsoft Sign-in Failed", err.message || err.toString(), "error");
+          Portal.UI.showToast("Sign-in Failed", err.message || err.toString(), "error");
         });
       },
 
@@ -5499,7 +5510,7 @@
           addEmpBtn.style.display = (currentUser.email === 'connect@asterwix.com') ? 'block' : 'none';
         }
 
-        // Initialize Live SharePoint Sync
+        // Initialize Live Cloud Sync
         if (!this.isMock && Portal.Graph) {
           Portal.Graph.initialSync();
           // Start 30-second interval check
