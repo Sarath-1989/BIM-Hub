@@ -5429,7 +5429,7 @@
         
         this.autoBackupTimeout = setTimeout(() => {
           this.backupDatabaseLive();
-        }, 3000);
+        }, 500);
       },
 
       backupDatabaseLive: async function() {
@@ -5538,6 +5538,29 @@
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
               // Ensure cloud-restored IDs are migrated to the new custom format
               Portal.DB.migrateEmployeeIDsToNewFormat();
+              
+              // Re-resolve and update the currentUser session variables in real-time
+              if (currentUser && currentUser.email) {
+                currentUser = Portal.Auth.resolveUserProfile(currentUser.email, currentUser.name);
+                sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
+                
+                const nameEl = document.getElementById('side-profile-name');
+                const roleEl = document.getElementById('side-profile-role');
+                const welcomeEl = document.getElementById('welcome-message');
+                if (nameEl) nameEl.innerText = currentUser.name;
+                if (roleEl) roleEl.innerText = currentUser.role;
+                if (welcomeEl) welcomeEl.innerText = `Welcome back, ${currentUser.name.split(' ')[0]}!`;
+                
+                const avatarEl = document.getElementById('side-avatar');
+                if (avatarEl) {
+                  if (currentUser.photo) {
+                    avatarEl.innerHTML = `<img src="${currentUser.photo}" alt="${currentUser.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+                  } else {
+                    avatarEl.innerText = currentUser.name.split(' ').map(n => n[0]).join('');
+                  }
+                }
+              }
+
               // Portal.UI.showToast("Database Restored", "Your local database has been updated with the latest cloud data.", "success");
               Portal.Audit.log("System", "Restore", `Database sync auto-restored version from Cloud Storage: ${cloudTimestamp}`);
               
@@ -5593,6 +5616,28 @@
               // Ensure cloud-updated IDs are migrated to the new custom format
               Portal.DB.migrateEmployeeIDsToNewFormat();
               
+              // Re-resolve and update the currentUser session variables in real-time
+              if (currentUser && currentUser.email) {
+                currentUser = Portal.Auth.resolveUserProfile(currentUser.email, currentUser.name);
+                sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
+                
+                const nameEl = document.getElementById('side-profile-name');
+                const roleEl = document.getElementById('side-profile-role');
+                const welcomeEl = document.getElementById('welcome-message');
+                if (nameEl) nameEl.innerText = currentUser.name;
+                if (roleEl) roleEl.innerText = currentUser.role;
+                if (welcomeEl) welcomeEl.innerText = `Welcome back, ${currentUser.name.split(' ')[0]}!`;
+                
+                const avatarEl = document.getElementById('side-avatar');
+                if (avatarEl) {
+                  if (currentUser.photo) {
+                    avatarEl.innerHTML = `<img src="${currentUser.photo}" alt="${currentUser.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+                  } else {
+                    avatarEl.innerText = currentUser.name.split(' ').map(n => n[0]).join('');
+                  }
+                }
+              }
+
               // Portal.UI.showToast("Database Synced", "New updates pulled from cloud.", "info");
               
               const initialPage = window.location.hash.slice(1) || 'dashboard';
@@ -5858,11 +5903,11 @@
         // Initialize Live Cloud Sync
         if (!this.isMock && Portal.Graph) {
           Portal.Graph.initialSync();
-          // Start 30-second interval check
+          // Start 10-second interval check for near-instant synchronization
           if (window.spSyncInterval) clearInterval(window.spSyncInterval);
           window.spSyncInterval = setInterval(() => {
             Portal.Graph.checkForRemoteUpdates();
-          }, 30000);
+          }, 10000);
         }
 
 
