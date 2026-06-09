@@ -5542,10 +5542,8 @@
               Portal.Audit.log("System", "Restore", `Database sync auto-restored version from Cloud Storage: ${cloudTimestamp}`);
               
               const initialPage = window.location.hash.slice(1) || 'dashboard';
+              Portal.Router.currentPage = null; // force re-render of current page with fresh data
               Portal.Router.navigate(initialPage, false);
-              if (initialPage === 'my-profile') {
-                Portal.HR.loadProfileForm();
-              }
             } else if (localTimestamp > cloudTimestamp || hasUnsynced) {
               await this.backupDatabaseLive();
             }
@@ -5598,10 +5596,8 @@
               // Portal.UI.showToast("Database Synced", "New updates pulled from cloud.", "info");
               
               const initialPage = window.location.hash.slice(1) || 'dashboard';
+              Portal.Router.currentPage = null; // force re-render of current page with fresh data
               Portal.Router.navigate(initialPage, false);
-              if (initialPage === 'my-profile') {
-                Portal.HR.loadProfileForm();
-              }
             } else if (hasUnsynced) {
               await this.backupDatabaseLive();
             }
@@ -5974,6 +5970,11 @@
       currentPage: null,
 
       navigate: function(pageId, updateHash = true) {
+        // Proactively check for remote cloud updates on navigation if in live mode
+        if (updateHash && !Portal.Auth.isMock && Portal.Graph) {
+          Portal.Graph.checkForRemoteUpdates();
+        }
+
         // Close sidebar on mobile navigation if open
         const sb = document.getElementById('sidebar');
         if (sb && sb.classList.contains('open')) {
