@@ -5345,24 +5345,68 @@
 
         const hostname = window.ASTERWIX_CONFIG.sharePoint.hostname;
         const siteName = window.ASTERWIX_CONFIG.sharePoint.siteName;
-
-        try {
-          const response = await fetch(`https://graph.microsoft.com/v1.0/sites/${hostname}:/sites/${siteName}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) {
-            const data = await response.json();
-            this.siteId = data.id;
-            return this.siteId;
-          } else {
-            const errData = await response.json().catch(() => ({}));
-            console.error("Cloud Storage API error:", response.status, errData);
-            Portal.UI.showToast("Cloud Sync Failed", `Error ${response.status}: ${errData.error?.message || 'Access denied'}`, "error");
+        
+        // Dynamic site candidate resolution sequence
+        const candidates = [];
+        
+        if (siteName && siteName !== '/' && siteName.toLowerCase() !== 'root') {
+          let path = siteName;
+          if (!path.startsWith('/') && !path.toLowerCase().startsWith('sites/')) {
+            path = '/sites/' + path;
+          } else if (path.startsWith('/') && !path.toLowerCase().startsWith('/sites/')) {
+            path = '/sites' + path;
           }
-        } catch (e) {
-          console.error("Failed to resolve Cloud Storage Site ID", e);
-          Portal.UI.showToast("Network Error", "Could not connect to Cloud Storage API.", "error");
+          if (path.startsWith('/')) {
+            path = path.substring(1);
+          }
+          candidates.push({
+            name: `Configured site: /${path}`,
+            url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/${path}`
+          });
         }
+        
+        // Fallback 1: Root site collection (e.g. /)
+        candidates.push({
+          name: "Root site collection",
+          url: `https://graph.microsoft.com/v1.0/sites/${hostname}`
+        });
+
+        // Fallback 2: Default '/sites/communication' slug
+        candidates.push({
+          name: "Communication site (/sites/communication)",
+          url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/sites/communication`
+        });
+
+        // Fallback 3: Alternative '/sites/CommunicationSite' slug
+        candidates.push({
+          name: "Communication site (/sites/CommunicationSite)",
+          url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/sites/CommunicationSite`
+        });
+
+        let lastError = "Access denied";
+        for (const cand of candidates) {
+          try {
+            console.log(`Resolving SharePoint Site ID: trying ${cand.name}...`);
+            const response = await fetch(cand.url, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+              const data = await response.json();
+              this.siteId = data.id;
+              console.log(`Successfully resolved Site ID for ${cand.name}: ${this.siteId}`);
+              return this.siteId;
+            } else {
+              const errData = await response.json().catch(() => ({}));
+              lastError = errData.error?.message || `HTTP ${response.status}`;
+              console.warn(`Failed to resolve ${cand.name}: ${lastError}`);
+            }
+          } catch (e) {
+            lastError = e.message || e.toString();
+            console.warn(`Failed to resolve ${cand.name} due to network error:`, e);
+          }
+        }
+
+        Portal.UI.showToast("Cloud Sync Failed", `Could not resolve SharePoint site. Error: ${lastError}`, "error");
         return null;
       },
 
@@ -5492,6 +5536,8 @@
                 }
               });
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
+              // Ensure cloud-restored IDs are migrated to the new custom format
+              Portal.DB.migrateEmployeeIDsToNewFormat();
               // Portal.UI.showToast("Database Restored", "Your local database has been updated with the latest cloud data.", "success");
               Portal.Audit.log("System", "Restore", `Database sync auto-restored version from Cloud Storage: ${cloudTimestamp}`);
               
@@ -5546,6 +5592,8 @@
                 }
               });
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
+              // Ensure cloud-updated IDs are migrated to the new custom format
+              Portal.DB.migrateEmployeeIDsToNewFormat();
               
               // Portal.UI.showToast("Database Synced", "New updates pulled from cloud.", "info");
               
@@ -8057,6 +8105,23 @@
        HR & ACCOUNTS (PAYROLL ENGINE, WPS) LAYER
        ------------------------------------------------------------- */
     Portal.HR = {
+      // Find the maximum numeric suffix from all existing employee IDs and return (max + 1) padded to 4 digits
+      getNextSerial: function(emps) {
+        let maxSerial = 0;
+        (emps || []).forEach(e => {
+          if (!e.empId) return;
+          const parts = e.empId.split('-');
+          const lastPart = parts[parts.length - 1];
+          if (lastPart) {
+            const num = parseInt(lastPart, 10);
+            if (!isNaN(num) && num > maxSerial) {
+              maxSerial = num;
+            }
+          }
+        });
+        return (maxSerial + 1).toString().padStart(4, '0');
+      },
+
       filterEmployees: function() {
         this.renderEmployees();
       },
@@ -8088,7 +8153,7 @@
           dobYear = String(dobDateObj.getFullYear()).slice(-2);
         }
 
-        const nextSerial = (emps.length + 1).toString().padStart(4, '0');
+        const nextSerial = this.getNextSerial(emps);
         aeIdInput.value = `AWX-${joinDay}${dobYear}-${joinYear}-${nextSerial}`;
       },
 
@@ -8217,7 +8282,7 @@
           dobYear = String(dobDateObj.getFullYear()).slice(-2);
         }
 
-        const nextSerial = (emps.length + 1).toString().padStart(4, '0');
+        const nextSerial = this.getNextSerial(emps);
         const id = `AWX-${joinDay}${dobYear}-${joinYear}-${nextSerial}`;
         const managerId = document.getElementById('ae-manager').value || currentUser.empId;
 
