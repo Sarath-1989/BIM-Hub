@@ -802,6 +802,22 @@
       cursor: pointer;
       pointer-events: auto;
     }
+    .punch-action-btn.allowed-remote {
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      color: #fff;
+      border: 1px solid #2563eb;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+      cursor: pointer;
+      pointer-events: auto;
+    }
+    .punch-action-btn.allowed-remote-out {
+      background: linear-gradient(135deg, #6366f1, #4338ca);
+      color: #fff;
+      border: 1px solid #4f46e5;
+      box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3);
+      cursor: pointer;
+      pointer-events: auto;
+    }
     .punch-action-btn:hover {
       transform: translateY(-2px);
       filter: brightness(1.1);
@@ -1116,6 +1132,17 @@
     }
     @media (max-width: 600px) {
       .form-row {
+        grid-template-columns: 1fr;
+      }
+    }
+    .gps-settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 1024px) {
+      .gps-settings-grid {
         grid-template-columns: 1fr;
       }
     }
@@ -1840,6 +1867,13 @@
         padding: 16px;
         overflow-x: hidden;
       }
+      .card-panel {
+        padding: 16px !important;
+        margin-bottom: 16px !important;
+      }
+      .gps-settings-grid {
+        gap: 16px !important;
+      }
       .welcome-banner {
         flex-direction: column;
         align-items: flex-start;
@@ -1865,7 +1899,7 @@
         width: 100%;
       }
       table.data-table tr {
-        background: var(--bg-secondary) !important;
+        background: rgba(255, 255, 255, 0.02) !important;
         border: 1px solid var(--border-color) !important;
         border-radius: 12px !important;
         margin-bottom: 16px !important;
@@ -1881,6 +1915,7 @@
         border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
         font-size: 13px !important;
         background: transparent !important;
+        gap: 12px;
       }
       table.data-table td:last-child {
         border-bottom: none !important;
@@ -3647,7 +3682,7 @@
              PAGE: GPS SETTINGS (ADMIN ONLY)
              ------------------------------------------------------------- -->
         <div class="page" id="page-gps-settings">
-          <div class="form-row" style="grid-template-columns: 1fr 2fr; gap: 24px; align-items: start;">
+          <div class="gps-settings-grid">
             <!-- Form Card -->
             <div class="card-panel">
               <h3 class="panel-title" style="margin-bottom: 16px;">Add GPS Location</h3>
@@ -4928,9 +4963,9 @@
 
     // Default Sandbox Office Sites coordinates (Dubai HQ, Pune India Office, Remote Home)
     const DEFAULT_OFFICES = [
-      { id: "LOC-01", name: "Asterwix Dubai HQ", lat: 25.0763, lng: 55.1555, radius: 200, type: "Office", isActive: true }, // JLT Dubai coords
-      { id: "LOC-02", name: "Asterwix India Office", lat: 18.5204, lng: 73.8567, radius: 250, type: "Office", isActive: true }, // Pune coords
-      { id: "LOC-03", name: "Remote Site Project", lat: 25.1972, lng: 55.2744, radius: 10000, type: "Site", isActive: true } // Near Burj Khalifa (broad check)
+      { id: "LOC-01", name: "Asterwix Dubai HQ", lat: 25.0763, lng: 55.1555, radius: 200, type: "Office", isActive: true, lastUpdated: 1780000000000 }, // JLT Dubai coords
+      { id: "LOC-02", name: "Asterwix India Office", lat: 18.5204, lng: 73.8567, radius: 250, type: "Office", isActive: true, lastUpdated: 1780000000000 }, // Pune coords
+      { id: "LOC-03", name: "Remote Site Project", lat: 25.1972, lng: 55.2744, radius: 10000, type: "Site", isActive: true, lastUpdated: 1780000000000 } // Near Burj Khalifa (broad check)
     ];
 
     /* -------------------------------------------------------------
@@ -4986,8 +5021,23 @@
             merged[k] = Object.values(map);
           } else if (k === 'offices') {
             const map = {};
-            cData.forEach(r => { map[r.name.toLowerCase()] = r; });
-            lData.forEach(r => { map[r.name.toLowerCase()] = r; });
+            cData.forEach(r => {
+              const idVal = (r.id || '').toString().toLowerCase();
+              if (idVal) map[idVal] = r;
+            });
+            lData.forEach(r => {
+              const idVal = (r.id || '').toString().toLowerCase();
+              if (idVal) {
+                const cr = map[idVal];
+                if (cr) {
+                  const lTime = r.lastUpdated || 0;
+                  const cTime = cr.lastUpdated || 0;
+                  if (lTime > cTime) map[idVal] = r;
+                } else {
+                  map[idVal] = r;
+                }
+              }
+            });
             merged[k] = Object.values(map);
           } else {
             let idField = 'id';
@@ -5894,8 +5944,13 @@
       },
 
       resolveUserProfile: function(email, defaultName) {
-        const emps = Portal.DB.get('employees');
+        const emps = Portal.DB.get('employees') || [];
         const match = emps.find(e => e.email.toLowerCase() === email.toLowerCase());
+
+        if (match && match.isTerminated) {
+          Portal.UI.showToast("Account Suspended", "This employee record has been terminated.", "error");
+          throw new Error("Account terminated");
+        }
 
         if (email.toLowerCase() === 'connect@asterwix.com') {
           return {
@@ -5933,12 +5988,19 @@
       checkActiveSSOSession: function() {
         const accounts = this.msalInstance.getAllAccounts();
         if (accounts.length > 0) {
-          this.msalInstance.setActiveAccount(accounts[0]);
-          const email = accounts[0].username;
-          const name = accounts[0].name;
-          currentUser = this.resolveUserProfile(email, name);
-          sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-          this.loadPortalShell();
+          try {
+            this.msalInstance.setActiveAccount(accounts[0]);
+            const email = accounts[0].username;
+            const name = accounts[0].name;
+            currentUser = this.resolveUserProfile(email, name);
+            sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
+            this.loadPortalShell();
+          } catch(e) {
+            console.error("SSO check session error:", e);
+            sessionStorage.removeItem('ax_user');
+            currentUser = null;
+            document.getElementById('login-overlay').style.display = 'flex';
+          }
         }
       },
 
@@ -6126,6 +6188,33 @@
       currentPage: null,
 
       navigate: function(pageId, updateHash = true) {
+        // Route Guards - verify role permissions before loading the page
+        if (currentUser) {
+          const role = currentUser.role;
+          const email = currentUser.email.toLowerCase();
+          let allowed = true;
+
+          if (pageId === 'gps-settings') {
+            if (email !== 'connect@asterwix.com') allowed = false;
+          } else if (pageId === 'user-management' || pageId === 'audit-log') {
+            if (role !== 'Admin') allowed = false;
+          } else if (pageId === 'employees') {
+            if (role !== 'Admin' && role !== 'HR Admin') allowed = false;
+          } else if (pageId === 'wps-tax') {
+            if (role !== 'Admin' && role !== 'Accounts') allowed = false;
+          } else if (pageId === 'payroll' || pageId === 'overtime') {
+            if (role !== 'Admin' && role !== 'HR Admin' && role !== 'Accounts') allowed = false;
+          } else if (pageId === 'master-timeline' || pageId === 'team-directory' || pageId === 'weekly-reports') {
+            if (role !== 'Admin' && role !== 'BIM Manager' && role !== 'Team Lead') allowed = false;
+          }
+
+          if (!allowed) {
+            Portal.UI.showToast("Access Denied", "You do not have permission to access this page.", "error");
+            pageId = 'dashboard';
+            updateHash = true;
+          }
+        }
+
         // Proactively check for remote cloud updates on navigation if in live mode
         if (updateHash && !Portal.Auth.isMock && Portal.Graph) {
           Portal.Graph.checkForRemoteUpdates();
@@ -6252,7 +6341,7 @@
         const select = document.getElementById('gps-office-select');
         if (!select) return;
         select.innerHTML = '';
-        const offices = Portal.DB.get('offices');
+        const offices = (Portal.DB.get('offices') || []).filter(o => !o.isDeleted);
         
         offices.forEach(o => {
           if (o.isActive) {
@@ -6304,39 +6393,59 @@
       },
 
       initMap: function() {
-        if (mapInstance) {
-          mapInstance.invalidateSize();
-          return;
+        try {
+          if (typeof L === 'undefined') {
+            const mapEl = document.getElementById('map');
+            if (mapEl) mapEl.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-radius: 8px;">Map service offline (Leaflet not loaded). You can still punch in/out as remote.</div>`;
+            this.locateUser();
+            return;
+          }
+
+          if (mapInstance) {
+            mapInstance.invalidateSize();
+            return;
+          }
+
+          if (!this.selectedOffice) return;
+
+          // Initialize leaflet map
+          mapInstance = L.map('map').setView([this.selectedOffice.lat, this.selectedOffice.lng], 15);
+          
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+          }).addTo(mapInstance);
+
+          // Geofence Circle
+          mapGeofenceCircle = L.circle([this.selectedOffice.lat, this.selectedOffice.lng], {
+            color: 'var(--accent-gps)',
+            fillColor: 'rgba(255, 124, 30, 0.15)',
+            fillOpacity: 0.5,
+            radius: this.selectedOffice.radius
+          }).addTo(mapInstance);
+
+          // Retrieve User Geolocation
+          this.locateUser();
+        } catch (err) {
+          console.error("Map initialization failed:", err);
+          const mapEl = document.getElementById('map');
+          if (mapEl) mapEl.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-radius: 8px;">Map failed to load: ${err.message}. Remote punching is available below.</div>`;
+          this.locateUser();
         }
-
-        if (!this.selectedOffice) return;
-
-        // Initialize leaflet map
-        mapInstance = L.map('map').setView([this.selectedOffice.lat, this.selectedOffice.lng], 15);
-        
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap contributors'
-        }).addTo(mapInstance);
-
-        // Geofence Circle
-        mapGeofenceCircle = L.circle([this.selectedOffice.lat, this.selectedOffice.lng], {
-          color: 'var(--accent-gps)',
-          fillColor: 'rgba(255, 124, 30, 0.15)',
-          fillOpacity: 0.5,
-          radius: this.selectedOffice.radius
-        }).addTo(mapInstance);
-
-        // Retrieve User Geolocation
-        this.locateUser();
       },
 
       locateUser: function() {
         if (!navigator.geolocation) {
           Portal.UI.showToast("GPS Error", "Geolocation is not supported by your device browser.", "error");
+          this.currentLocation = null;
+          this.proximityAllowed = false;
+          this.togglePunchButtonState();
           return;
         }
 
         document.getElementById('gps-geofence-status-text').innerText = "Locating device GPS...";
+        // Instantly enable Remote Punch option to remove waiting latency
+        this.proximityAllowed = false;
+        this.togglePunchButtonState();
 
         navigator.geolocation.getCurrentPosition(
           (pos) => {
@@ -6346,24 +6455,30 @@
               accuracy: pos.coords.accuracy
             };
 
-            // Add map marker
-            if (mapUserMarker) mapInstance.removeLayer(mapUserMarker);
-            
-            mapUserMarker = L.marker([this.currentLocation.lat, this.currentLocation.lng]).addTo(mapInstance)
-              .bindPopup("Your Location").openPopup();
-            
-            // Adjust bounds to show both user and office
-            const group = new L.featureGroup([mapUserMarker, mapGeofenceCircle]);
-            mapInstance.fitBounds(group.getBounds());
+            // Add map marker if Leaflet is loaded
+            if (typeof L !== 'undefined' && mapInstance) {
+              if (mapUserMarker) mapInstance.removeLayer(mapUserMarker);
+              
+              mapUserMarker = L.marker([this.currentLocation.lat, this.currentLocation.lng]).addTo(mapInstance)
+                .bindPopup("Your Location").openPopup();
+              
+              if (mapGeofenceCircle) {
+                const group = new L.featureGroup([mapUserMarker, mapGeofenceCircle]);
+                mapInstance.fitBounds(group.getBounds());
+              }
+            }
 
             // Run calculations
             this.verifyGeofence();
           },
           (err) => {
-            document.getElementById('gps-geofence-status-text').innerText = "Access blocked by user / timeout.";
-            Portal.UI.showToast("GPS Error", "Failed to retrieve location coordinates. Verify browser permissions.", "error");
+            document.getElementById('gps-geofence-status-text').innerHTML = `<span style="color:#f59e0b;">GPS Blocked/Offline (Remote Mode Active)</span>`;
+            this.currentLocation = null;
+            this.proximityAllowed = false;
+            this.togglePunchButtonState();
+            Portal.UI.showToast("GPS Warning", "Could not retrieve location. Remote Punch mode activated.", "warning");
           },
-          { enableHighAccuracy: true, timeout: 8000 }
+          { enableHighAccuracy: true, timeout: 6000 }
         );
       },
 
@@ -6379,20 +6494,17 @@
         ring.innerText = `${Math.round(distance)}m`;
         
         const statusText = document.getElementById('gps-geofence-status-text');
-        const actionBtn = document.getElementById('gps-punch-btn');
 
         if (distance <= this.selectedOffice.radius) {
           ring.className = "distance-ring in-range";
           statusText.innerHTML = `<span style="color:#10b981;">Within Geofence of ${this.selectedOffice.name}</span>`;
           this.proximityAllowed = true;
-          this.togglePunchButtonState();
         } else {
           ring.className = "distance-ring";
           statusText.innerHTML = `<span style="color:#ef4444;">Outside Office Perimeter</span>`;
           this.proximityAllowed = false;
-          actionBtn.className = "punch-action-btn";
-          actionBtn.style.pointerEvents = "none";
         }
+        this.togglePunchButtonState();
       },
 
       togglePunchButtonState: function() {
@@ -6403,35 +6515,58 @@
         const btn = document.getElementById('gps-punch-btn');
         const lbl = document.getElementById('gps-last-action-lbl');
 
-        if (this.proximityAllowed) {
-          btn.style.pointerEvents = "auto";
-          if (!record) {
+        btn.style.pointerEvents = "auto"; // Always enable clicks to support remote/bypass
+
+        if (!record) {
+          if (this.proximityAllowed) {
             btn.innerText = "Check In";
             btn.className = "punch-action-btn allowed-in";
-            lbl.innerText = "You have not checked in today.";
-            this.todayPunchStatus = 'IN';
-          } else if (record && !record.outTime) {
+          } else {
+            btn.innerText = "Check In (Remote)";
+            btn.className = "punch-action-btn allowed-remote";
+          }
+          lbl.innerText = "You have not checked in today.";
+          this.todayPunchStatus = 'IN';
+        } else if (record && !record.outTime) {
+          if (this.proximityAllowed) {
             btn.innerText = "Check Out";
             btn.className = "punch-action-btn allowed-out";
-            lbl.innerText = `Checked In at ${record.inTime} Today.`;
-            this.todayPunchStatus = 'OUT';
           } else {
-            btn.innerText = "Completed";
-            btn.className = "punch-action-btn";
-            btn.style.pointerEvents = "none";
-            lbl.innerText = `Checked Out at ${record.outTime}. Duty completed.`;
-            this.todayPunchStatus = 'COMPLETED';
+            btn.innerText = "Check Out (Remote)";
+            btn.className = "punch-action-btn allowed-remote-out";
           }
+          lbl.innerText = `Checked In at ${record.inTime} Today.`;
+          this.todayPunchStatus = 'OUT';
+        } else {
+          btn.innerText = "Completed";
+          btn.className = "punch-action-btn";
+          btn.style.pointerEvents = "none";
+          lbl.innerText = `Checked Out at ${record.outTime}. Duty completed.`;
+          this.todayPunchStatus = 'COMPLETED';
         }
       },
 
       punch: function() {
-        if (!this.proximityAllowed) return;
-
         const att = Portal.DB.get('attendance');
         const today = new Date().toISOString().split('T')[0];
         const now = new Date();
         const timeStr = now.toTimeString().split(' ')[0].substring(0, 5); // HH:MM
+
+        let reason = "";
+        let punchType = "Regular";
+        let punchLocation = this.selectedOffice ? this.selectedOffice.name : "Remote Location";
+
+        if (!this.proximityAllowed) {
+          reason = prompt("You are outside the office perimeter or GPS is offline. Please enter a reason for Remote Punch (e.g. WFH, client site, GPS issue):");
+          if (reason === null) return; // User cancelled
+          reason = reason.trim();
+          if (!reason) {
+            Portal.UI.showToast("Bypass Refused", "You must provide a reason to perform a Remote Punch.", "error");
+            return;
+          }
+          punchType = "Remote";
+          punchLocation = `Remote (${reason})`;
+        }
 
         let recordIndex = att.findIndex(a => a.empId === currentUser.empId && a.date === today);
 
@@ -6448,15 +6583,19 @@
             outTime: "",
             hours: 0,
             status: status,
-            type: "Regular",
-            location: this.selectedOffice.name
+            type: punchType,
+            location: punchLocation,
+            lastUpdated: Date.now()
           };
           att.push(newRec);
           Portal.UI.showToast("GPS Punch In", `Logged Check-In at ${timeStr}. Status: ${status}`, "success");
-          Portal.Audit.log("GPS Attendance", "Punch In", `Checked in at ${this.selectedOffice.name}. Coordinates: ${this.currentLocation.lat}, ${this.currentLocation.lng}`);
+          Portal.Audit.log("GPS Attendance", "Punch In", `Checked in at ${punchLocation}. Coordinates: ${this.currentLocation ? (this.currentLocation.lat + ", " + this.currentLocation.lng) : 'N/A'}`);
         } else if (this.todayPunchStatus === 'OUT') {
           const rec = att[recordIndex];
           rec.outTime = timeStr;
+          rec.type = punchType;
+          rec.location = punchLocation;
+          rec.lastUpdated = Date.now();
           
           // Calculate hours
           const inParts = rec.inTime.split(':').map(Number);
@@ -6465,7 +6604,7 @@
           rec.hours = Math.round((diffMin / 60) * 100) / 100;
           
           Portal.UI.showToast("GPS Punch Out", `Logged Check-Out at ${timeStr}. Total: ${rec.hours} hrs`, "success");
-          Portal.Audit.log("GPS Attendance", "Punch Out", `Checked out at ${this.selectedOffice.name}. Total hours: ${rec.hours}`);
+          Portal.Audit.log("GPS Attendance", "Punch Out", `Checked out at ${punchLocation}. Total hours: ${rec.hours}`);
         }
 
         Portal.DB.set('attendance', att);
@@ -6762,7 +6901,7 @@
         if (!tbody) return;
         tbody.innerHTML = '';
 
-        const offices = Portal.DB.get('offices');
+        const offices = (Portal.DB.get('offices') || []).filter(o => !o.isDeleted);
         offices.forEach(o => {
           const tr = document.createElement('tr');
           
@@ -6826,7 +6965,8 @@
           type: type,
           isActive: true,
           assignedEmpId: assignedEmpId,
-          assignedEmpName: assignedEmpName
+          assignedEmpName: assignedEmpName,
+          lastUpdated: Date.now()
         };
 
         offices.push(newLoc);
@@ -6848,6 +6988,7 @@
         const o = offices.find(x => x.id === id);
         if (o) {
           o.isActive = !o.isActive;
+          o.lastUpdated = Date.now();
           Portal.DB.set('offices', offices);
           Portal.UI.showToast("Status Updated", `${o.name} is now ${o.isActive ? 'Active' : 'Inactive'}.`, "info");
           Portal.Audit.log("Admin GPS", "Toggle Location Status", `Toggled activity for: ${o.name} to ${o.isActive}`);
@@ -6860,10 +7001,11 @@
         if (currentUser.email !== 'connect@asterwix.com') return;
         if (!confirm("Are you sure you want to delete this GPS location?")) return;
 
-        let offices = Portal.DB.get('offices');
+        const offices = Portal.DB.get('offices') || [];
         const o = offices.find(x => x.id === id);
         if (o) {
-          offices = offices.filter(x => x.id !== id);
+          o.isDeleted = true;
+          o.lastUpdated = Date.now();
           Portal.DB.set('offices', offices);
           Portal.UI.showToast("Location Deleted", `${o.name} removed.`, "info");
           Portal.Audit.log("Admin GPS", "Delete Location", `Deleted GPS location: ${o.name}`);
@@ -6911,6 +7053,11 @@
       initDashboardMap: function() {
         const mapContainer = document.getElementById('dashboard-map');
         if (!mapContainer) return;
+
+        if (typeof L === 'undefined') {
+          mapContainer.innerHTML = `<div style="padding: 20px; text-align: center; color: var(--text-muted); height: 100%; display: flex; align-items: center; justify-content: center; background: var(--bg-secondary); border-radius: 8px;">Dashboard map offline (Leaflet not loaded).</div>`;
+          return;
+        }
 
         // Cleanup previous instance
         if (this.dashboardMapInstance) {
@@ -8349,7 +8496,7 @@
         const tbody = document.getElementById('table-employees').querySelector('tbody');
         tbody.innerHTML = '';
 
-        const emps = Portal.DB.get('employees');
+        const emps = (Portal.DB.get('employees') || []).filter(e => !e.isTerminated);
         const search = document.getElementById('emp-search').value.toLowerCase();
         const dept = document.getElementById('emp-dept-filter').value;
 
@@ -8679,13 +8826,16 @@
 
         if (!confirm(`Are you sure you want to terminate record ${empId}?`)) return;
         
-        let emps = Portal.DB.get('employees');
-        emps = emps.filter(e => e.empId !== empId);
-
-        Portal.DB.set('employees', emps);
-        Portal.UI.showToast("Record Terminated", "Employee removed from registry.", "info");
-        Portal.Audit.log("HR Accounts", "Terminate Employee", `Removed employee record: ${empId}`);
-        this.renderEmployees();
+        const emps = Portal.DB.get('employees') || [];
+        const emp = emps.find(e => e.empId === empId);
+        if (emp) {
+          emp.isTerminated = true;
+          emp.lastUpdated = Date.now();
+          Portal.DB.set('employees', emps);
+          Portal.UI.showToast("Record Terminated", "Employee removed from registry.", "info");
+          Portal.Audit.log("HR Accounts", "Terminate Employee", `Removed employee record: ${empId}`);
+          this.renderEmployees();
+        }
       },
 
       openLeaveModal: function() {
@@ -9682,7 +9832,7 @@
     Portal.UI.loadUsers = function() {
       const tbody = document.getElementById('table-user-roles').querySelector('tbody');
       tbody.innerHTML = '';
-      const emps = Portal.DB.get('employees');
+      const emps = (Portal.DB.get('employees') || []).filter(e => !e.isTerminated);
 
       emps.forEach(e => {
         const tr = document.createElement('tr');
