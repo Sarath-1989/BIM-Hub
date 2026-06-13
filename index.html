@@ -6554,6 +6554,14 @@
         }
 
         if (this.currentPage === pageId) return;
+
+        // Stop high-speed sync if navigating away from chat
+        if (this.currentPage === 'team-chat' && pageId !== 'team-chat') {
+          if (Portal.Chat && typeof Portal.Chat.stopLiveSync === 'function') {
+            Portal.Chat.stopLiveSync();
+          }
+        }
+
         this.currentPage = pageId;
 
         if (updateHash) {
@@ -7398,6 +7406,7 @@
       init: function() {
         this.renderMembersList();
         this.selectRecipient(this.selectedRecipientId);
+        this.startLiveSync();
       },
 
       selectRecipient: function(id) {
@@ -7691,6 +7700,37 @@
         } catch (e) {
           console.warn("Could not play notification sound:", e);
         }
+      },
+
+      startLiveSync: function() {
+        if (Portal.Auth.isMock || !Portal.Graph) return;
+
+        // Clear existing interval
+        if (window.spSyncInterval) {
+          clearInterval(window.spSyncInterval);
+        }
+
+        // Run sync immediately on entering chat
+        Portal.Graph.checkForRemoteUpdates();
+
+        // Start 2-second high-speed polling
+        window.spSyncInterval = setInterval(() => {
+          Portal.Graph.checkForRemoteUpdates();
+        }, 2000);
+        console.log("Chat high-speed sync started (2s interval)");
+      },
+
+      stopLiveSync: function() {
+        if (Portal.Auth.isMock || !Portal.Graph) return;
+
+        // Restore standard 10-second polling
+        if (window.spSyncInterval) {
+          clearInterval(window.spSyncInterval);
+        }
+        window.spSyncInterval = setInterval(() => {
+          Portal.Graph.checkForRemoteUpdates();
+        }, 10000);
+        console.log("Chat high-speed sync stopped, restored standard 10s interval");
       }
     };
 
