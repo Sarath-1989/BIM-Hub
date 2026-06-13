@@ -5455,16 +5455,27 @@
           this.set('employees', emps);
 
           // Cascade ID updates to other tables
-          const tables = ['tasks', 'attendance', 'leaves', 'overtime'];
+          const tables = ['tasks', 'attendance', 'leaves', 'overtime', 'chats'];
           tables.forEach(tKey => {
             const data = this.get(tKey) || [];
             let changed = false;
             data.forEach(item => {
-              const oldId = item.empId || item.assigneeId;
-              if (oldId && idMap[oldId]) {
-                if (item.hasOwnProperty('empId')) item.empId = idMap[oldId];
-                if (item.hasOwnProperty('assigneeId')) item.assigneeId = idMap[oldId];
-                changed = true;
+              if (tKey === 'chats') {
+                if (item.senderId && idMap[item.senderId]) {
+                  item.senderId = idMap[item.senderId];
+                  changed = true;
+                }
+                if (item.recipientId && idMap[item.recipientId]) {
+                  item.recipientId = idMap[item.recipientId];
+                  changed = true;
+                }
+              } else {
+                const oldId = item.empId || item.assigneeId;
+                if (oldId && idMap[oldId]) {
+                  if (item.hasOwnProperty('empId')) item.empId = idMap[oldId];
+                  if (item.hasOwnProperty('assigneeId')) item.assigneeId = idMap[oldId];
+                  changed = true;
+                }
               }
             });
             if (changed) {
@@ -5837,6 +5848,11 @@
             
             if (cloudTimestamp > localTimestamp) {
               console.log("Cloud has newer data than local base. Merging cloud data into local edits...");
+              const localChats = Portal.DB.get('chats') || [];
+              const cloudChats = cloudData.chats || [];
+              const localIds = new Set(localChats.map(m => m.id));
+              const newIncomingChats = cloudChats.filter(m => !localIds.has(m.id));
+
               const merged = Portal.DB.merge(backupData, cloudData);
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
               keys.forEach(k => {
@@ -5846,6 +5862,36 @@
                 }
               });
               Portal.DB.migrateEmployeeIDsToNewFormat();
+
+              // Check for new chat messages that are relevant to us
+              if (currentUser && currentUser.empId) {
+                let hasNewRelevantChats = false;
+                let latestSenderName = "";
+                let latestText = "";
+
+                newIncomingChats.forEach(m => {
+                  if (m.senderId !== currentUser.empId && (m.recipientId === 'ALL' || m.recipientId === currentUser.empId)) {
+                    hasNewRelevantChats = true;
+                    latestSenderName = m.senderName;
+                    latestText = m.text;
+                  }
+                });
+
+                if (hasNewRelevantChats) {
+                  if (Portal.Chat && typeof Portal.Chat.playNotificationSound === 'function') {
+                    Portal.Chat.playNotificationSound();
+                  }
+                  
+                  const isViewingChat = window.location.hash === '#team-chat';
+                  const isCurrentActiveConv = Portal.Chat.selectedRecipientId === 'ALL' ? 
+                                              newIncomingChats.some(m => m.recipientId === 'ALL') :
+                                              newIncomingChats.some(m => m.senderId === Portal.Chat.selectedRecipientId);
+                                              
+                  if (!isViewingChat || !isCurrentActiveConv) {
+                    Portal.UI.showToast(`New Message from ${latestSenderName}`, latestText, "info");
+                  }
+                }
+              }
             }
           }
         } catch (mergeErr) {
@@ -5990,6 +6036,11 @@
             const hasUnsynced = localStorage.getItem('ax_db_has_unsynced_changes') === 'true';
 
             if (cloudTimestamp > localTimestamp && !hasUnsynced) {
+              const localChats = Portal.DB.get('chats') || [];
+              const cloudChats = cloudData.chats || [];
+              const localIds = new Set(localChats.map(m => m.id));
+              const newIncomingChats = cloudChats.filter(m => !localIds.has(m.id));
+
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
               keys.forEach(k => {
                 if (cloudData[k]) {
@@ -5999,6 +6050,36 @@
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
               // Ensure cloud-updated IDs are migrated to the new custom format
               Portal.DB.migrateEmployeeIDsToNewFormat();
+
+              // Check for new chat messages that are relevant to us
+              if (currentUser && currentUser.empId) {
+                let hasNewRelevantChats = false;
+                let latestSenderName = "";
+                let latestText = "";
+
+                newIncomingChats.forEach(m => {
+                  if (m.senderId !== currentUser.empId && (m.recipientId === 'ALL' || m.recipientId === currentUser.empId)) {
+                    hasNewRelevantChats = true;
+                    latestSenderName = m.senderName;
+                    latestText = m.text;
+                  }
+                });
+
+                if (hasNewRelevantChats) {
+                  if (Portal.Chat && typeof Portal.Chat.playNotificationSound === 'function') {
+                    Portal.Chat.playNotificationSound();
+                  }
+                  
+                  const isViewingChat = window.location.hash === '#team-chat';
+                  const isCurrentActiveConv = Portal.Chat.selectedRecipientId === 'ALL' ? 
+                                              newIncomingChats.some(m => m.recipientId === 'ALL') :
+                                              newIncomingChats.some(m => m.senderId === Portal.Chat.selectedRecipientId);
+                                              
+                  if (!isViewingChat || !isCurrentActiveConv) {
+                    Portal.UI.showToast(`New Message from ${latestSenderName}`, latestText, "info");
+                  }
+                }
+              }
               
               // Re-resolve and update the currentUser session variables in real-time
               if (currentUser && currentUser.email) {
@@ -7393,6 +7474,36 @@
         // Push immediate backup to cloud
         if (Portal.Graph && typeof Portal.Graph.backupDatabaseLive === 'function') {
           Portal.Graph.backupDatabaseLive();
+        }
+      },
+
+      playNotificationSound: function() {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (!AudioContext) return;
+          const ctx = new AudioContext();
+          
+          const playTone = (freq, startTime, duration) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = freq;
+            
+            gain.gain.setValueAtTime(0, startTime);
+            gain.gain.linearRampToValueAtTime(0.3, startTime + 0.05);
+            gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+            
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(startTime);
+            osc.stop(startTime + duration);
+          };
+          
+          const now = ctx.currentTime;
+          playTone(587.33, now, 0.15); // D5
+          playTone(880.00, now + 0.1, 0.3); // A5
+        } catch (e) {
+          console.warn("Could not play notification sound:", e);
         }
       }
     };
