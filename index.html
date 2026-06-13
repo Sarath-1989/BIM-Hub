@@ -6581,15 +6581,100 @@
 
 
       logout: function() {
-        Portal.Audit.log("Portal", "Logout", "Logged out of portal session.");
+        // Stop any active sync intervals first
         if (window.spSyncInterval) {
           clearInterval(window.spSyncInterval);
           window.spSyncInterval = null;
         }
-        sessionStorage.clear();
+
+        // Clear all localStorage keys completely to leave no trace of cached data
+        try {
+          localStorage.clear();
+        } catch (e) {
+          console.error("Error clearing LocalStorage:", e);
+        }
+
+        // Clear all sessionStorage keys
+        try {
+          sessionStorage.clear();
+        } catch (e) {
+          console.error("Error clearing SessionStorage:", e);
+        }
+
+        // Clear all cookies for the current domain and path
+        try {
+          const cookies = document.cookie.split(";");
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i];
+            const eqPos = cookie.indexOf("=");
+            const name = eqPos > -1 ? cookie.substring(0, eqPos).trim() : cookie.trim();
+            if (name) {
+              document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+              document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=" + window.location.pathname;
+              // Also try clearing domain-level cookies
+              document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;domain=" + window.location.hostname + ";path=/";
+            }
+          }
+        } catch (e) {
+          console.error("Error clearing cookies:", e);
+        }
+
+        // Clear IndexedDB databases
+        try {
+          if (window.indexedDB && window.indexedDB.databases) {
+            window.indexedDB.databases().then(dbs => {
+              if (dbs && dbs.length > 0) {
+                dbs.forEach(db => {
+                  try {
+                    window.indexedDB.deleteDatabase(db.name);
+                  } catch (e) {
+                    console.error("Failed to delete IndexedDB database:", db.name, e);
+                  }
+                });
+              }
+            }).catch(err => console.error("Error listing IndexedDB databases:", err));
+          }
+        } catch (e) {
+          console.error("Error listing/clearing IndexedDB:", e);
+        }
+
+        // Clear Cache Storage API
+        try {
+          if (window.caches && window.caches.keys) {
+            window.caches.keys().then(keys => {
+              if (keys && keys.length > 0) {
+                keys.forEach(key => {
+                  try {
+                    window.caches.delete(key);
+                  } catch (e) {
+                    console.error("Failed to delete cache storage key:", key, e);
+                  }
+                });
+              }
+            }).catch(err => console.error("Error listing Cache keys:", err));
+          }
+        } catch (e) {
+          console.error("Error clearing Cache API:", e);
+        }
+
         currentUser = null;
+
+        // Perform MSAL logout if in Live mode to clear Microsoft session
+        if (!this.isMock && this.msalInstance) {
+          const accounts = this.msalInstance.getAllAccounts();
+          if (accounts.length > 0) {
+            this.msalInstance.logoutPopup({
+              account: accounts[0],
+              postLogoutRedirectUri: window.location.origin + window.location.pathname
+            }).catch(e => {
+              console.error("MSAL logout popup failed, falling back to reload:", e);
+              window.location.reload();
+            });
+            return;
+          }
+        }
         
-        // Force a page reload to completely wipe the in-memory JavaScript state and DOM elements
+        // Force page reload to completely wipe JavaScript memory
         window.location.reload();
       },
 
