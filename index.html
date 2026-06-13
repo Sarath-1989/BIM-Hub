@@ -6179,154 +6179,154 @@
         if (Portal.Auth.isMock || this.isSyncingChats) return false;
         this.isSyncingChats = true;
 
-        const token = await Portal.Auth.getAccessToken();
-        if (!token) {
-          this.isSyncingChats = false;
-          return false;
-        }
-
-        const siteId = await this.getSiteId(token);
-        if (!siteId) {
-          this.isSyncingChats = false;
-          return false;
-        }
-
-        const chats = Portal.DB.get('chats') || [];
-        const lastUpdated = Date.now();
-        const backupData = {
-          chats: chats,
-          lastUpdated: lastUpdated,
-          backupBy: Portal.Auth.getCurrentUserEmail()
-        };
-
-        // Merge first to prevent overwriting
         try {
-          const filename = 'asterwix_chats.json';
-          const getRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (getRes.ok) {
-            const cloudData = await getRes.json();
-            const cloudTimestamp = cloudData.lastUpdated || 0;
-            const localTimestamp = parseInt(localStorage.getItem('ax_chats_last_updated') || '0', 10);
+          const token = await Portal.Auth.getAccessToken();
+          if (!token) return false;
 
-            if (cloudTimestamp > localTimestamp) {
-              const cloudChats = cloudData.chats || [];
-              const map = {};
-              cloudChats.forEach(m => { map[m.id] = m; });
-              chats.forEach(lm => {
-                const cm = map[lm.id];
-                if (cm) {
-                  const lTime = lm.lastUpdated || 0;
-                  const cTime = cm.lastUpdated || 0;
-                  if (lTime > cTime) map[lm.id] = lm;
-                } else {
-                  map[lm.id] = lm;
-                }
-              });
-              const mergedChats = Object.values(map);
-              localStorage.setItem('ax_chats', JSON.stringify(mergedChats));
-              backupData.chats = mergedChats;
+          const siteId = await this.getSiteId(token);
+          if (!siteId) return false;
+
+          const chats = Portal.DB.get('chats') || [];
+          const lastUpdated = Date.now();
+          const backupData = {
+            chats: chats,
+            lastUpdated: lastUpdated,
+            backupBy: Portal.Auth.getCurrentUserEmail()
+          };
+
+          // Merge first to prevent overwriting
+          try {
+            const filename = 'asterwix_chats.json';
+            const getRes = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (getRes.ok) {
+              const cloudData = await getRes.json();
+              const cloudTimestamp = cloudData.lastUpdated || 0;
+              const localTimestamp = parseInt(localStorage.getItem('ax_chats_last_updated') || '0', 10);
+
+              if (cloudTimestamp > localTimestamp) {
+                const cloudChats = cloudData.chats || [];
+                const map = {};
+                cloudChats.forEach(m => { map[m.id] = m; });
+                chats.forEach(lm => {
+                  const cm = map[lm.id];
+                  if (cm) {
+                    const lTime = lm.lastUpdated || 0;
+                    const cTime = cm.lastUpdated || 0;
+                    if (lTime > cTime) map[lm.id] = lm;
+                  } else {
+                    map[lm.id] = lm;
+                  }
+                });
+                const mergedChats = Object.values(map);
+                localStorage.setItem('ax_chats', JSON.stringify(mergedChats));
+                backupData.chats = mergedChats;
+              }
             }
+          } catch (e) {
+            console.warn("Could not pre-fetch chats for merge:", e);
           }
-        } catch (e) {
-          console.warn("Could not pre-fetch chats for merge:", e);
-        }
 
-        try {
-          const filename = 'asterwix_chats.json';
-          const response = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
-            method: 'PUT',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(backupData, null, 2)
-          });
+          try {
+            const filename = 'asterwix_chats.json';
+            const response = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
+              method: 'PUT',
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(backupData, null, 2)
+            });
 
-          if (response.ok) {
-            localStorage.setItem('ax_chats_last_updated', lastUpdated.toString());
-            this.isSyncingChats = false;
-            return true;
+            if (response.ok) {
+              localStorage.setItem('ax_chats_last_updated', lastUpdated.toString());
+              return true;
+            }
+          } catch (e) {
+            console.error("Error backing up chats to cloud", e);
           }
-        } catch (e) {
-          console.error("Error backing up chats to cloud", e);
+          return false;
+        } finally {
+          this.isSyncingChats = false;
         }
-
-        this.isSyncingChats = false;
-        return false;
       },
 
       checkForRemoteChatUpdates: async function() {
         if (Portal.Auth.isMock || this.isSyncingChats) return;
-
-        const token = await Portal.Auth.getAccessToken();
-        if (!token) return;
-
-        const siteId = await this.getSiteId(token);
-        if (!siteId) return;
+        this.isSyncingChats = true;
 
         try {
-          const filename = 'asterwix_chats.json';
-          const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const token = await Portal.Auth.getAccessToken();
+          if (!token) return;
 
-          if (res.ok) {
-            const cloudData = await res.json();
-            const cloudTimestamp = cloudData.lastUpdated || 0;
-            const localTimestamp = parseInt(localStorage.getItem('ax_chats_last_updated') || '0', 10);
+          const siteId = await this.getSiteId(token);
+          if (!siteId) return;
 
-            if (cloudTimestamp > localTimestamp) {
-              const localChats = Portal.DB.get('chats') || [];
-              const cloudChats = cloudData.chats || [];
-              const localIds = new Set(localChats.map(m => m.id));
-              const newIncomingChats = cloudChats.filter(m => !localIds.has(m.id));
+          try {
+            const filename = 'asterwix_chats.json';
+            const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/${filename}:/content`, {
+              headers: { 'Authorization': `Bearer ${token}` }
+            });
 
-              localStorage.setItem('ax_chats', JSON.stringify(cloudChats));
-              localStorage.setItem('ax_chats_last_updated', cloudTimestamp.toString());
+            if (res.ok) {
+              const cloudData = await res.json();
+              const cloudTimestamp = cloudData.lastUpdated || 0;
+              const localTimestamp = parseInt(localStorage.getItem('ax_chats_last_updated') || '0', 10);
 
-              // Ensure employee ID migrations apply to chats
-              Portal.DB.migrateEmployeeIDsToNewFormat();
+              if (cloudTimestamp > localTimestamp) {
+                const localChats = Portal.DB.get('chats') || [];
+                const cloudChats = cloudData.chats || [];
+                const localIds = new Set(localChats.map(m => m.id));
+                const newIncomingChats = cloudChats.filter(m => !localIds.has(m.id));
 
-              // Trigger UI refresh
-              if (window.location.hash === '#team-chat' && Portal.Chat) {
-                Portal.Chat.renderMessages();
-              }
+                localStorage.setItem('ax_chats', JSON.stringify(cloudChats));
+                localStorage.setItem('ax_chats_last_updated', cloudTimestamp.toString());
 
-              // Check for new incoming messages that are relevant to us
-              if (currentUser && currentUser.empId) {
-                let hasNewRelevantChats = false;
-                let latestSenderName = "";
-                let latestText = "";
+                // Ensure employee ID migrations apply to chats
+                Portal.DB.migrateEmployeeIDsToNewFormat();
 
-                newIncomingChats.forEach(m => {
-                  if (m.senderId !== currentUser.empId && (m.recipientId === 'ALL' || m.recipientId === currentUser.empId)) {
-                    hasNewRelevantChats = true;
-                    latestSenderName = m.senderName;
-                    latestText = m.text;
-                  }
-                });
+                // Trigger UI refresh
+                if (window.location.hash === '#team-chat' && Portal.Chat) {
+                  Portal.Chat.renderMessages();
+                }
 
-                if (hasNewRelevantChats) {
-                  if (Portal.Chat && typeof Portal.Chat.playNotificationSound === 'function') {
-                    Portal.Chat.playNotificationSound();
-                  }
+                // Check for new incoming messages that are relevant to us
+                if (currentUser && currentUser.empId) {
+                  let hasNewRelevantChats = false;
+                  let latestSenderName = "";
+                  let latestText = "";
 
-                  const isViewingChat = window.location.hash === '#team-chat';
-                  const isCurrentActiveConv = Portal.Chat.selectedRecipientId === 'ALL' ? 
-                                              newIncomingChats.some(m => m.recipientId === 'ALL') :
-                                              newIncomingChats.some(m => m.senderId === Portal.Chat.selectedRecipientId);
+                  newIncomingChats.forEach(m => {
+                    if (m.senderId !== currentUser.empId && (m.recipientId === 'ALL' || m.recipientId === currentUser.empId)) {
+                      hasNewRelevantChats = true;
+                      latestSenderName = m.senderName;
+                      latestText = m.text;
+                    }
+                  });
 
-                  if (!isViewingChat || !isCurrentActiveConv) {
-                    Portal.UI.showToast(`New Message from ${latestSenderName}`, latestText, "info");
+                  if (hasNewRelevantChats) {
+                    if (Portal.Chat && typeof Portal.Chat.playNotificationSound === 'function') {
+                      Portal.Chat.playNotificationSound();
+                    }
+
+                    const isViewingChat = window.location.hash === '#team-chat';
+                    const isCurrentActiveConv = Portal.Chat.selectedRecipientId === 'ALL' ? 
+                                                newIncomingChats.some(m => m.recipientId === 'ALL') :
+                                                newIncomingChats.some(m => m.senderId === Portal.Chat.selectedRecipientId);
+
+                    if (!isViewingChat || !isCurrentActiveConv) {
+                      Portal.UI.showToast(`New Message from ${latestSenderName}`, latestText, "info");
+                    }
                   }
                 }
               }
             }
+          } catch (e) {
+            console.warn("Error checking for remote chat updates:", e);
           }
-        } catch (e) {
-          console.warn("Error checking for remote chat updates:", e);
+        } finally {
+          this.isSyncingChats = false;
         }
       }
     };
