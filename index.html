@@ -2106,6 +2106,9 @@
       flex-grow: 1;
       overflow-y: auto;
       max-height: 500px;
+      transition: background 0.2s ease;
+      border-radius: 8px;
+      padding: 4px;
     }
     .kanban-card {
       background: var(--bg-secondary);
@@ -2124,17 +2127,41 @@
     }
     .kanban-card-title {
       font-size: 13px;
-      font-weight: 600;
-      color: var(--text-main);
+      font-weight: 700;
+      color: #fff;
       margin-bottom: 8px;
       line-height: 1.4;
     }
-    .kanban-card-meta {
+    .kanban-card-meta-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-top: 10px;
+      padding-top: 8px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .kanban-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent-bim);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9px;
+      font-weight: 700;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .kanban-card-date {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
       font-size: 11px;
-      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .kanban-card-date.overdue {
+      color: #ef4444 !important;
     }
     .kanban-card-badge {
       padding: 2px 6px;
@@ -7194,6 +7221,22 @@
 
           const container = colEl.querySelector('.kanban-cards-container');
 
+          // Enable drop zone event listeners
+          container.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            container.style.background = 'rgba(255, 255, 255, 0.03)';
+          });
+          container.addEventListener('dragleave', () => {
+            container.style.background = '';
+          });
+          container.addEventListener('drop', (e) => {
+            container.style.background = '';
+            const taskId = e.dataTransfer.getData('text/plain');
+            if (taskId) {
+              Portal.BIM.changeTaskStatus(taskId, col.status);
+            }
+          });
+
           colTasks.forEach(t => {
             const staff = emps.find(e => e.empId === t.assigneeId);
             const isOverdue = t.status !== 'Completed' && t.end < new Date().toISOString().split('T')[0];
@@ -7201,22 +7244,69 @@
             
             const card = document.createElement('div');
             card.className = 'kanban-card';
+            card.setAttribute('draggable', 'true');
+            card.setAttribute('data-task-id', t.taskId);
+
+            // Determine Planner-style colored top strip based on discipline
+            let discColor = '#64748b'; // Gray fallback
+            const disc = (t.discipline || '').toLowerCase();
+            if (disc.includes('struct')) discColor = '#ff7c1e'; // Structural (Orange)
+            else if (disc.includes('arch')) discColor = '#0d9488'; // Architectural (Teal)
+            else if (disc.includes('mep') || disc.includes('mech') || disc.includes('elec')) discColor = '#8b5cf6'; // MEP/Mech/Elec (Purple)
+            else if (disc.includes('coord')) discColor = '#3b82f6'; // Coordination (Blue)
+
+            card.style.borderTop = `4px solid ${discColor}`;
+
+            // Drag event listeners
+            card.addEventListener('dragstart', (e) => {
+              e.dataTransfer.setData('text/plain', t.taskId);
+              card.style.opacity = '0.5';
+            });
+            card.addEventListener('dragend', () => {
+              card.style.opacity = '1';
+            });
+
+            // Circular avatar badge matching Microsoft Planner
+            let avatarHtml = `<span class="kanban-avatar" title="Unassigned">?</span>`;
+            if (staff) {
+              const initials = staff.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+              if (staff.photo) {
+                avatarHtml = `<img src="${staff.photo}" class="kanban-avatar" style="object-fit:cover;" title="${Portal.escapeHTML(staff.name)}">`;
+              } else {
+                avatarHtml = `<span class="kanban-avatar" title="${Portal.escapeHTML(staff.name)}">${initials}</span>`;
+              }
+            }
+
             card.innerHTML = `
-              <div class="kanban-card-title">${Portal.escapeHTML(t.name)}</div>
-              <div style="font-size:11px; color:var(--text-muted); margin-bottom: 8px; display: flex; flex-wrap: wrap; gap: 8px;">
-                <span>Discipline: <strong>${Portal.escapeHTML(t.discipline)}</strong></span>
-                <span>Sub-Discipline: <strong>${Portal.escapeHTML(t.subdiscipline || 'General')}</strong></span>
-                <span>Category: <strong>${Portal.escapeHTML(t.category || 'Model (BIM)')}</strong></span>
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 8px;">
+                <div class="kanban-card-title">${Portal.escapeHTML(t.name)}</div>
+                <span class="kanban-card-badge ${pClass}" style="flex-shrink:0;">${Portal.escapeHTML(t.priority)}</span>
               </div>
-              <div class="kanban-card-meta">
-                <span class="kanban-card-badge ${pClass}">${Portal.escapeHTML(t.priority)}</span>
-                <span style="font-weight:600; color:var(--accent-bim);">${t.progress}%</span>
+              <div style="font-size:11px; color:var(--text-muted); margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 6px;">
+                <span style="background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);">${Portal.escapeHTML(t.discipline)}</span>
+                <span style="background:rgba(255,255,255,0.03); padding:2px 6px; border-radius:4px; border:1px solid rgba(255,255,255,0.05);">${Portal.escapeHTML(t.category || 'Model')}</span>
               </div>
-              <div style="font-size:11px; margin-top:8px; color:${isOverdue ? '#ef4444' : 'var(--text-muted)'}; display:flex; justify-content:space-between;">
-                <span>Assignee: <strong>${staff ? Portal.escapeHTML(staff.name.split(' ')[0]) : 'Unassigned'}</strong></span>
-                <span>${Portal.escapeHTML(t.end)} ${isOverdue ? '⚠️' : ''}</span>
+              
+              <!-- Progress indicator bar -->
+              <div style="margin-bottom: 12px;">
+                <div style="display:flex; justify-content:space-between; font-size:10px; color:var(--text-muted); margin-bottom:4px;">
+                  <span>Progress</span>
+                  <span style="font-weight:700; color:var(--accent-bim);">${t.progress}%</span>
+                </div>
+                <div style="width:100%; height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+                  <div style="width:${t.progress}%; height:100%; background:var(--accent-bim); border-radius:2px;"></div>
+                </div>
               </div>
-              <div class="kanban-card-actions">
+
+              <div class="kanban-card-meta-row">
+                <span class="kanban-card-date ${isOverdue ? 'overdue' : ''}">
+                  📅 ${Portal.escapeHTML(t.end)} ${isOverdue ? '⚠️' : ''}
+                </span>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  ${avatarHtml}
+                </div>
+              </div>
+              <div class="kanban-card-actions" style="margin-top:8px;">
                 ${t.status === 'Not Started' ? `
                   <button class="kanban-action-btn" onclick="Portal.BIM.changeTaskStatus('${t.taskId}', 'In Progress')">Start →</button>
                 ` : ''}
