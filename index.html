@@ -5335,6 +5335,52 @@
           console.error("Employee list migration failed:", e);
         }
 
+        // 1b. Remove default mock staff and clean up their associated data
+        try {
+          let employees = JSON.parse(localStorage.getItem('ax_employees')) || [];
+          const mockEmails = ['amit@asterwix.com', 'deepak@asterwix.com', 'sunita@asterwix.com', 'john@asterwix.com'];
+          const hasMocks = employees.some(e => mockEmails.includes(e.email.toLowerCase()));
+
+          if (hasMocks) {
+            console.log("Mock employees detected. Performing clean-up of default staff...");
+            
+            // Remove mock staff from employee list
+            employees = employees.filter(e => !mockEmails.includes(e.email.toLowerCase()));
+            localStorage.setItem('ax_employees', JSON.stringify(employees));
+
+            // Clean up other tables by filtering out items referencing mock employee IDs
+            const mockIds = ["EMP-002", "EMP-003", "EMP-004", "EMP-005", "AWX-0591-26-0002", "AWX-0593-26-0003", "AWX-0595-26-0004", "AWX-0597-26-0005"];
+            
+            const attendance = (JSON.parse(localStorage.getItem('ax_attendance')) || []).filter(item => !mockIds.includes(item.empId));
+            localStorage.setItem('ax_attendance', JSON.stringify(attendance));
+
+            const leaves = (JSON.parse(localStorage.getItem('ax_leaves')) || []).filter(item => !mockIds.includes(item.empId));
+            localStorage.setItem('ax_leaves', JSON.stringify(leaves));
+
+            const overtime = (JSON.parse(localStorage.getItem('ax_overtime')) || []).filter(item => !mockIds.includes(item.empId));
+            localStorage.setItem('ax_overtime', JSON.stringify(overtime));
+
+            const tasks = (JSON.parse(localStorage.getItem('ax_tasks')) || []).filter(item => !mockIds.includes(item.assigneeId));
+            localStorage.setItem('ax_tasks', JSON.stringify(tasks));
+
+            const projects = (JSON.parse(localStorage.getItem('ax_projects')) || []).filter(item => item.projectId !== 'PRJ-01' && item.projectId !== 'PRJ-02');
+            localStorage.setItem('ax_projects', JSON.stringify(projects));
+
+            const chats = (JSON.parse(localStorage.getItem('ax_chats')) || []).filter(item => !mockIds.includes(item.senderId) && !mockIds.includes(item.recipientId));
+            localStorage.setItem('ax_chats', JSON.stringify(chats));
+
+            localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+            if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
+              Portal.Graph.queueAutoBackup();
+            }
+            if (Portal.Graph && typeof Portal.Graph.backupChatsLive === 'function') {
+              Portal.Graph.backupChatsLive();
+            }
+          }
+        } catch (e) {
+          console.error("Default staff cleanup failed:", e);
+        }
+
         // 2. Migrate tasks in-place if they don't have category or subdiscipline properties
         const tasksStr = localStorage.getItem('ax_tasks');
         if (tasksStr) {
@@ -5517,75 +5563,32 @@
       },
       
       seedInitialData: function() {
-        // Employees Seeding
+        // Employees Seeding (Only Super Admin is preserved)
         const employees = [
-          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "", photo: "assets/sarath.png" },
-          { empId: "EMP-002", name: "Amit Sharma", email: "amit@asterwix.com", dept: "BIM Structural", role: "BIM Manager", designation: "BIM Structural Lead", salaryBasic: 10000, salaryHousing: 4000, salaryTransport: 1500, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" },
-          { empId: "EMP-003", name: "Deepak Rawat", email: "deepak@asterwix.com", dept: "BIM Architectural", role: "Team Lead", designation: "Senior BIM Modeller", salaryBasic: 8000, salaryHousing: 3000, salaryTransport: 1000, salaryOthers: 500, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-002" },
-          { empId: "EMP-004", name: "Sunita Roy", email: "sunita@asterwix.com", dept: "BIM MEP", role: "Staff", designation: "MEP Engineer", salaryBasic: 6000, salaryHousing: 2000, salaryTransport: 1000, salaryOthers: 200, currency: "INR", status: "Active", location: "India Office", managerId: "EMP-003" },
-          { empId: "EMP-005", name: "John Doe", email: "john@asterwix.com", dept: "Accounts", role: "Accounts", designation: "Financial Accountant", salaryBasic: 7500, salaryHousing: 2500, salaryTransport: 1000, salaryOthers: 400, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "EMP-001" }
+          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "", photo: "assets/sarath.png" }
         ];
         localStorage.setItem('ax_employees', JSON.stringify(employees));
 
         // Office Locations Seeding
         localStorage.setItem('ax_offices', JSON.stringify(DEFAULT_OFFICES));
 
-        // Attendance Seeding
-        const attendance = [
-          { empId: "EMP-003", date: "2026-06-02", inTime: "08:45", outTime: "17:30", hours: 8.75, status: "Present", type: "Regular", location: "Asterwix Dubai HQ" },
-          { empId: "EMP-004", date: "2026-06-02", inTime: "09:15", outTime: "18:00", hours: 8.75, status: "Late", type: "Regular", location: "Asterwix India Office" }
-        ];
-        localStorage.setItem('ax_attendance', JSON.stringify(attendance));
-
-        // Projects Seeding
-        const projects = [
-          { projectId: "PRJ-01", code: "DXB-MAR-01", name: "Marina Heights Residential Tower", client: "Emaar Properties", phase: "LOD 300", start: "2026-01-01", end: "2026-12-31", progress: 65, color: "var(--accent-bim)", status: "Active", projectType: "Residential", projectStage: "Construction", contactPerson: "Amit Sharma", cdeStatus: "WIP", suitabilityCode: "S0", revision: "P01.01" },
-          { projectId: "PRJ-02", code: "DXB-DWT-02", name: "Downtown Office Hub", client: "Dubai Holding", phase: "LOD 200", start: "2026-03-15", end: "2027-02-28", progress: 30, color: "var(--accent-hr)", status: "Active", projectType: "Commercial", projectStage: "Detailed Design", contactPerson: "Deepak Rawat", cdeStatus: "Shared", suitabilityCode: "S1", revision: "P01.02" }
-        ];
-        localStorage.setItem('ax_projects', JSON.stringify(projects));
-
-        // Tasks Seeding
-        const tasks = [
-          { taskId: "TSK-01", projectId: "PRJ-01", name: "Complete Level 15 Structural Framing", phase: "LOD 300", discipline: "Structural", subdiscipline: "Concrete", category: "Model (BIM)", assigneeId: "EMP-003", start: "2026-05-15", end: "2026-06-10", status: "In Progress", priority: "High", progress: 75, delayReason: "" },
-          { taskId: "TSK-02", projectId: "PRJ-01", name: "MEP Coordination Clash Detection", phase: "LOD 300", discipline: "Coordination", subdiscipline: "Clash Detection", category: "Clash Log", assigneeId: "EMP-004", start: "2026-05-20", end: "2026-06-01", status: "In Progress", priority: "Medium", progress: 90, delayReason: "" },
-          { taskId: "TSK-03", projectId: "PRJ-02", name: "Architectural Exterior Facade Drafting", phase: "LOD 200", discipline: "Architectural", subdiscipline: "Interior", category: "Drawing", assigneeId: "EMP-003", start: "2026-06-01", end: "2026-06-25", status: "Not Started", priority: "Medium", progress: 0, delayReason: "" }
-        ];
-        localStorage.setItem('ax_tasks', JSON.stringify(tasks));
-
-        // Model Logs Seeding
-        const modelLogs = [
-          { logId: "MOD-01", projectId: "PRJ-01", modelName: "MAR-ST-R20.rvt", fileType: "RVT", lod: "LOD 300", authorId: "EMP-003", checkerId: "EMP-002", planDate: "2026-06-15", actualDate: "", status: "Modelling", stageData: { stage: 2 } }
-        ];
-        localStorage.setItem('ax_models', JSON.stringify(modelLogs));
-
-        // Drawing Logs Seeding
-        const drawingLogs = [
-          { logId: "DWG-01", projectId: "PRJ-01", sheetNum: "ST-G-001", sheetName: "General Notes & Legend", discipline: "Structural", revision: "R0", authorId: "EMP-003", planDate: "2026-06-10", status: "CD Documents" }
-        ];
-        localStorage.setItem('ax_drawings', JSON.stringify(drawingLogs));
-
-        // Leaves Requests Seeding
-        const leaves = [
-          { leaveId: "LV-01", empId: "EMP-003", type: "Annual", start: "2026-06-15", end: "2026-06-20", days: 5, reason: "Summer vacation with family", status: "Pending", approvedBy: "" }
-        ];
-        localStorage.setItem('ax_leaves', JSON.stringify(leaves));
-
-        // Overtime Seeding
-        const overtime = [
-          { otId: "OT-01", empId: "EMP-003", date: "2026-06-01", hours: 3.5, projectRef: "DXB-MAR-01", multiplier: 1.25, otRate: 150, approvedBy: "connect@asterwix.com", status: "Approved" }
-        ];
-        localStorage.setItem('ax_overtime', JSON.stringify(overtime));
-
-        // Audit Logs Seeding
+        // Clear all other tables for a clean slate
+        localStorage.setItem('ax_attendance', JSON.stringify([]));
+        localStorage.setItem('ax_projects', JSON.stringify([]));
+        localStorage.setItem('ax_tasks', JSON.stringify([]));
+        localStorage.setItem('ax_models', JSON.stringify([]));
+        localStorage.setItem('ax_drawings', JSON.stringify([]));
+        localStorage.setItem('ax_leaves', JSON.stringify([]));
+        localStorage.setItem('ax_overtime', JSON.stringify([]));
+        
         const audit = [
-          { timestamp: "2026-06-03T06:00:00Z", username: "system", module: "Admin", action: "Seeded initial data into local storage.", details: "Setup structural files for initial system evaluation." }
+          { timestamp: new Date().toISOString(), username: "system", module: "Admin", action: "Seeded initial data into local storage.", details: "Setup clean database with admin only." }
         ];
         localStorage.setItem('ax_audit', JSON.stringify(audit));
 
-        // Chats Seeding
+        // Seed initial announcements with welcome message
         const chats = [
-          { id: "MSG-01", senderId: "EMP-001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now() - 7200000, lastUpdated: Date.now() - 7200000 },
-          { id: "MSG-02", senderId: "EMP-002", senderName: "Amit Sharma", senderPhoto: "", recipientId: "ALL", text: "Thanks Sarath, the new Microsoft Planner Tasks board integration looks awesome!", timestamp: Date.now() - 3600000, lastUpdated: Date.now() - 3600000 }
+          { id: "MSG-01", senderId: "EMP-001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now(), lastUpdated: Date.now() }
         ];
         localStorage.setItem('ax_chats', JSON.stringify(chats));
       },
