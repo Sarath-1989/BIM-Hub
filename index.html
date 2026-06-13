@@ -2373,6 +2373,25 @@
       font-size: 10px;
       color: var(--text-muted);
     }
+    .chat-bubble-actions {
+      display: flex;
+      gap: 8px;
+      opacity: 0;
+      transition: opacity 0.2s;
+    }
+    .chat-message-bubble:hover .chat-bubble-actions {
+      opacity: 1;
+    }
+    .chat-action-btn {
+      cursor: pointer;
+      font-size: 11px;
+      opacity: 0.7;
+      transition: opacity 0.2s;
+      user-select: none;
+    }
+    .chat-action-btn:hover {
+      opacity: 1;
+    }
     .chat-input-area {
       padding: 16px 20px;
       border-top: 1px solid var(--border-color);
@@ -3910,8 +3929,11 @@
               <div class="chat-channels-list">
                 <div class="chat-user-item active" onclick="Portal.Chat.selectRecipient('ALL')" id="chat-recipient-all">
                   <div class="kanban-avatar" style="background:var(--accent-hr); font-size:12px;">📣</div>
-                  <div style="flex:1;">
-                    <div style="font-weight:700; font-size:13px; color:#fff;">Global Announcements</div>
+                  <div style="flex:1; min-width:0; display:flex; flex-direction:column;">
+                    <div style="font-weight:700; font-size:13px; color:#fff; display:flex; align-items:center; justify-content:space-between; width:100%;">
+                      <span>Global Announcements</span>
+                      <span id="chat-announcements-unread-badge"></span>
+                    </div>
                     <span style="font-size:11px; color:var(--text-muted);">Company-wide chat</span>
                   </div>
                 </div>
@@ -5345,7 +5367,7 @@
         // Ensure chats key is initialized and seeded
         try {
           const chats = localStorage.getItem('ax_chats');
-          if (!chats) {
+          if (!chats || chats === '[]') {
             const initialChats = [
               { id: "MSG-01", senderId: "EMP-001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now() - 7200000, lastUpdated: Date.now() - 7200000 },
               { id: "MSG-02", senderId: "EMP-002", senderName: "Amit Sharma", senderPhoto: "", recipientId: "ALL", text: "Thanks Sarath, the new Microsoft Planner Tasks board integration looks awesome!", timestamp: Date.now() - 3600000, lastUpdated: Date.now() - 3600000 }
@@ -6629,6 +6651,52 @@
       }
     });
 
+    // Listen for storage events (allows instant sync of chat across tabs on the same computer)
+    window.addEventListener('storage', function(e) {
+      if (e.key === 'ax_chats' && currentUser) {
+        // If the active page is team-chat, re-render immediately
+        if (window.location.hash === '#team-chat' && Portal.Chat) {
+          Portal.Chat.renderMessages();
+        }
+
+        try {
+          const oldChats = e.oldValue ? JSON.parse(e.oldValue) : [];
+          const newChats = e.newValue ? JSON.parse(e.newValue) : [];
+          const oldIds = new Set(oldChats.map(m => m.id));
+          const incoming = newChats.filter(m => !oldIds.has(m.id));
+
+          let hasNewRelevantChats = false;
+          let latestSenderName = "";
+          let latestText = "";
+
+          incoming.forEach(m => {
+            if (m.senderId !== currentUser.empId && (m.recipientId === 'ALL' || m.recipientId === currentUser.empId)) {
+              hasNewRelevantChats = true;
+              latestSenderName = m.senderName;
+              latestText = m.text;
+            }
+          });
+
+          if (hasNewRelevantChats) {
+            if (Portal.Chat && typeof Portal.Chat.playNotificationSound === 'function') {
+              Portal.Chat.playNotificationSound();
+            }
+
+            const isViewingChat = window.location.hash === '#team-chat';
+            const isCurrentActiveConv = Portal.Chat.selectedRecipientId === 'ALL' ? 
+                                        incoming.some(m => m.recipientId === 'ALL') :
+                                        incoming.some(m => m.senderId === Portal.Chat.selectedRecipientId);
+
+            if (!isViewingChat || !isCurrentActiveConv) {
+              Portal.UI.showToast(`New Message from ${latestSenderName}`, latestText, "info");
+            }
+          }
+        } catch (err) {
+          console.warn("Error processing cross-tab chat sync:", err);
+        }
+      }
+    });
+
     /* -------------------------------------------------------------
        GPS ATTENDANCE TRACKER LAYER
        ------------------------------------------------------------- */
@@ -7377,6 +7445,7 @@
         listContainer.innerHTML = '';
 
         const emps = (Portal.DB.get('employees') || []).filter(e => !e.isTerminated && e.empId !== currentUser.empId);
+        const chats = Portal.DB.get('chats') || [];
         
         emps.forEach(emp => {
           const item = document.createElement('div');
@@ -7390,15 +7459,31 @@
             avatarHtml = `<img src="${emp.photo}" class="kanban-avatar" style="object-fit:cover;">`;
           }
 
+          // Count unread DMs from this sender to current user
+          const unreadCount = chats.filter(m => !m.isDeleted && m.senderId === emp.empId && m.recipientId === currentUser.empId && (!m.readBy || !m.readBy.includes(currentUser.empId))).length;
+          const unreadBadge = unreadCount > 0 ? 
+            `<span class="chat-unread-badge" style="background:#ef4444; color:#fff; border-radius:10px; padding:2px 7px; font-size:10px; font-weight:900; margin-left:auto; display:inline-block; border:1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${unreadCount}</span>` : 
+            '';
+
           item.innerHTML = `
             ${avatarHtml}
-            <div style="flex:1; min-width: 0;">
+            <div style="flex:1; min-width: 0; display:flex; flex-direction:column;">
               <div style="font-weight:700; font-size:13px; color:#fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${Portal.escapeHTML(emp.name)}</div>
               <span style="font-size:11px; color:var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block;">${Portal.escapeHTML(emp.designation)}</span>
             </div>
+            ${unreadBadge}
           `;
           listContainer.appendChild(item);
         });
+
+        // Update unread badge for Global Announcements channel
+        const unreadAnnCount = chats.filter(m => !m.isDeleted && m.recipientId === 'ALL' && m.senderId !== currentUser.empId && (!m.readBy || !m.readBy.includes(currentUser.empId))).length;
+        const annBadgeEl = document.getElementById('chat-announcements-unread-badge');
+        if (annBadgeEl) {
+          annBadgeEl.innerHTML = unreadAnnCount > 0 ? 
+            `<span class="chat-unread-badge" style="background:#ef4444; color:#fff; border-radius:10px; padding:2px 7px; font-size:10px; font-weight:900; display:inline-block; border:1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 4px rgba(0,0,0,0.2);">${unreadAnnCount}</span>` : 
+            '';
+        }
       },
 
       renderMessages: function() {
@@ -7408,8 +7493,9 @@
 
         const chats = Portal.DB.get('chats') || [];
         
-        // Filter messages for current conversation
+        // Filter messages for current conversation, excluding deleted messages
         const activeChats = chats.filter(m => {
+          if (m.isDeleted) return false;
           if (this.selectedRecipientId === 'ALL') {
             return m.recipientId === 'ALL';
           } else {
@@ -7417,6 +7503,25 @@
                    (m.senderId === this.selectedRecipientId && m.recipientId === currentUser.empId);
           }
         });
+
+        // Mark incoming messages as read by current user
+        let databaseUpdated = false;
+        activeChats.forEach(m => {
+          if (m.senderId !== currentUser.empId) {
+            if (!m.readBy) m.readBy = [];
+            if (!m.readBy.includes(currentUser.empId)) {
+              m.readBy.push(currentUser.empId);
+              m.lastUpdated = Date.now();
+              databaseUpdated = true;
+            }
+          }
+        });
+
+        if (databaseUpdated) {
+          Portal.DB.set('chats', chats);
+          // Refresh members list sidebar to update unread badge counts
+          setTimeout(() => { this.renderMembersList(); }, 50);
+        }
 
         // Sort by timestamp
         activeChats.sort((a,b) => a.timestamp - b.timestamp);
@@ -7433,10 +7538,37 @@
           
           const timeStr = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
           const senderLabel = isOutgoing ? 'Me' : m.senderName;
+          const editedLabel = m.isEdited ? ' <span style="font-size:9px; opacity:0.6; font-style:italic;">(edited)</span>' : '';
+
+          const actionsHtml = isOutgoing ? `
+            <div class="chat-bubble-actions">
+              <span class="chat-action-btn edit" onclick="Portal.Chat.editMessage('${m.id}')" title="Edit message">✏️</span>
+              <span class="chat-action-btn delete" onclick="Portal.Chat.deleteMessage('${m.id}')" title="Delete message">🗑️</span>
+            </div>
+          ` : '';
+
+          let statusHtml = '';
+          if (isOutgoing) {
+            if (m.recipientId === 'ALL') {
+              const readCount = m.readBy ? m.readBy.length : 0;
+              statusHtml = readCount > 0 ? 
+                `<span style="color:#60a5fa; font-weight:bold; font-size:9px;" title="Read by ${readCount} members">✓✓ Read by ${readCount}</span>` : 
+                `<span style="color:var(--text-muted); font-size:9px;">✓ Sent</span>`;
+            } else {
+              const isRead = m.readBy && m.readBy.includes(m.recipientId);
+              statusHtml = isRead ? 
+                `<span style="color:#60a5fa; font-weight:bold; font-size:9px;" title="Read by recipient">✓✓ Read</span>` : 
+                `<span style="color:var(--text-muted); font-size:9px;">✓ Sent</span>`;
+            }
+          }
           
           bubble.innerHTML = `
-            <div class="chat-bubble-meta">${Portal.escapeHTML(senderLabel)} • ${timeStr}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; width:100%;">
+              <div class="chat-bubble-meta">${Portal.escapeHTML(senderLabel)} • ${timeStr}${editedLabel}</div>
+              ${actionsHtml}
+            </div>
             <div class="chat-bubble-text">${Portal.escapeHTML(m.text)}</div>
+            ${isOutgoing ? `<div style="text-align:right; margin-top:2px;">${statusHtml}</div>` : ''}
           `;
           threadContainer.appendChild(bubble);
         });
@@ -7477,11 +7609,65 @@
         }
       },
 
+      editMessage: function(id) {
+        const chats = Portal.DB.get('chats') || [];
+        const msg = chats.find(m => m.id === id);
+        if (!msg) return;
+
+        // Ensure the sender is the current user
+        if (msg.senderId !== currentUser.empId) return;
+
+        const newText = prompt("Edit message:", msg.text);
+        if (newText === null) return; // user cancelled
+        const trimmed = newText.trim();
+        if (!trimmed) {
+          this.deleteMessage(id);
+          return;
+        }
+
+        msg.text = trimmed;
+        msg.isEdited = true;
+        msg.lastUpdated = Date.now();
+
+        Portal.DB.set('chats', chats);
+        this.renderMessages();
+
+        // Push immediate backup to cloud
+        if (Portal.Graph && typeof Portal.Graph.backupDatabaseLive === 'function') {
+          Portal.Graph.backupDatabaseLive();
+        }
+      },
+
+      deleteMessage: function(id) {
+        const chats = Portal.DB.get('chats') || [];
+        const msg = chats.find(m => m.id === id);
+        if (!msg) return;
+
+        // Ensure the sender is the current user
+        if (msg.senderId !== currentUser.empId) return;
+
+        if (!confirm("Are you sure you want to delete this message?")) return;
+
+        msg.isDeleted = true;
+        msg.lastUpdated = Date.now();
+
+        Portal.DB.set('chats', chats);
+        this.renderMessages();
+
+        // Push immediate backup to cloud
+        if (Portal.Graph && typeof Portal.Graph.backupDatabaseLive === 'function') {
+          Portal.Graph.backupDatabaseLive();
+        }
+      },
+
       playNotificationSound: function() {
         try {
           const AudioContext = window.AudioContext || window.webkitAudioContext;
           if (!AudioContext) return;
           const ctx = new AudioContext();
+          if (ctx.state === 'suspended') {
+            ctx.resume();
+          }
           
           const playTone = (freq, startTime, duration) => {
             const osc = ctx.createOscillator();
