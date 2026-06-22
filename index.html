@@ -2800,8 +2800,8 @@
           <span>Dashboard</span>
         </div>
 
-        <div class="nav-header">Attendance</div>
-        <div class="nav-item" onclick="Portal.Router.navigate('gps-punch')">
+        <div class="nav-header" id="header-attendance">Attendance</div>
+        <div class="nav-item" id="nav-gps-punch" onclick="Portal.Router.navigate('gps-punch')">
           <svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></circle><circle cx="12" cy="10" r="3"></circle></svg>
           <span>GPS Punch</span>
         </div>
@@ -2814,7 +2814,7 @@
           <span>Monthly Summary</span>
         </div>
 
-        <div class="nav-header">Collaboration</div>
+        <div class="nav-header" id="header-collaboration">Collaboration</div>
         <div class="nav-item" id="nav-team-chat" onclick="Portal.Router.navigate('team-chat')">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
           <span>Team Chat</span>
@@ -5609,14 +5609,20 @@
       set: function(key, data) {
         try {
           localStorage.setItem('ax_' + key, JSON.stringify(data));
-          localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+          if (key === 'chats') {
+            localStorage.setItem('ax_chats_has_unsynced_changes', 'true');
+          } else {
+            localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+          }
         } catch (e) {
           console.error(`Error saving ${key} to LocalStorage:`, e);
           Portal.UI.showToast("Storage Limit Exceeded", "Could not save data locally. Browser quota may be full.", "error");
         }
         // Trigger auto-backup to SharePoint if in live mode
-        if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
-          Portal.Graph.queueAutoBackup();
+        if (key !== 'chats') {
+          if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
+            Portal.Graph.queueAutoBackup();
+          }
         }
       },
 
@@ -6039,6 +6045,41 @@
 
           // Fetch chat file updates in background
           await this.checkForRemoteChatUpdates();
+
+          // Always re-resolve currentUser from the local database at the end of initialSync to ensure they match their registered employee record
+          if (currentUser && currentUser.email) {
+            const originalId = currentUser.empId;
+            currentUser = Portal.Auth.resolveUserProfile(currentUser.email, currentUser.name);
+            sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
+            
+            const nameEl = document.getElementById('side-profile-name');
+            const roleEl = document.getElementById('side-profile-role');
+            const welcomeEl = document.getElementById('welcome-message');
+            if (nameEl) nameEl.innerText = currentUser.name;
+            if (roleEl) roleEl.innerText = currentUser.role;
+            if (welcomeEl) welcomeEl.innerText = `Welcome back, ${currentUser.name.split(' ')[0]}!`;
+            
+            const avatarEl = document.getElementById('side-avatar');
+            if (avatarEl) {
+              if (currentUser.photo) {
+                avatarEl.innerHTML = `<img src="${currentUser.photo}" alt="${currentUser.name}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%; display: block;">`;
+              } else {
+                avatarEl.innerText = currentUser.name.split(' ').map(n => n[0]).join('');
+              }
+            }
+            
+            // Refresh sidebar menu item permissions dynamically
+            if (typeof Portal.Auth.enforceRolePermissions === 'function') {
+              Portal.Auth.enforceRolePermissions();
+            }
+            
+            // If the user's ID was updated from fallback, force refresh pages
+            if (originalId !== currentUser.empId) {
+              const initialPage = window.location.hash.slice(1) || 'dashboard';
+              Portal.Router.currentPage = null;
+              Portal.Router.navigate(initialPage, false);
+            }
+          }
         } catch (e) {
           console.error("Error doing initial sync with Cloud Storage", e);
           this.updateStatusUI('sync-error', 'Sync Offline');
@@ -6132,6 +6173,9 @@
                   } else {
                     avatarEl.innerText = currentUser.name.split(' ').map(n => n[0]).join('');
                   }
+                }
+                if (typeof Portal.Auth.enforceRolePermissions === 'function') {
+                  Portal.Auth.enforceRolePermissions();
                 }
               }
 
@@ -6244,6 +6288,7 @@
 
             if (response.ok) {
               localStorage.setItem('ax_chats_last_updated', lastUpdated.toString());
+              localStorage.removeItem('ax_chats_has_unsynced_changes');
               return true;
             }
           } catch (e) {
@@ -6257,6 +6302,12 @@
 
       checkForRemoteChatUpdates: async function() {
         if (Portal.Auth.isMock || this.isSyncingChats) return;
+
+        // If there are unsynced local chat changes, try to upload them first!
+        if (localStorage.getItem('ax_chats_has_unsynced_changes') === 'true') {
+          await this.backupChatsLive();
+        }
+
         this.isSyncingChats = true;
 
         try {
@@ -6528,8 +6579,8 @@
           empId: "EMP-SSO",
           name: defaultName || email.split('@')[0],
           email: email,
-          role: "Staff",
-          designation: "SSO Modeller",
+          role: "Guest",
+          designation: "Unassigned Guest",
           photo: ""
         };
       },
@@ -6758,6 +6809,14 @@
         };
 
         // Reset
+        hide('header-collaboration');
+        hide('nav-team-chat');
+
+        hide('header-attendance');
+        hide('nav-gps-punch');
+        hide('nav-att-logs');
+        hide('nav-att-summary');
+
         hide('header-bim');
         hide('nav-bim-projects');
         hide('nav-bim-timeline');
@@ -6812,6 +6871,16 @@
         } else if (role === 'Viewer') {
           show('header-bim'); show('nav-bim-projects');
         }
+
+        // Show Collaboration and Attendance features only if they are registered employees (not Guest)
+        if (role && role !== 'Guest') {
+          show('header-collaboration');
+          show('nav-team-chat');
+          show('header-attendance');
+          show('nav-gps-punch');
+          show('nav-att-logs');
+          show('nav-att-summary');
+        }
       }
     };
 
@@ -6828,7 +6897,9 @@
           const email = currentUser.email.toLowerCase();
           let allowed = true;
 
-          if (pageId === 'gps-settings') {
+          if (role === 'Guest') {
+            if (pageId !== 'dashboard') allowed = false;
+          } else if (pageId === 'gps-settings') {
             if (email !== 'connect@asterwix.com') allowed = false;
           } else if (pageId === 'user-management' || pageId === 'audit-log') {
             if (role !== 'Admin') allowed = false;
