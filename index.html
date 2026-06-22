@@ -6343,6 +6343,7 @@
                 // Trigger UI refresh
                 if (window.location.hash === '#team-chat' && Portal.Chat) {
                   Portal.Chat.renderMessages();
+                  Portal.Chat.renderMembersList();
                 }
 
                 // Check for new incoming messages that are relevant to us
@@ -6761,11 +6762,16 @@
         // Initialize Live Cloud Sync
         if (!this.isMock && Portal.Graph) {
           Portal.Graph.initialSync();
-          // Start 10-second interval check for near-instant synchronization
+          // Start interval check depending on the current active page
           if (window.spSyncInterval) clearInterval(window.spSyncInterval);
-          window.spSyncInterval = setInterval(() => {
-            Portal.Graph.checkForRemoteUpdates();
-          }, 10000);
+          const currentPage = window.location.hash.slice(1) || 'dashboard';
+          if (currentPage === 'team-chat' && Portal.Chat && typeof Portal.Chat.startLiveSync === 'function') {
+            Portal.Chat.startLiveSync();
+          } else {
+            window.spSyncInterval = setInterval(() => {
+              Portal.Graph.checkForRemoteUpdates();
+            }, 10000);
+          }
         }
 
 
@@ -7044,6 +7050,7 @@
         // If the active page is team-chat, re-render immediately
         if (window.location.hash === '#team-chat' && Portal.Chat) {
           Portal.Chat.renderMessages();
+          Portal.Chat.renderMembersList();
         }
 
         try {
