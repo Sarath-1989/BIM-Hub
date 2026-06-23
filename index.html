@@ -2877,6 +2877,10 @@
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line><circle cx="12" cy="12" r="3"></circle></svg>
           <span>GPS Settings</span>
         </div>
+        <div class="nav-item" id="nav-admin-recycle" onclick="Portal.Router.navigate('recycle-bin')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
+          <span>Recycle Bin</span>
+        </div>
       </nav>
 
       <div class="sidebar-footer">
@@ -3119,6 +3123,7 @@
                 <div style="display:flex; align-items:center; gap: 12px; flex-wrap: wrap;">
                   <h2 id="pd-title" style="font-weight:800; font-size:24px; margin:0;">Project Title</h2>
                   <button class="btn" id="btn-edit-project-trigger" style="padding: 4px 8px; font-size:11px; display:none;" onclick="Portal.BIM.openEditProjectModal()">✏️ Edit Details</button>
+                  <button class="btn btn-danger" id="btn-delete-project-trigger" style="padding: 4px 8px; font-size:11px; display:none;" onclick="Portal.BIM.deleteProject()">🗑️ Delete Project</button>
                 </div>
                 <p id="pd-client" style="color: var(--text-muted); margin-top:4px;">Client Details</p>
               </div>
@@ -3178,6 +3183,7 @@
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'drawings')">Drawing Sheet Log</span>
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'team')">Assigned Team</span>
                 <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'timeline')">Timeline Gantt</span>
+                <span class="tab-trigger" onclick="Portal.BIM.setDetailTab(this, 'documents')">Attachments & Links</span>
               </div>
 
               <!-- Tasks Tab -->
@@ -3297,6 +3303,27 @@
                 <div class="gantt-chart-container" id="project-local-gantt"></div>
               </div>
 
+              <!-- Attachments & Links Tab -->
+              <div class="tab-content" id="pd-tab-documents">
+                <div class="panel-header-row" style="margin-bottom: 12px;">
+                  <h4 style="font-size: 15px;">Project Needed Documents & Drive Links</h4>
+                  <button class="btn" style="padding: 4px 10px; font-size:12px;" onclick="Portal.BIM.openAddDocumentModal()">+ Add Link / Document</button>
+                </div>
+                <div class="responsive-table-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Title / Description</th>
+                        <th>Drive Link</th>
+                        <th>Added By</th>
+                        <th>Added At</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="pd-table-documents"></tbody>
+                  </table>
+                </div>
+              </div>
 
             </div>
 
@@ -3915,7 +3942,64 @@
           </div>
         </div>
 
+        <!-- -------------------------------------------------------------
+             PAGE: RECYCLE BIN (ADMIN ONLY)
+             ------------------------------------------------------------- -->
+        <div class="page" id="page-recycle-bin">
+          <div class="card-panel">
+            <h3 class="panel-title" style="margin-bottom: 16px;">Recycle Bin (Admin Control Panel)</h3>
+            
+            <div class="tabs-wrapper">
+              <div class="tabs-header-row" style="margin-bottom: 16px;">
+                <span class="tab-trigger active" id="recycle-tab-employees-btn" onclick="Portal.Admin.setRecycleTab('employees')">Deleted Employees</span>
+                <span class="tab-trigger" id="recycle-tab-projects-btn" onclick="Portal.Admin.setRecycleTab('projects')">Deleted Projects</span>
+              </div>
 
+              <!-- Deleted Employees Pane -->
+              <div class="recycle-tab-content" id="recycle-tab-employees">
+                <div class="responsive-table-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Employee ID</th>
+                        <th>Name</th>
+                        <th>Department</th>
+                        <th>Designation</th>
+                        <th>Terminated Date</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-deleted-employees-body">
+                      <!-- Rendered dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <!-- Deleted Projects Pane -->
+              <div class="recycle-tab-content" id="recycle-tab-projects" style="display: none;">
+                <div class="responsive-table-wrapper">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Project ID</th>
+                        <th>Project Code</th>
+                        <th>Project Name</th>
+                        <th>Client</th>
+                        <th>Phase</th>
+                        <th>Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="table-deleted-projects-body">
+                      <!-- Rendered dynamically -->
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
 
       </main>
     </div>
@@ -4780,6 +4864,32 @@
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Dismiss</button>
           <button type="submit" class="btn">Register Sheet</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Attach Project Document Modal -->
+  <div class="modal-overlay" id="modal-add-document">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 class="modal-title">Attach Project Link / Document</h3>
+        <span class="modal-close" onclick="Portal.UI.closeModal()">&times;</span>
+      </div>
+      <form id="form-add-document" onsubmit="event.preventDefault(); Portal.BIM.submitDocument()">
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Title / Description</label>
+            <input type="text" class="form-control" id="adoc-title" placeholder="e.g. Site Photos, Previous drawings..." required>
+          </div>
+          <div class="form-group">
+            <label>Drive URL</label>
+            <input type="url" class="form-control" id="adoc-url" placeholder="e.g. OneDrive, Google Drive link..." required>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="Portal.UI.closeModal()">Dismiss</button>
+          <button type="submit" class="btn">Add Attachment</button>
         </div>
       </form>
     </div>
@@ -6534,6 +6644,7 @@
         hide('nav-admin-users');
         hide('nav-admin-audit');
         hide('nav-admin-gps');
+        hide('nav-admin-recycle');
 
         hide('btn-add-manual-att');
         hide('btn-add-project');
@@ -6545,7 +6656,7 @@
         if (role === 'Admin') {
           show('header-bim'); show('nav-bim-projects'); show('nav-bim-timeline'); show('nav-bim-directory'); show('nav-bim-reports');
           show('header-hr'); show('nav-hr-employees'); show('nav-hr-leave'); show('nav-hr-overtime'); show('nav-hr-payroll'); show('nav-hr-wps'); show('nav-hr-payslips');
-          show('header-admin'); show('nav-admin-users'); show('nav-admin-audit');
+          show('header-admin'); show('nav-admin-users'); show('nav-admin-audit'); show('nav-admin-recycle');
           if (currentUser.email === 'connect@asterwix.com') {
             show('nav-admin-gps');
           }
@@ -6598,7 +6709,7 @@
             if (pageId !== 'dashboard') allowed = false;
           } else if (pageId === 'gps-settings') {
             if (email !== 'connect@asterwix.com') allowed = false;
-          } else if (pageId === 'user-management' || pageId === 'audit-log') {
+          } else if (pageId === 'user-management' || pageId === 'audit-log' || pageId === 'recycle-bin') {
             if (role !== 'Admin') allowed = false;
           } else if (pageId === 'employees') {
             if (role !== 'Admin' && role !== 'HR Admin') allowed = false;
@@ -6701,6 +6812,10 @@
             Portal.UI.loadUsers();
           } else if (pageId === 'audit-log') {
             Portal.UI.loadAuditLogs();
+          } else if (pageId === 'gps-settings') {
+            Portal.GPS.renderGPSLocationsTable();
+          } else if (pageId === 'recycle-bin') {
+            Portal.Admin.initRecycleBin();
           } else if (pageId === 'gps-settings') {
             Portal.GPS.renderGPSLocationsTable();
             Portal.GPS.toggleGPSLocEmpSelect();
@@ -7748,7 +7863,7 @@
       initReportFilters: function() {
         const select = document.getElementById('report-project-select');
         select.innerHTML = '';
-        const prjs = Portal.DB.get('projects');
+        const prjs = (Portal.DB.get('projects') || []).filter(p => !p.isDeleted && !p.isPurged);
         prjs.forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.projectId;
@@ -7760,7 +7875,7 @@
       renderProjectsGrid: function() {
         const grid = document.getElementById('projects-grid');
         grid.innerHTML = '';
-        const prjs = Portal.DB.get('projects');
+        const prjs = (Portal.DB.get('projects') || []).filter(p => !p.isDeleted && !p.isPurged);
         const tasks = Portal.DB.get('tasks');
 
         prjs.forEach(p => {
@@ -7808,16 +7923,20 @@
       },
 
       viewProjectDetail: function(projId) {
+        const prjs = Portal.DB.get('projects') || [];
+        const proj = prjs.find(p => p.projectId === projId);
+        if (!proj || proj.isDeleted || proj.isPurged) {
+          Portal.UI.showToast("Project Deleted", "This project has been deleted.", "error");
+          Portal.Router.navigate('projects');
+          return;
+        }
+
         this.activeProjectId = projId;
         Portal.Router.navigate('project-detail');
 
         // Reset to tasks subtab
         const trigger = document.querySelector('.tabs-header-row .tab-trigger');
         this.setDetailTab(trigger, 'tasks');
-        
-        // Populate project card in detail
-        const prjs = Portal.DB.get('projects');
-        const proj = prjs.find(p => p.projectId === projId);
         
         document.getElementById('pd-title').innerText = proj.name;
         document.getElementById('pd-client').innerText = `Client: ${proj.client} | Code: ${proj.code}`;
@@ -7827,6 +7946,12 @@
         const editBtn = document.getElementById('btn-edit-project-trigger');
         if (editBtn) {
           editBtn.style.display = (currentUser && currentUser.role === 'Admin') ? 'inline-block' : 'none';
+        }
+
+        // Toggle Delete Button based on Admin permission
+        const deleteBtn = document.getElementById('btn-delete-project-trigger');
+        if (deleteBtn) {
+          deleteBtn.style.display = (currentUser && currentUser.role === 'Admin') ? 'inline-block' : 'none';
         }
 
         // Render ISO 19650 Metadata Grid
@@ -8090,16 +8215,25 @@
 
         // --- 5. Timeline Gantt chart Rendering ---
         this.renderLocalGantt(projTasks);
+
+        // --- 6. Documents & Drive Links Rendering ---
+        this.renderProjectDocuments();
       },
 
       setDetailTab: function(trigger, tabId) {
         // Active Trigger
-        document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+        const parent = trigger.parentElement;
+        if (parent) {
+          parent.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+        } else {
+          document.querySelectorAll('.tab-trigger').forEach(t => t.classList.remove('active'));
+        }
         trigger.classList.add('active');
 
         // Active Content
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        document.getElementById(`pd-tab-${tabId}`).classList.add('active');
+        const targetPanel = document.getElementById(`pd-tab-${tabId}`);
+        if (targetPanel) targetPanel.classList.add('active');
 
         if (tabId === 'clash') {
           this.renderClashTab(this.activeProjectId);
@@ -8109,6 +8243,10 @@
           } else {
             this.renderProjectDetailTabs();
           }
+        } else if (tabId === 'documents') {
+          this.renderProjectDocuments();
+        } else {
+          this.renderProjectDetailTabs();
         }
       },
 
@@ -8236,9 +8374,16 @@
         const start = document.getElementById('ap-start').value;
         const end = document.getElementById('ap-end').value;
 
-        const prjs = Portal.DB.get('projects');
+        const prjs = Portal.DB.get('projects') || [];
+        let maxId = 0;
+        prjs.forEach(p => {
+          const num = parseInt(p.projectId.replace("PRJ-", ""), 10);
+          if (!isNaN(num) && num > maxId) maxId = num;
+        });
+        const nextId = "PRJ-" + (maxId + 1).toString().padStart(2, '0');
+
         const newProj = {
-          projectId: "PRJ-" + (prjs.length + 1).toString().padStart(2, '0'),
+          projectId: nextId,
           code: code,
           name: name,
           client: client,
@@ -8540,7 +8685,7 @@
         const container = document.getElementById('master-timeline-gantt');
         container.innerHTML = '';
 
-        const prjs = Portal.DB.get('projects');
+        const prjs = (Portal.DB.get('projects') || []).filter(p => !p.isDeleted && !p.isPurged);
 
         if (prjs.length === 0) {
           container.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">No projects registered.</p>`;
@@ -8875,6 +9020,128 @@
           Portal.UI.closeModal();
           this.renderProjectDetailTabs();
         }
+      },
+
+      deleteProject: function() {
+        if (!currentUser || currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can delete projects.", "error");
+          return;
+        }
+
+        const projId = this.activeProjectId;
+        if (!projId) return;
+
+        if (!confirm("Are you sure you want to delete this project? All associated tasks and documents will be hidden in standard views.")) return;
+
+        const prjs = Portal.DB.get('projects') || [];
+        const proj = prjs.find(p => p.projectId === projId);
+        if (proj) {
+          proj.isDeleted = true;
+          proj.lastUpdated = Date.now();
+          Portal.DB.set('projects', prjs);
+          Portal.UI.showToast("Project Deleted", `Successfully moved project ${proj.code} to Recycle Bin.`, "info");
+          Portal.Audit.log("Project Hub", "Delete Project", `Soft deleted project profile: ${proj.code} (${projId})`);
+          
+          this.renderProjectsGrid();
+          Portal.Router.navigate('projects');
+        }
+      },
+
+      openAddDocumentModal: function() {
+        const form = document.getElementById('form-add-document');
+        if (form) form.reset();
+        Portal.UI.openModal('modal-add-document');
+      },
+
+      submitDocument: function() {
+        const title = document.getElementById('adoc-title').value.trim();
+        const url = document.getElementById('adoc-url').value.trim();
+
+        if (!title || !url) {
+          Portal.UI.showToast("Error", "Title and Drive Link are required.", "error");
+          return;
+        }
+
+        const projId = this.activeProjectId;
+        if (!projId) return;
+
+        const prjs = Portal.DB.get('projects') || [];
+        const proj = prjs.find(p => p.projectId === projId);
+        if (!proj) return;
+
+        if (!proj.documents) proj.documents = [];
+
+        const newDoc = {
+          id: "doc-" + Date.now(),
+          title: title,
+          url: url,
+          addedBy: currentUser ? currentUser.name : "Unknown",
+          addedAt: new Date().toISOString()
+        };
+
+        proj.documents.push(newDoc);
+        proj.lastUpdated = Date.now();
+
+        Portal.DB.set('projects', prjs);
+        Portal.UI.showToast("Attachment Added", "Drive URL successfully linked to project.", "success");
+        Portal.Audit.log("Project Hub", "Add Attachment", `Linked drive document "${title}" on project ${proj.code}`);
+
+        Portal.UI.closeModal();
+        this.renderProjectDocuments();
+      },
+
+      deleteProjectDocument: function(docId) {
+        if (!confirm("Are you sure you want to remove this drive link attachment?")) return;
+
+        const projId = this.activeProjectId;
+        if (!projId) return;
+
+        const prjs = Portal.DB.get('projects') || [];
+        const proj = prjs.find(p => p.projectId === projId);
+        if (!proj || !proj.documents) return;
+
+        proj.documents = proj.documents.filter(d => d.id !== docId);
+        proj.lastUpdated = Date.now();
+
+        Portal.DB.set('projects', prjs);
+        Portal.UI.showToast("Attachment Removed", "Linked drive document deleted.", "info");
+        Portal.Audit.log("Project Hub", "Remove Attachment", `Removed a linked drive document on project ${proj.code}`);
+
+        this.renderProjectDocuments();
+      },
+
+      renderProjectDocuments: function() {
+        const tbody = document.getElementById('pd-table-documents');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const projId = this.activeProjectId;
+        if (!projId) return;
+
+        const prjs = Portal.DB.get('projects') || [];
+        const proj = prjs.find(p => p.projectId === projId);
+        if (!proj) return;
+
+        const docs = proj.documents || [];
+        if (docs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No documents or drive links attached to this project.</td></tr>`;
+          return;
+        }
+
+        docs.forEach(d => {
+          const dateStr = new Date(d.addedAt).toLocaleDateString() + " " + new Date(d.addedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><strong>${Portal.escapeHTML(d.title)}</strong></td>
+            <td><a href="${Portal.escapeHTML(d.url)}" target="_blank" style="color:var(--accent-bim); text-decoration:underline; font-family:var(--font-mono); font-size:11px; word-break:break-all;">${Portal.escapeHTML(d.url)} &rarr;</a></td>
+            <td>${Portal.escapeHTML(d.addedBy)}</td>
+            <td><span style="font-size:11px; color:var(--text-muted);">${Portal.escapeHTML(dateStr)}</span></td>
+            <td>
+              <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.BIM.deleteProjectDocument('${d.id}')">Delete</button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
       }
     };
 
@@ -8969,7 +9236,7 @@
         const tbody = document.getElementById('table-employees').querySelector('tbody');
         tbody.innerHTML = '';
 
-        const emps = (Portal.DB.get('employees') || []).filter(e => !e.isTerminated);
+        const emps = (Portal.DB.get('employees') || []).filter(e => !e.isTerminated && !e.isPurged);
         const search = document.getElementById('emp-search').value.toLowerCase();
         const dept = document.getElementById('emp-dept-filter').value;
 
@@ -8996,7 +9263,7 @@
             <td>${manager ? Portal.escapeHTML(manager.name) : '--'}</td>
             <td><strong style="color:var(--accent-hr); font-family:var(--font-mono);">${Portal.escapeHTML(salaryValStr)}</strong></td>
             <td>
-              ${currentUser.email === 'connect@asterwix.com' ? `
+              ${currentUser.role === 'Admin' ? `
                 <div style="display: flex; gap: 6px;">
                   <button class="btn" style="padding:4px 8px; font-size:11px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #3b82f6;" onclick="Portal.HR.openEditEmployeeModal('${e.empId}')">Edit</button>
                   <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.HR.deleteEmployee('${e.empId}')">Terminate</button>
@@ -9292,8 +9559,8 @@
       },
 
       deleteEmployee: function(empId) {
-        if (currentUser.email !== 'connect@asterwix.com') {
-          Portal.UI.showToast("Permission Denied", "Only the Super Admin can terminate employee records.", "error");
+        if (currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only Administrators can terminate employee records.", "error");
           return;
         }
 
@@ -9519,7 +9786,7 @@
         // Seed project lists in Overtime form
         const otProjSelect = document.getElementById('ot-project-select');
         otProjSelect.innerHTML = '';
-        Portal.DB.get('projects').forEach(p => {
+        (Portal.DB.get('projects') || []).filter(p => !p.isDeleted && !p.isPurged).forEach(p => {
           const opt = document.createElement('option');
           opt.value = p.code;
           opt.innerText = p.name;
@@ -10305,7 +10572,7 @@
     Portal.UI.loadUsers = function() {
       const tbody = document.getElementById('table-user-roles').querySelector('tbody');
       tbody.innerHTML = '';
-      const emps = (Portal.DB.get('employees') || []).filter(e => !e.isTerminated);
+      const emps = (Portal.DB.get('employees') || []).filter(e => !e.isTerminated && !e.isPurged);
 
       emps.forEach(e => {
         const tr = document.createElement('tr');
@@ -10378,6 +10645,194 @@
           console.error("Error generating vector logo SVG:", e);
         }
       });
+    };
+
+    /* -------------------------------------------------------------
+       ADMINISTRATOR CONTROLS (RECYCLE BIN & SECURITY)
+       ------------------------------------------------------------- */
+    Portal.Admin = {
+      activeRecycleTab: 'employees',
+
+      initRecycleBin: function() {
+        this.setRecycleTab(this.activeRecycleTab);
+      },
+
+      setRecycleTab: function(tabName) {
+        this.activeRecycleTab = tabName;
+        const empBtn = document.getElementById('recycle-tab-employees-btn');
+        const prjBtn = document.getElementById('recycle-tab-projects-btn');
+        const empPane = document.getElementById('recycle-tab-employees');
+        const prjPane = document.getElementById('recycle-tab-projects');
+
+        if (tabName === 'employees') {
+          if (empBtn) empBtn.classList.add('active');
+          if (prjBtn) prjBtn.classList.remove('active');
+          if (empPane) empPane.style.display = 'block';
+          if (prjPane) prjPane.style.display = 'none';
+          this.renderDeletedEmployees();
+        } else {
+          if (empBtn) empBtn.classList.remove('active');
+          if (prjBtn) prjBtn.classList.add('active');
+          if (empPane) empPane.style.display = 'none';
+          if (prjPane) prjPane.style.display = 'block';
+          this.renderDeletedProjects();
+        }
+      },
+
+      renderDeletedEmployees: function() {
+        const tbody = document.getElementById('table-deleted-employees-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const emps = Portal.DB.get('employees') || [];
+        const deletedEmps = emps.filter(e => e.isTerminated === true && !e.isPurged);
+
+        if (deletedEmps.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No deleted employees in Recycle Bin.</td></tr>`;
+          return;
+        }
+
+        deletedEmps.forEach(e => {
+          const dateStr = e.lastUpdated ? new Date(e.lastUpdated).toLocaleDateString() : 'N/A';
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code style="font-family:var(--font-mono);">${Portal.escapeHTML(e.empId)}</code></td>
+            <td><strong>${Portal.escapeHTML(e.name)}</strong><br><span style="font-size:11px; color:var(--text-muted);">${Portal.escapeHTML(e.email)}</span></td>
+            <td>${Portal.escapeHTML(e.dept)}</td>
+            <td>${Portal.escapeHTML(e.designation)}</td>
+            <td>${Portal.escapeHTML(dateStr)}</td>
+            <td>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-success" style="padding:4px 8px; font-size:11px; background:#059669; border-color:#059669; color:#fff;" onclick="Portal.Admin.restoreEmployee('${e.empId}')">Restore</button>
+                <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.Admin.permanentDeleteEmployee('${e.empId}')">Delete Permanently</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      },
+
+      restoreEmployee: function(empId) {
+        if (currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can restore employees.", "error");
+          return;
+        }
+
+        const emps = Portal.DB.get('employees') || [];
+        const emp = emps.find(e => e.empId === empId);
+        if (emp) {
+          emp.isTerminated = false;
+          emp.status = "Active";
+          emp.lastUpdated = Date.now();
+          Portal.DB.set('employees', emps);
+          Portal.UI.showToast("Employee Restored", `${emp.name} has been restored.`, "success");
+          Portal.Audit.log("Recycle Bin", "Restore Employee", `Restored employee record: ${empId}`);
+          this.renderDeletedEmployees();
+          Portal.HR.renderEmployees();
+        }
+      },
+
+      permanentDeleteEmployee: function(empId) {
+        if (currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can permanently delete employees.", "error");
+          return;
+        }
+
+        if (!confirm(`Warning: Are you sure you want to permanently delete employee ${empId}? This action is irreversible.`)) return;
+
+        const emps = Portal.DB.get('employees') || [];
+        const emp = emps.find(e => e.empId === empId);
+        if (emp) {
+          emp.isPurged = true;
+          emp.lastUpdated = Date.now();
+          Portal.DB.set('employees', emps);
+          Portal.UI.showToast("Permanent Deletion", `Record ${empId} has been permanently deleted.`, "success");
+          Portal.Audit.log("Recycle Bin", "Permanent Delete Employee", `Permanently purged employee: ${empId}`);
+          this.renderDeletedEmployees();
+        }
+      },
+
+      renderDeletedProjects: function() {
+        const tbody = document.getElementById('table-deleted-projects-body');
+        if (!tbody) return;
+        tbody.innerHTML = '';
+
+        const prjs = Portal.DB.get('projects') || [];
+        const deletedPrjs = prjs.filter(p => p.isDeleted === true && !p.isPurged);
+
+        if (deletedPrjs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No deleted projects in Recycle Bin.</td></tr>`;
+          return;
+        }
+
+        deletedPrjs.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td><code style="font-family:var(--font-mono);">${Portal.escapeHTML(p.projectId)}</code></td>
+            <td><strong>${Portal.escapeHTML(p.code)}</strong></td>
+            <td><strong>${Portal.escapeHTML(p.name)}</strong></td>
+            <td>${Portal.escapeHTML(p.client)}</td>
+            <td><span class="role-chip">${Portal.escapeHTML(p.phase)}</span></td>
+            <td>
+              <div style="display:flex; gap:8px;">
+                <button class="btn btn-success" style="padding:4px 8px; font-size:11px; background:#059669; border-color:#059669; color:#fff;" onclick="Portal.Admin.restoreProject('${p.projectId}')">Restore</button>
+                <button class="btn btn-danger" style="padding:4px 8px; font-size:11px;" onclick="Portal.Admin.permanentDeleteProject('${p.projectId}')">Delete Permanently</button>
+              </div>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      },
+
+      restoreProject: function(projId) {
+        if (currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can restore projects.", "error");
+          return;
+        }
+
+        const prjs = Portal.DB.get('projects') || [];
+        const proj = prjs.find(p => p.projectId === projId);
+        if (proj) {
+          proj.isDeleted = false;
+          proj.lastUpdated = Date.now();
+          Portal.DB.set('projects', prjs);
+          Portal.UI.showToast("Project Restored", `Project ${proj.name} has been restored.`, "success");
+          Portal.Audit.log("Recycle Bin", "Restore Project", `Restored project profile: ${projId}`);
+          this.renderDeletedProjects();
+        }
+      },
+
+      permanentDeleteProject: function(projId) {
+        if (currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Permission Denied", "Only administrators can permanently delete projects.", "error");
+          return;
+        }
+
+        if (!confirm(`Warning: Are you sure you want to permanently delete project ${projId}? All task linkages will be archived. This is irreversible.`)) return;
+
+        const prjs = Portal.DB.get('projects') || [];
+        const proj = prjs.find(p => p.projectId === projId);
+        if (proj) {
+          proj.isPurged = true;
+          proj.lastUpdated = Date.now();
+
+          // Also purge associated tasks for safety
+          const tasks = Portal.DB.get('tasks') || [];
+          tasks.forEach(t => {
+            if (t.projectId === projId) {
+              t.isDeleted = true;
+              t.isPurged = true;
+              t.lastUpdated = Date.now();
+            }
+          });
+          Portal.DB.set('tasks', tasks);
+
+          Portal.DB.set('projects', prjs);
+          Portal.UI.showToast("Permanent Deletion", `Project ${proj.code} permanently purged.`, "success");
+          Portal.Audit.log("Recycle Bin", "Permanent Delete Project", `Permanently purged project: ${projId}`);
+          this.renderDeletedProjects();
+        }
+      }
     };
 
     /* -------------------------------------------------------------
