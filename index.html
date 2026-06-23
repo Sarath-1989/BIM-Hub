@@ -5407,7 +5407,7 @@
               const sessionUserStr = sessionStorage.getItem('ax_user');
               if (sessionUserStr) {
                 const sessionUser = JSON.parse(sessionUserStr);
-                if (sessionUser && sessionUser.email === 'connect@asterwix.com') {
+                if (sessionUser && sessionUser.role === 'Admin') {
                   isAdmin = true;
                 }
               }
@@ -6780,10 +6780,10 @@
           }
         }
 
-        // Show/hide "+ Add Employee" button depending on Super Admin
+        // Show/hide "+ Add Employee" button depending on role
         const addEmpBtn = document.getElementById('btn-add-employee-trigger');
         if (addEmpBtn) {
-          addEmpBtn.style.display = (currentUser.email === 'connect@asterwix.com') ? 'block' : 'none';
+          addEmpBtn.style.display = (currentUser.role === 'Admin' || currentUser.role === 'HR Admin') ? 'block' : 'none';
         }
 
         // Initialize Live Cloud Sync
@@ -6873,7 +6873,7 @@
           show('header-bim'); show('nav-bim-projects'); show('nav-bim-timeline'); show('nav-bim-directory'); show('nav-bim-reports');
           show('header-hr'); show('nav-hr-employees'); show('nav-hr-leave'); show('nav-hr-overtime'); show('nav-hr-payroll'); show('nav-hr-wps'); show('nav-hr-payslips');
           show('header-admin'); show('nav-admin-users'); show('nav-admin-audit'); show('nav-admin-recycle');
-          if (currentUser.email === 'connect@asterwix.com') {
+          if (currentUser.role === 'Admin') {
             show('nav-admin-gps');
           }
           show('btn-add-manual-att'); show('btn-add-project'); show('panel-leave-approvals'); show('btn-add-overtime'); show('dashboard-map-panel');
@@ -6924,7 +6924,7 @@
           if (role === 'Guest') {
             if (pageId !== 'dashboard') allowed = false;
           } else if (pageId === 'gps-settings') {
-            if (email !== 'connect@asterwix.com') allowed = false;
+            if (role !== 'Admin') allowed = false;
           } else if (pageId === 'user-management' || pageId === 'audit-log' || pageId === 'recycle-bin') {
             if (role !== 'Admin') allowed = false;
           } else if (pageId === 'employees') {
@@ -7087,7 +7087,7 @@
           if (o.isActive) {
             const isGeneral = o.type === 'Office' || o.type === 'Site';
             const isAssignedToMe = o.type === 'WFH' && o.assignedEmpId === currentUser.empId;
-            const isSuperAdminView = currentUser.email === 'connect@asterwix.com';
+            const isSuperAdminView = currentUser.role === 'Admin';
 
             if (isGeneral || isAssignedToMe || isSuperAdminView) {
               const opt = document.createElement('option');
@@ -7670,8 +7670,8 @@
       },
 
       submitGPSLocation: function() {
-        if (currentUser.email !== 'connect@asterwix.com') {
-          Portal.UI.showToast("Access Denied", "Only the Super Admin can configure GPS settings.", "error");
+        if (currentUser.role !== 'Admin') {
+          Portal.UI.showToast("Access Denied", "Only Administrators can configure GPS settings.", "error");
           return;
         }
 
@@ -7723,7 +7723,7 @@
       },
 
       toggleLocationActive: function(id) {
-        if (currentUser.email !== 'connect@asterwix.com') return;
+        if (currentUser.role !== 'Admin') return;
         const offices = Portal.DB.get('offices');
         const o = offices.find(x => x.id === id);
         if (o) {
@@ -7738,7 +7738,7 @@
       },
 
       deleteGPSLocation: function(id) {
-        if (currentUser.email !== 'connect@asterwix.com') return;
+        if (currentUser.role !== 'Admin') return;
         if (!confirm("Are you sure you want to delete this GPS location?")) return;
 
         const offices = Portal.DB.get('offices') || [];
@@ -9505,8 +9505,8 @@
       },
 
       submitEmployee: function() {
-        if (currentUser.email !== 'connect@asterwix.com') {
-          Portal.UI.showToast("Permission Denied", "Only the Super Admin can add employees.", "error");
+        if (currentUser.role !== 'Admin' && currentUser.role !== 'HR Admin') {
+          Portal.UI.showToast("Permission Denied", "Only Administrators or HR Administrators can add employees.", "error");
           return;
         }
 
@@ -9654,8 +9654,8 @@
       },
 
       updateEmployee: function() {
-        if (currentUser.email !== 'connect@asterwix.com') {
-          Portal.UI.showToast("Permission Denied", "Only the Super Admin can edit employees.", "error");
+        if (currentUser.role !== 'Admin' && currentUser.role !== 'HR Admin') {
+          Portal.UI.showToast("Permission Denied", "Only Administrators or HR Administrators can edit employees.", "error");
           return;
         }
 
