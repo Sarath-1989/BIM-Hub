@@ -6536,7 +6536,7 @@
 
       resolveUserProfile: function(email, defaultName) {
         const emps = Portal.DB.get('employees') || [];
-        const match = emps.find(e => e.email.toLowerCase() === email.toLowerCase());
+        const match = emps.find(e => (e.email || '').toLowerCase().trim() === email.toLowerCase().trim());
 
         if (match && match.isTerminated) {
           Portal.UI.showToast("Account Suspended", "This employee record has been terminated.", "error");
@@ -9474,7 +9474,7 @@
         }
 
         const name = document.getElementById('ae-name').value;
-        const email = document.getElementById('ae-email').value;
+        const email = document.getElementById('ae-email').value.trim();
         const dept = document.getElementById('ae-dept').value;
         const designation = document.getElementById('ae-designation').value;
         const location = document.getElementById('ae-location').value;
@@ -9625,7 +9625,7 @@
         const originalId = document.getElementById('ee-original-id').value;
         const newId = document.getElementById('ee-id').value.trim();
         const name = document.getElementById('ee-name').value;
-        const email = document.getElementById('ee-email').value;
+        const email = document.getElementById('ee-email').value.trim();
         const dept = document.getElementById('ee-dept').value;
         const designation = document.getElementById('ee-designation').value;
         const location = document.getElementById('ee-location').value;
