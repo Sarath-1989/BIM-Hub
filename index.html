@@ -6412,6 +6412,7 @@
     Portal.Auth = {
       isMock: true,
       msalInstance: null,
+      msalInitPromise: null,
 
       getCurrentUserEmail: function() {
         return currentUser ? currentUser.email : "Unknown User";
@@ -6419,6 +6420,9 @@
 
       getAccessToken: async function() {
         if (this.isMock || !this.msalInstance) return null;
+        if (this.msalInitPromise) {
+          await this.msalInitPromise;
+        }
         const accounts = this.msalInstance.getAllAccounts();
         if (accounts.length === 0) return null;
         try {
@@ -6462,7 +6466,7 @@
               },
               cache: { cacheLocation: 'sessionStorage' }
             });
-            this.msalInstance.initialize().then(() => {
+            this.msalInitPromise = this.msalInstance.initialize().then(() => {
               this.checkActiveSSOSession();
             }).catch(initErr => {
               console.error("MSAL Initialization failed:", initErr);
@@ -6625,10 +6629,13 @@
         }
       },
 
-      loginSSO: function() {
+      loginSSO: async function() {
         if (!this.msalInstance) {
           Portal.UI.showToast("Configuration Error", "SSO is not configured. Please enter your Client ID and Tenant ID in config/app-config.js.", "error");
           return;
+        }
+        if (this.msalInitPromise) {
+          await this.msalInitPromise;
         }
 
         this.msalInstance.loginPopup({ 
