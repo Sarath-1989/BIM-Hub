@@ -6154,7 +6154,7 @@
             const cloudResetToken = cloudData.dbResetToken || 'default';
             const localResetToken = localStorage.getItem('ax_db_reset_token') || 'default';
 
-            const forceOverwrite = cloudResetToken !== localResetToken;
+            const forceOverwrite = cloudResetToken !== localResetToken && cloudResetToken !== 'default';
 
             if (forceOverwrite || (cloudTimestamp > localTimestamp && !hasUnsynced)) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
@@ -6275,7 +6275,7 @@
             const cloudResetToken = cloudData.dbResetToken || 'default';
             const localResetToken = localStorage.getItem('ax_db_reset_token') || 'default';
 
-            const forceOverwrite = cloudResetToken !== localResetToken;
+            const forceOverwrite = cloudResetToken !== localResetToken && cloudResetToken !== 'default';
 
             if (forceOverwrite || cloudTimestamp > localTimestamp) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
