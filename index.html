@@ -5476,8 +5476,7 @@
           const chats = localStorage.getItem('ax_chats');
           if (!chats || chats === '[]') {
             const initialChats = [
-              { id: "MSG-01", senderId: "EMP-001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now() - 7200000, lastUpdated: Date.now() - 7200000 },
-              { id: "MSG-02", senderId: "EMP-002", senderName: "Amit Sharma", senderPhoto: "", recipientId: "ALL", text: "Thanks Sarath, the new Microsoft Planner Tasks board integration looks awesome!", timestamp: Date.now() - 3600000, lastUpdated: Date.now() - 3600000 }
+              { id: "MSG-01", senderId: "EMP-001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now() - 7200000, lastUpdated: Date.now() - 7200000 }
             ];
             localStorage.setItem('ax_chats', JSON.stringify(initialChats));
           }
@@ -6152,13 +6151,30 @@
 
             const hasUnsynced = localStorage.getItem('ax_db_has_unsynced_changes') === 'true';
 
-            if (cloudTimestamp > localTimestamp && !hasUnsynced) {
+            if (cloudTimestamp > localTimestamp) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
-              keys.forEach(k => {
-                if (cloudData[k]) {
-                  localStorage.setItem('ax_' + k, JSON.stringify(cloudData[k]));
-                }
-              });
+              
+              if (hasUnsynced) {
+                // Merge cloud updates into unsynced local data using LWW merge
+                const localData = {};
+                keys.forEach(k => {
+                  localData[k] = Portal.DB.get(k);
+                });
+                const merged = Portal.DB.merge(localData, cloudData);
+                keys.forEach(k => {
+                  if (merged[k]) {
+                    localStorage.setItem('ax_' + k, JSON.stringify(merged[k]));
+                  }
+                });
+              } else {
+                // Overwrite directly if no unsynced changes
+                keys.forEach(k => {
+                  if (cloudData[k]) {
+                    localStorage.setItem('ax_' + k, JSON.stringify(cloudData[k]));
+                  }
+                });
+              }
+
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
               // Ensure cloud-updated IDs are migrated to the new custom format
               Portal.DB.migrateEmployeeIDsToNewFormat();
