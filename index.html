@@ -3318,12 +3318,13 @@
              ------------------------------------------------------------- -->
         <div class="page" id="page-team-directory">
           <div class="card-panel">
-            <h3 class="panel-title" style="margin-bottom: 16px;">BIM Operations Team Directory</h3>
+            <h3 class="panel-title" style="margin-bottom: 16px;">Team Directory</h3>
             <div class="responsive-table-wrapper">
               <table class="data-table" id="table-team-directory">
                 <thead>
                   <tr>
                     <th>Member</th>
+                    <th>Department</th>
                     <th>Designation</th>
                     <th>Email</th>
                     <th>Contact Phone</th>
@@ -5321,9 +5322,6 @@
             if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
               Portal.Graph.queueAutoBackup();
             }
-            if (Portal.Graph && typeof Portal.Graph.backupChatsLive === 'function') {
-              Portal.Graph.backupChatsLive();
-            }
           }
         } catch (e) {
           console.error("Default staff cleanup failed:", e);
@@ -5554,20 +5552,14 @@
       set: function(key, data) {
         try {
           localStorage.setItem('ax_' + key, JSON.stringify(data));
-          if (key === 'chats') {
-            localStorage.setItem('ax_chats_has_unsynced_changes', 'true');
-          } else {
-            localStorage.setItem('ax_db_has_unsynced_changes', 'true');
-          }
+          localStorage.setItem('ax_db_has_unsynced_changes', 'true');
         } catch (e) {
           console.error(`Error saving ${key} to LocalStorage:`, e);
           Portal.UI.showToast("Storage Limit Exceeded", "Could not save data locally. Browser quota may be full.", "error");
         }
         // Trigger auto-backup to SharePoint if in live mode
-        if (key !== 'chats') {
-          if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
-            Portal.Graph.queueAutoBackup();
-          }
+        if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
+          Portal.Graph.queueAutoBackup();
         }
       },
 
@@ -5680,7 +5672,6 @@
       siteId: null,
       autoBackupTimeout: null,
       isSyncing: false,
-      isSyncingChats: false,
 
       getSiteId: async function(token) {
         if (this.siteId) return this.siteId;
@@ -5828,11 +5819,6 @@
             
             if (cloudTimestamp > localTimestamp) {
               console.log("Cloud has newer data than local base. Merging cloud data into local edits...");
-              const localChats = Portal.DB.get('chats') || [];
-              const cloudChats = cloudData.chats || [];
-              const localIds = new Set(localChats.map(m => m.id));
-              const newIncomingChats = cloudChats.filter(m => !localIds.has(m.id));
-
               const merged = Portal.DB.merge(backupData, cloudData);
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
               keys.forEach(k => {
@@ -5842,36 +5828,6 @@
                 }
               });
               Portal.DB.migrateEmployeeIDsToNewFormat();
-
-              // Check for new chat messages that are relevant to us
-              if (currentUser && currentUser.empId) {
-                let hasNewRelevantChats = false;
-                let latestSenderName = "";
-                let latestText = "";
-
-                newIncomingChats.forEach(m => {
-                  if (m.senderId !== currentUser.empId && (m.recipientId === 'ALL' || m.recipientId === currentUser.empId)) {
-                    hasNewRelevantChats = true;
-                    latestSenderName = m.senderName;
-                    latestText = m.text;
-                  }
-                });
-
-                if (hasNewRelevantChats) {
-                  if (Portal.Chat && typeof Portal.Chat.playNotificationSound === 'function') {
-                    Portal.Chat.playNotificationSound();
-                  }
-                  
-                  const isViewingChat = window.location.hash === '#team-chat';
-                  const isCurrentActiveConv = Portal.Chat.selectedRecipientId === 'ALL' ? 
-                                              newIncomingChats.some(m => m.recipientId === 'ALL') :
-                                              newIncomingChats.some(m => m.senderId === Portal.Chat.selectedRecipientId);
-                                              
-                  if (!isViewingChat || !isCurrentActiveConv) {
-                    Portal.UI.showToast(`New Message from ${latestSenderName}`, latestText, "info");
-                  }
-                }
-              }
             }
           }
         } catch (mergeErr) {
@@ -6053,11 +6009,6 @@
             const hasUnsynced = localStorage.getItem('ax_db_has_unsynced_changes') === 'true';
 
             if (cloudTimestamp > localTimestamp && !hasUnsynced) {
-              const localChats = Portal.DB.get('chats') || [];
-              const cloudChats = cloudData.chats || [];
-              const localIds = new Set(localChats.map(m => m.id));
-              const newIncomingChats = cloudChats.filter(m => !localIds.has(m.id));
-
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
               keys.forEach(k => {
                 if (cloudData[k]) {
@@ -6067,36 +6018,6 @@
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
               // Ensure cloud-updated IDs are migrated to the new custom format
               Portal.DB.migrateEmployeeIDsToNewFormat();
-
-              // Check for new chat messages that are relevant to us
-              if (currentUser && currentUser.empId) {
-                let hasNewRelevantChats = false;
-                let latestSenderName = "";
-                let latestText = "";
-
-                newIncomingChats.forEach(m => {
-                  if (m.senderId !== currentUser.empId && (m.recipientId === 'ALL' || m.recipientId === currentUser.empId)) {
-                    hasNewRelevantChats = true;
-                    latestSenderName = m.senderName;
-                    latestText = m.text;
-                  }
-                });
-
-                if (hasNewRelevantChats) {
-                  if (Portal.Chat && typeof Portal.Chat.playNotificationSound === 'function') {
-                    Portal.Chat.playNotificationSound();
-                  }
-                  
-                  const isViewingChat = window.location.hash === '#team-chat';
-                  const isCurrentActiveConv = Portal.Chat.selectedRecipientId === 'ALL' ? 
-                                              newIncomingChats.some(m => m.recipientId === 'ALL') :
-                                              newIncomingChats.some(m => m.senderId === Portal.Chat.selectedRecipientId);
-                                              
-                  if (!isViewingChat || !isCurrentActiveConv) {
-                    Portal.UI.showToast(`New Message from ${latestSenderName}`, latestText, "info");
-                  }
-                }
-              }
               
               // Re-resolve and update the currentUser session variables in real-time
               if (currentUser && currentUser.email) {
@@ -8156,13 +8077,13 @@
         // --- 4. Team Members Tab ---
         const teamTbody = document.getElementById('pd-table-team');
         teamTbody.innerHTML = '';
-        emps.filter(e => e.dept.includes("BIM")).forEach(e => {
+        emps.filter(e => !e.isTerminated).forEach(e => {
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td><strong>${e.name}</strong></td>
-            <td><span class="role-chip">${e.role}</span></td>
-            <td>${e.email}</td>
-            <td>${e.phone || '+971 4 0000000'}</td>
+            <td><strong>${Portal.escapeHTML(e.name)}</strong></td>
+            <td><span class="role-chip">${Portal.escapeHTML(e.role)}</span></td>
+            <td>${Portal.escapeHTML(e.email)}</td>
+            <td>${Portal.escapeHTML(e.phone || '+971 4 0000000')}</td>
           `;
           teamTbody.appendChild(tr);
         });
@@ -8677,17 +8598,18 @@
       renderTeamDirectory: function() {
         const tbody = document.getElementById('table-team-directory').querySelector('tbody');
         tbody.innerHTML = '';
-        const emps = Portal.DB.get('employees');
+        const emps = Portal.DB.get('employees') || [];
         
-        emps.filter(e => e.dept.includes("BIM")).forEach(e => {
+        emps.filter(e => !e.isTerminated).forEach(e => {
           const manager = emps.find(m => m.empId === e.managerId);
           const tr = document.createElement('tr');
           tr.innerHTML = `
-            <td><strong>${e.name}</strong></td>
-            <td><span class="role-chip" style="background:var(--accent-bim); color:#fff; border:none;">${e.designation}</span></td>
-            <td><code>${e.email}</code></td>
-            <td>${e.phone || '+971 4 000 0000'}</td>
-            <td>${manager ? manager.name : '--'}</td>
+            <td><strong>${Portal.escapeHTML(e.name)}</strong></td>
+            <td>${Portal.escapeHTML(e.dept)}</td>
+            <td><span class="role-chip" style="background:var(--accent-bim); color:#fff; border:none;">${Portal.escapeHTML(e.designation)}</span></td>
+            <td><code>${Portal.escapeHTML(e.email)}</code></td>
+            <td>${Portal.escapeHTML(e.phone || '+971 4 000 0000')}</td>
+            <td>${manager ? Portal.escapeHTML(manager.name) : '--'}</td>
           `;
           tbody.appendChild(tr);
         });
