@@ -5366,6 +5366,66 @@
           return;
         }
 
+        // 1a. One-time cleanup of old mock projects DXB-MAR-01 and DXB-DWT-02
+        try {
+          const cleanKey = 'ax_db_cleaned_mock_projects_v2';
+          if (localStorage.getItem(cleanKey) !== 'true') {
+            let projects = this.get('projects') || [];
+            const mockProjIds = ['dxb-mar-01', 'dxb-dwt-02'];
+            const hasMockProjs = projects.some(p => mockProjIds.includes(p.projectId.toLowerCase()));
+            
+            if (hasMockProjs) {
+              console.log("Mock projects detected. Cleaning up mock projects...");
+              projects = projects.filter(p => !mockProjIds.includes(p.projectId.toLowerCase()));
+              localStorage.setItem('ax_projects', JSON.stringify(projects));
+
+              // Clean up tasks referencing mock projects
+              let tasks = this.get('tasks') || [];
+              tasks = tasks.filter(t => !mockProjIds.includes(t.projectId.toLowerCase()));
+              localStorage.setItem('ax_tasks', JSON.stringify(tasks));
+
+              // Clean up other tables
+              let models = this.get('models') || [];
+              models = models.filter(m => !mockProjIds.includes(m.projectId.toLowerCase()));
+              localStorage.setItem('ax_models', JSON.stringify(models));
+
+              let drawings = this.get('drawings') || [];
+              drawings = drawings.filter(d => !mockProjIds.includes(d.projectId.toLowerCase()));
+              localStorage.setItem('ax_drawings', JSON.stringify(drawings));
+            }
+            
+            // Generate a fresh dbResetToken if it is missing or still 'default'
+            const currentToken = localStorage.getItem('ax_db_reset_token');
+            if (!currentToken || currentToken === 'default') {
+              const freshToken = 'db_reset_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+              localStorage.setItem('ax_db_reset_token', freshToken);
+            }
+
+            // If the logged-in user is the Admin, mark as unsynced to push the cleanup to the cloud
+            let isAdmin = false;
+            try {
+              const sessionUserStr = sessionStorage.getItem('ax_user');
+              if (sessionUserStr) {
+                const sessionUser = JSON.parse(sessionUserStr);
+                if (sessionUser && sessionUser.email === 'connect@asterwix.com') {
+                  isAdmin = true;
+                }
+              }
+            } catch (e) {}
+
+            if (isAdmin) {
+              localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+              if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
+                Portal.Graph.queueAutoBackup();
+              }
+            }
+
+            localStorage.setItem(cleanKey, 'true');
+          }
+        } catch (e) {
+          console.error("Mock projects cleanup failed:", e);
+        }
+
         // 1. Ensure Sarath Perucheril (Super Admin with the photo) exists in the employee list without wiping others
         try {
           let employees = JSON.parse(emps) || [];
