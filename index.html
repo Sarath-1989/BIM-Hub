@@ -5752,14 +5752,18 @@
       set: function(key, data) {
         try {
           localStorage.setItem('ax_' + key, JSON.stringify(data));
-          localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+          if (!currentUser || currentUser.role !== 'Guest') {
+            localStorage.setItem('ax_db_has_unsynced_changes', 'true');
+          }
         } catch (e) {
           console.error(`Error saving ${key} to LocalStorage:`, e);
           Portal.UI.showToast("Storage Limit Exceeded", "Could not save data locally. Browser quota may be full.", "error");
         }
         // Trigger auto-backup to SharePoint if in live mode
-        if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
-          Portal.Graph.queueAutoBackup();
+        if (!currentUser || currentUser.role !== 'Guest') {
+          if (Portal.Graph && typeof Portal.Graph.queueAutoBackup === 'function') {
+            Portal.Graph.queueAutoBackup();
+          }
         }
       },
 
@@ -6012,19 +6016,25 @@
 
       queueAutoBackup: function() {
         if (Portal.Auth.isMock) return;
+        if (currentUser && currentUser.role === 'Guest') return;
         this.updateStatusUI('sync-saving', 'Saving changes...');
         
         if (this.autoBackupTimeout) {
           clearTimeout(this.autoBackupTimeout);
         }
         
-        this.autoBackupTimeout = setTimeout(() => {
-          this.backupDatabaseLive();
+        this.autoBackupTimeout = setTimeout(async () => {
+          await this.backupDatabaseLive();
+          this.autoBackupTimeout = null;
         }, 500);
       },
 
       backupDatabaseLive: async function() {
         if (this.isSyncing) return;
+        if (currentUser && currentUser.role === 'Guest') {
+          console.log("Database backup skipped for Guest user.");
+          return false;
+        }
         this.isSyncing = true;
         this.updateStatusUI('sync-saving', 'Saving changes...');
 
@@ -6156,13 +6166,29 @@
 
             const forceOverwrite = cloudResetToken !== localResetToken && cloudResetToken !== 'default';
 
-            if (forceOverwrite || (cloudTimestamp > localTimestamp && !hasUnsynced)) {
+            if (forceOverwrite || cloudTimestamp > localTimestamp) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
-              keys.forEach(k => {
-                if (cloudData[k]) {
-                  localStorage.setItem('ax_' + k, JSON.stringify(cloudData[k]));
-                }
-              });
+              
+              if (hasUnsynced && !forceOverwrite) {
+                // Merge cloud updates into unsynced local data using LWW merge
+                const localData = {};
+                keys.forEach(k => {
+                  localData[k] = Portal.DB.get(k);
+                });
+                const merged = Portal.DB.merge(localData, cloudData);
+                keys.forEach(k => {
+                  if (merged[k]) {
+                    localStorage.setItem('ax_' + k, JSON.stringify(merged[k]));
+                  }
+                });
+              } else {
+                keys.forEach(k => {
+                  if (cloudData[k]) {
+                    localStorage.setItem('ax_' + k, JSON.stringify(cloudData[k]));
+                  }
+                });
+              }
+
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
               if (cloudData.dbResetToken) {
                 localStorage.setItem('ax_db_reset_token', cloudData.dbResetToken);
@@ -6195,6 +6221,10 @@
               // Portal.UI.showToast("Database Restored", "Your local database has been updated with the latest cloud data.", "success");
               Portal.Audit.log("System", "Restore", `Database sync auto-restored version from Cloud Storage: ${cloudTimestamp}`);
               
+              if (hasUnsynced && currentUser && currentUser.role !== 'Guest') {
+                this.queueAutoBackup();
+              }
+
               const initialPage = window.location.hash.slice(1) || 'dashboard';
               Portal.Router.currentPage = null; // force re-render of current page with fresh data
               Portal.Router.navigate(initialPage, false);
