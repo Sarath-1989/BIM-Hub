@@ -6583,16 +6583,9 @@
             this.msalInstance.setActiveAccount(accounts[0]);
             const email = accounts[0].username;
             const name = accounts[0].name;
-
-            // Resolve initial profile from local DB (may be Guest if not synced yet)
             currentUser = this.resolveUserProfile(email, name);
             sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
             this.loadPortalShell();
-
-            // If resolved as Guest, try pulling fresh employee list from cloud first
-            if (currentUser.role === 'Guest') {
-              Portal.Auth.syncThenResolveUser(email, name);
-            }
           } catch(e) {
             console.error("SSO check session error:", e);
             sessionStorage.removeItem('ax_user');
@@ -6611,118 +6604,20 @@
         this.msalInstance.loginPopup({ 
           scopes: ["User.Read", "Sites.ReadWrite.All"],
           prompt: "login"
-        }).then(async response => {
+        }).then(response => {
           this.msalInstance.setActiveAccount(response.account);
           const email = response.account.username;
           const name = response.account.name;
-
-          // First try to pull latest employee list from cloud before resolving role
-          // This ensures newly added employees are recognized immediately
-          try {
-            const token = await Portal.Auth.getAccessToken();
-            if (token) {
-              const siteId = await Portal.Graph.getSiteId(token);
-              if (siteId) {
-                const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/asterwix_database.json:/content`, {
-                  headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (res.ok) {
-                  const cloudData = await res.json();
-                  if (cloudData && cloudData.employees && Array.isArray(cloudData.employees)) {
-                    // Write only the employee list to localStorage so resolveUserProfile finds the user
-                    const existingEmps = Portal.DB.get('employees') || [];
-                    // Merge: cloud employees take precedence, keep any local-only ones too
-                    const cloudMap = {};
-                    cloudData.employees.forEach(e => { cloudMap[(e.email||'').toLowerCase().trim()] = e; });
-                    existingEmps.forEach(e => { if (!cloudMap[(e.email||'').toLowerCase().trim()]) cloudMap[(e.email||'').toLowerCase().trim()] = e; });
-                    localStorage.setItem('ax_employees', JSON.stringify(Object.values(cloudMap)));
-                    // Also update last-updated timestamp
-                    if (cloudData.lastUpdated) {
-                      localStorage.setItem('ax_db_last_updated', cloudData.lastUpdated.toString());
-                    }
-                    if (cloudData.dbResetToken) {
-                      localStorage.setItem('ax_db_reset_token', cloudData.dbResetToken);
-                    }
-                    console.log('[SSO Login] Cloud employee list pulled successfully before role resolution.');
-                  }
-                }
-              }
-            }
-          } catch (syncErr) {
-            console.warn('[SSO Login] Could not pre-fetch cloud employees. Falling back to local DB.', syncErr);
-          }
-
           currentUser = this.resolveUserProfile(email, name);
           sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
           Portal.Audit.log("Portal", "Login", `Successfully signed in via Secure SSO (${email}).`);
           this.loadPortalShell();
-
-          // If still Guest after cloud sync, start polling until resolved (admin may not have added them yet)
-          if (currentUser.role === 'Guest') {
-            Portal.UI.showToast("Account Pending", "Your account is being set up. You will be automatically upgraded once added by the Admin.", "info");
-            Portal.Auth.syncThenResolveUser(email, name);
-          }
         }).catch(err => {
           document.getElementById('login-err-banner').style.display = 'block';
           console.error("SSO Login Error:", err);
+          // Show error message as a toast for visibility
           Portal.UI.showToast("Sign-in Failed", err.message || err.toString(), "error");
         });
-      },
-
-      // Polls cloud every 15s until the user is found in the employee list, then upgrades their role
-      syncThenResolveUser: async function(email, name) {
-        const maxAttempts = 20; // poll for up to 5 minutes
-        let attempts = 0;
-        const poll = async () => {
-          attempts++;
-          try {
-            const token = await Portal.Auth.getAccessToken();
-            if (!token) return;
-            const siteId = await Portal.Graph.getSiteId(token);
-            if (!siteId) return;
-            const res = await fetch(`https://graph.microsoft.com/v1.0/sites/${siteId}/drive/root:/AsterwixHubBackups/asterwix_database.json:/content`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (!res.ok) return;
-            const cloudData = await res.json();
-            if (cloudData && cloudData.employees) {
-              const found = cloudData.employees.find(e => (e.email||'').toLowerCase().trim() === email.toLowerCase().trim());
-              if (found && !found.isTerminated) {
-                // Found! Update local DB and re-resolve
-                const existingEmps = Portal.DB.get('employees') || [];
-                const cloudMap = {};
-                cloudData.employees.forEach(e => { cloudMap[(e.email||'').toLowerCase().trim()] = e; });
-                existingEmps.forEach(e => { if (!cloudMap[(e.email||'').toLowerCase().trim()]) cloudMap[(e.email||'').toLowerCase().trim()] = e; });
-                localStorage.setItem('ax_employees', JSON.stringify(Object.values(cloudMap)));
-                if (cloudData.lastUpdated) localStorage.setItem('ax_db_last_updated', cloudData.lastUpdated.toString());
-                if (cloudData.dbResetToken) localStorage.setItem('ax_db_reset_token', cloudData.dbResetToken);
-
-                currentUser = Portal.Auth.resolveUserProfile(email, name);
-                sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
-
-                // Re-render shell with correct role
-                const nameEl = document.getElementById('side-profile-name');
-                const roleEl = document.getElementById('side-profile-role');
-                const welcomeEl = document.getElementById('welcome-message');
-                if (nameEl) nameEl.innerText = currentUser.name;
-                if (roleEl) roleEl.innerText = currentUser.role;
-                if (welcomeEl) welcomeEl.innerText = `Welcome back, ${currentUser.name.split(' ')[0]}!`;
-                Portal.Auth.enforceRolePermissions();
-                Portal.UI.showToast("Access Granted", `Welcome, ${currentUser.name}! Your account has been activated.`, "success");
-                const initialPage = window.location.hash.slice(1) || 'dashboard';
-                Portal.Router.currentPage = null;
-                Portal.Router.navigate(initialPage, false);
-                return; // stop polling
-              }
-            }
-          } catch(e) {
-            console.warn('[syncThenResolveUser] Poll error:', e);
-          }
-          if (attempts < maxAttempts) {
-            setTimeout(poll, 15000);
-          }
-        };
-        setTimeout(poll, 5000); // first check after 5s
       },
 
 
@@ -9637,23 +9532,9 @@
         emps.push(newEmp);
         Portal.DB.set('employees', emps);
         
-        Portal.UI.showToast("Employee Added", `File created under code ${id}. Syncing to cloud…`, "success");
+        Portal.UI.showToast("Employee Added", `File created under code ${id}.`, "success");
         Portal.Audit.log("HR Accounts", "Create Employee", `Added employee record: ${id} (${name})`);
         
-        // Immediately push to cloud so the new employee can log in without waiting for the next sync interval
-        if (!Portal.Auth.isMock && Portal.Graph) {
-          if (typeof Portal.Graph.backupDatabase === 'function') {
-            Portal.Graph.backupDatabase().then(() => {
-              Portal.UI.showToast("Cloud Sync", `Employee record for ${name} has been saved to cloud.`, "success");
-            }).catch(err => {
-              console.warn('[Add Employee] Immediate cloud sync failed:', err);
-              Portal.UI.showToast("Sync Warning", "Employee added locally. Cloud sync will retry automatically.", "warning");
-            });
-          } else if (typeof Portal.Graph.queueAutoBackup === 'function') {
-            Portal.Graph.queueAutoBackup();
-          }
-        }
-
         Portal.UI.closeModal();
         this.renderEmployees();
       },
