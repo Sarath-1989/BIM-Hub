@@ -5645,6 +5645,10 @@
       },
       
       seedInitialData: function() {
+        // Generate new database reset token
+        const dbResetToken = 'db_reset_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('ax_db_reset_token', dbResetToken);
+
         // Employees Seeding (Only Super Admin is preserved)
         const employees = [
           { empId: "AWX-0589-26-0001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "", photo: "assets/sarath.png" }
@@ -5761,6 +5765,13 @@
                 localStorage.setItem('ax_' + k, JSON.stringify([]));
               }
             });
+
+            // Set reset token
+            if (importedData.dbResetToken) {
+              localStorage.setItem('ax_db_reset_token', importedData.dbResetToken);
+            } else {
+              localStorage.setItem('ax_db_reset_token', 'db_reset_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+            }
 
             // Set timestamps
             localStorage.setItem('ax_db_last_updated', Date.now().toString());
@@ -5973,6 +5984,7 @@
 
         const lastUpdated = Date.now();
         const backupData = {
+          dbResetToken: localStorage.getItem('ax_db_reset_token') || 'default',
           employees: Portal.DB.get('employees'),
           offices: Portal.DB.get('offices'),
           attendance: Portal.DB.get('attendance'),
@@ -6000,7 +6012,10 @@
             const cloudTimestamp = cloudData.lastUpdated || 0;
             const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
             
-            if (cloudTimestamp > localTimestamp) {
+            const cloudResetToken = cloudData.dbResetToken || 'default';
+            const localResetToken = localStorage.getItem('ax_db_reset_token') || 'default';
+
+            if (cloudResetToken === localResetToken && cloudTimestamp > localTimestamp) {
               console.log("Cloud has newer data than local base. Merging cloud data into local edits...");
               const merged = Portal.DB.merge(backupData, cloudData);
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
@@ -6076,8 +6091,12 @@
             const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
 
             const hasUnsynced = localStorage.getItem('ax_db_has_unsynced_changes') === 'true';
+            const cloudResetToken = cloudData.dbResetToken || 'default';
+            const localResetToken = localStorage.getItem('ax_db_reset_token') || 'default';
 
-            if (cloudTimestamp > localTimestamp && !hasUnsynced) {
+            const forceOverwrite = cloudResetToken !== localResetToken;
+
+            if (forceOverwrite || (cloudTimestamp > localTimestamp && !hasUnsynced)) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
               keys.forEach(k => {
                 if (cloudData[k]) {
@@ -6085,6 +6104,9 @@
                 }
               });
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
+              if (cloudData.dbResetToken) {
+                localStorage.setItem('ax_db_reset_token', cloudData.dbResetToken);
+              }
               // Ensure cloud-restored IDs are migrated to the new custom format
               Portal.DB.migrateEmployeeIDsToNewFormat();
               
@@ -6190,11 +6212,15 @@
             const localTimestamp = parseInt(localStorage.getItem('ax_db_last_updated') || '0', 10);
 
             const hasUnsynced = localStorage.getItem('ax_db_has_unsynced_changes') === 'true';
+            const cloudResetToken = cloudData.dbResetToken || 'default';
+            const localResetToken = localStorage.getItem('ax_db_reset_token') || 'default';
 
-            if (cloudTimestamp > localTimestamp) {
+            const forceOverwrite = cloudResetToken !== localResetToken;
+
+            if (forceOverwrite || cloudTimestamp > localTimestamp) {
               const keys = ['employees', 'offices', 'attendance', 'projects', 'tasks', 'models', 'drawings', 'leaves', 'overtime', 'audit', 'chats'];
               
-              if (hasUnsynced) {
+              if (hasUnsynced && !forceOverwrite) {
                 // Merge cloud updates into unsynced local data using LWW merge
                 const localData = {};
                 keys.forEach(k => {
@@ -6207,7 +6233,7 @@
                   }
                 });
               } else {
-                // Overwrite directly if no unsynced changes
+                // Overwrite directly if no unsynced changes or if forced by a database reset
                 keys.forEach(k => {
                   if (cloudData[k]) {
                     localStorage.setItem('ax_' + k, JSON.stringify(cloudData[k]));
@@ -6216,6 +6242,9 @@
               }
 
               localStorage.setItem('ax_db_last_updated', cloudTimestamp.toString());
+              if (cloudData.dbResetToken) {
+                localStorage.setItem('ax_db_reset_token', cloudData.dbResetToken);
+              }
               // Ensure cloud-updated IDs are migrated to the new custom format
               Portal.DB.migrateEmployeeIDsToNewFormat();
               
