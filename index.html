@@ -5362,6 +5362,7 @@
         if (!emps) {
           // If no database exists at all, run initial seeding
           this.seedInitialData();
+          this.migrateEmployeeIDsToNewFormat();
           return;
         }
 
@@ -5376,7 +5377,7 @@
               // Remove old Sarath if exists but lacks photo, and insert/update
               employees = employees.filter(e => e.email !== 'connect@asterwix.com');
               employees.unshift({
-                empId: "EMP-001",
+                empId: "AWX-0589-26-0001",
                 name: "Sarath Perucheril",
                 email: "connect@asterwix.com",
                 dept: "HR & Admin",
@@ -5476,7 +5477,7 @@
           const chats = localStorage.getItem('ax_chats');
           if (!chats || chats === '[]') {
             const initialChats = [
-              { id: "MSG-01", senderId: "EMP-001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now() - 7200000, lastUpdated: Date.now() - 7200000 }
+              { id: "MSG-01", senderId: "AWX-0589-26-0001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now() - 7200000, lastUpdated: Date.now() - 7200000 }
             ];
             localStorage.setItem('ax_chats', JSON.stringify(initialChats));
           }
@@ -5619,13 +5620,34 @@
           });
           this.set('employees', emps);
           localStorage.removeItem('ax_db_has_unsynced_changes'); // avoid false unsynced alert for local cleanup
+
+          // Sync current session with the migrated ID
+          try {
+            const sessionUserStr = sessionStorage.getItem('ax_user');
+            if (sessionUserStr) {
+              const sessionUser = JSON.parse(sessionUserStr);
+              if (sessionUser && sessionUser.empId && idMap[sessionUser.empId]) {
+                sessionUser.empId = idMap[sessionUser.empId];
+                sessionStorage.setItem('ax_user', JSON.stringify(sessionUser));
+                if (currentUser && currentUser.empId !== sessionUser.empId) {
+                  currentUser.empId = sessionUser.empId;
+                }
+              }
+            }
+            if (currentUser && currentUser.empId && idMap[currentUser.empId]) {
+              currentUser.empId = idMap[currentUser.empId];
+              sessionStorage.setItem('ax_user', JSON.stringify(currentUser));
+            }
+          } catch (e) {
+            console.error("Error updating session user during ID migration:", e);
+          }
         }
       },
       
       seedInitialData: function() {
         // Employees Seeding (Only Super Admin is preserved)
         const employees = [
-          { empId: "EMP-001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "", photo: "assets/sarath.png" }
+          { empId: "AWX-0589-26-0001", name: "Sarath Perucheril", email: "connect@asterwix.com", dept: "HR & Admin", role: "Admin", designation: "Super Admin", salaryBasic: 12000, salaryHousing: 5000, salaryTransport: 2000, salaryOthers: 1000, currency: "AED", status: "Active", location: "Dubai HQ", managerId: "", photo: "assets/sarath.png" }
         ];
         localStorage.setItem('ax_employees', JSON.stringify(employees));
 
@@ -5648,7 +5670,7 @@
 
         // Seed initial announcements with welcome message
         const chats = [
-          { id: "MSG-01", senderId: "EMP-001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now(), lastUpdated: Date.now() }
+          { id: "MSG-01", senderId: "AWX-0589-26-0001", senderName: "Sarath Perucheril", senderPhoto: "assets/sarath.png", recipientId: "ALL", text: "Welcome to the Asterwix Team Chat room! Share your coordination notes here.", timestamp: Date.now(), lastUpdated: Date.now() }
         ];
         localStorage.setItem('ax_chats', JSON.stringify(chats));
       },
@@ -6434,7 +6456,7 @@
 
         if (email.toLowerCase() === 'connect@asterwix.com') {
           return {
-            empId: match ? match.empId : "EMP-001",
+            empId: match ? match.empId : "AWX-0589-26-0001",
             name: match ? match.name : (defaultName || "Sarath Perucheril"),
             email: "connect@asterwix.com",
             role: "Admin",
@@ -9351,7 +9373,7 @@
         const managerSelect = document.getElementById('ae-manager');
         if (managerSelect) {
           managerSelect.innerHTML = emps.map(e => `<option value="${e.empId}">${e.name} (${e.empId})</option>`).join('');
-          managerSelect.value = currentUser.empId || "EMP-001";
+          managerSelect.value = currentUser.empId || "AWX-0589-26-0001";
         }
         Portal.UI.openModal('modal-add-employee');
       },
@@ -9451,7 +9473,7 @@
             managerSelect.setAttribute('required', 'true');
             const potentialManagers = emps.filter(e => e.empId !== empId);
             managerSelect.innerHTML = potentialManagers.map(e => `<option value="${e.empId}">${e.name} (${e.empId})</option>`).join('');
-            managerSelect.value = emp.managerId || "EMP-001";
+            managerSelect.value = emp.managerId || "AWX-0589-26-0001";
           }
         }
 
@@ -9549,7 +9571,7 @@
           emps[idx].location = location;
           emps[idx].currency = currency;
           const isSuperAdmin = email.toLowerCase() === 'connect@asterwix.com';
-          emps[idx].managerId = isSuperAdmin ? "" : (document.getElementById('ee-manager').value || "EMP-001");
+          emps[idx].managerId = isSuperAdmin ? "" : (document.getElementById('ee-manager').value || "AWX-0589-26-0001");
           emps[idx].salaryBasic = basic;
           emps[idx].salaryHousing = housing;
           emps[idx].salaryTransport = transport;
