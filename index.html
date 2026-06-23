@@ -5813,81 +5813,99 @@
        ------------------------------------------------------------- */
     Portal.Graph = {
       siteId: null,
+      siteIdPromise: null,
       autoBackupTimeout: null,
       isSyncing: false,
 
-      getSiteId: async function(token) {
-        if (this.siteId) return this.siteId;
-        if (window.ASTERWIX_CONFIG.sharePoint.siteId) {
-          this.siteId = window.ASTERWIX_CONFIG.sharePoint.siteId;
-          return this.siteId;
+      getSiteId: function(token) {
+        if (this.siteId) return Promise.resolve(this.siteId);
+
+        const cached = localStorage.getItem('ax_resolved_site_id');
+        if (cached) {
+          this.siteId = cached;
+          return Promise.resolve(this.siteId);
         }
 
-        const hostname = window.ASTERWIX_CONFIG.sharePoint.hostname;
-        const siteName = window.ASTERWIX_CONFIG.sharePoint.siteName;
-        
-        // Dynamic site candidate resolution sequence
-        const candidates = [];
-        
-        if (siteName && siteName !== '/' && siteName.toLowerCase() !== 'root') {
-          let path = siteName;
-          if (!path.startsWith('/') && !path.toLowerCase().startsWith('sites/')) {
-            path = '/sites/' + path;
-          } else if (path.startsWith('/') && !path.toLowerCase().startsWith('/sites/')) {
-            path = '/sites' + path;
+        if (this.siteIdPromise) return this.siteIdPromise;
+
+        this.siteIdPromise = (async () => {
+          if (window.ASTERWIX_CONFIG.sharePoint.siteId) {
+            this.siteId = window.ASTERWIX_CONFIG.sharePoint.siteId;
+            localStorage.setItem('ax_resolved_site_id', this.siteId);
+            return this.siteId;
           }
-          if (path.startsWith('/')) {
-            path = path.substring(1);
-          }
-          candidates.push({
-            name: `Configured site: /${path}`,
-            url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/${path}`
-          });
-        }
-        
-        // Fallback 1: Root site collection (e.g. /)
-        candidates.push({
-          name: "Root site collection",
-          url: `https://graph.microsoft.com/v1.0/sites/${hostname}`
-        });
 
-        // Fallback 2: Default '/sites/communication' slug
-        candidates.push({
-          name: "Communication site (/sites/communication)",
-          url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/sites/communication`
-        });
-
-        // Fallback 3: Alternative '/sites/CommunicationSite' slug
-        candidates.push({
-          name: "Communication site (/sites/CommunicationSite)",
-          url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/sites/CommunicationSite`
-        });
-
-        let lastError = "Access denied";
-        for (const cand of candidates) {
-          try {
-            console.log(`Resolving SharePoint Site ID: trying ${cand.name}...`);
-            const response = await fetch(cand.url, {
-              headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-              const data = await response.json();
-              this.siteId = data.id;
-              console.log(`Successfully resolved Site ID for ${cand.name}: ${this.siteId}`);
-              return this.siteId;
-            } else {
-              const errData = await response.json().catch(() => ({}));
-              lastError = errData.error?.message || `HTTP ${response.status}`;
-              console.warn(`Failed to resolve ${cand.name}: ${lastError}`);
+          const hostname = window.ASTERWIX_CONFIG.sharePoint.hostname;
+          const siteName = window.ASTERWIX_CONFIG.sharePoint.siteName;
+          
+          // Dynamic site candidate resolution sequence
+          const candidates = [];
+          
+          if (siteName && siteName !== '/' && siteName.toLowerCase() !== 'root') {
+            let path = siteName;
+            if (!path.startsWith('/') && !path.toLowerCase().startsWith('sites/')) {
+              path = '/sites/' + path;
+            } else if (path.startsWith('/') && !path.toLowerCase().startsWith('/sites/')) {
+              path = '/sites' + path;
             }
-          } catch (e) {
-            lastError = e.message || e.toString();
-            console.warn(`Failed to resolve ${cand.name} due to network error:`, e);
+            if (path.startsWith('/')) {
+              path = path.substring(1);
+            }
+            candidates.push({
+              name: `Configured site: /${path}`,
+              url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/${path}`
+            });
           }
-        }
+          
+          // Fallback 1: Root site collection (e.g. /)
+          candidates.push({
+            name: "Root site collection",
+            url: `https://graph.microsoft.com/v1.0/sites/${hostname}`
+          });
 
-        Portal.UI.showToast("Cloud Sync Failed", `Could not resolve SharePoint site. Error: ${lastError}`, "error");
-        return null;
+          // Fallback 2: Default '/sites/communication' slug
+          candidates.push({
+            name: "Communication site (/sites/communication)",
+            url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/sites/communication`
+          });
+
+          // Fallback 3: Alternative '/sites/CommunicationSite' slug
+          candidates.push({
+            name: "Communication site (/sites/CommunicationSite)",
+            url: `https://graph.microsoft.com/v1.0/sites/${hostname}:/sites/CommunicationSite`
+          });
+
+          let lastError = "Access denied";
+          for (const cand of candidates) {
+            try {
+              console.log(`Resolving SharePoint Site ID: trying ${cand.name}...`);
+              const response = await fetch(cand.url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+              });
+              if (response.ok) {
+                const data = await response.json();
+                this.siteId = data.id;
+                localStorage.setItem('ax_resolved_site_id', this.siteId);
+                console.log(`Successfully resolved Site ID for ${cand.name}: ${this.siteId}`);
+                this.siteIdPromise = null;
+                return this.siteId;
+              } else {
+                const errData = await response.json().catch(() => ({}));
+                lastError = errData.error?.message || `HTTP ${response.status}`;
+                console.warn(`Failed to resolve ${cand.name}: ${lastError}`);
+              }
+            } catch (e) {
+              lastError = e.message || e.toString();
+              console.warn(`Failed to resolve ${cand.name} due to network error:`, e);
+            }
+          }
+
+          Portal.UI.showToast("Cloud Sync Failed", `Could not resolve SharePoint site. Error: ${lastError}`, "error");
+          this.siteIdPromise = null;
+          return null;
+        })();
+
+        return this.siteIdPromise;
       },
 
       updateStatusUI: function(state, text) {
