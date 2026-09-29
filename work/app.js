@@ -225,13 +225,13 @@
 
   function renderMetrics() {
     const today = dubaiDate();
-    const email = accountEmail().toLowerCase();
-    const todayEntries = state.workLogs.filter((entry) => entry.WorkDate === today && (isManager() || (entry.EmployeeEmail || "").toLowerCase() === email));
-    const totalMinutes = todayEntries.reduce((sum, entry) => sum + Number(entry.DurationMinutes || 0), 0);
-    const hours = totalMinutes ? `${Math.floor(totalMinutes / 60)}h ${totalMinutes % 60}m` : "0h";
     const tasks = visibleTasks();
     const activeProjects = state.projects.filter((project) => project.Status === "Active").length;
-    byId("metrics").innerHTML = [[hours, "Logged today"], [String(todayEntries.length), "Today’s entries"], [String(tasks.filter((task) => task.Status !== "Completed").length), "Open tasks"], [String(activeProjects), "Active projects"]].map(([value, label]) => `<div class="metric"><div class="metric-value">${esc(value)}</div><div class="metric-label">${esc(label)}</div></div>`).join("");
+    const openTasks = tasks.filter((task) => task.Status !== "Completed");
+    const dueTasks = openTasks.filter((task) => task.EndDate && task.EndDate <= today).length;
+    const modelOrSheetDeliveries = openTasks.filter((task) => /model|drawing/i.test(task.Deliverable || "")).length;
+    const coordinationIssues = openTasks.filter((task) => task.Status === "Blocked" || ["Clash Coordination", "RFI"].includes(task.Deliverable)).length;
+    byId("metrics").innerHTML = [[String(activeProjects), "Active BIM projects"], [String(dueTasks), "Tasks due / overdue"], [String(modelOrSheetDeliveries), "Model / sheet deliveries"], [String(coordinationIssues), "Open coordination issues"]].map(([value, label]) => `<div class="metric"><div class="metric-value">${esc(value)}</div><div class="metric-label">${esc(label)}</div></div>`).join("");
   }
 
   function renderWorkForm() {
@@ -252,7 +252,9 @@
       const project = projectByCode(task.ProjectCode);
       const status = task.Status || "Not started";
       const controls = canUpdateTask(task) && task.id ? `<div class="task-actions"><label class="task-status-control">Update status<select class="task-status-select">${TASK_STATUSES.map((option) => `<option${option === status ? " selected" : ""}>${esc(option)}</option>`).join("")}</select></label><button class="button button-primary" type="button" data-task-id="${esc(task.id)}">Save status</button></div>` : "";
-      return `<article class="task-card"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${controls}</article>`;
+      const deliveryDetails = [task.Discipline, task.Deliverable].filter(Boolean).join(" · ");
+      const referenceDetails = [task.BIMStage, task.ModelDrawingNo, task.Revision ? `Rev ${task.Revision}` : ""].filter(Boolean).join(" · ");
+      return `<article class="task-card"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(deliveryDetails || "BIM delivery details not set")}</p><p>${esc(referenceDetails || project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${controls}</article>`;
     }).join("") : `<section class="card"><p class="muted">No task is assigned to your Asterwix account yet.</p></section>`;
   }
 
@@ -390,7 +392,11 @@
       const assignee = state.employees.find((employee) => (employee.Email || "").toLowerCase() === assigneeEmail && employee.Active !== "No");
       if (!assignee) return toast("Select an active employee.", "error");
       if (startDate && endDate && endDate < startDate) return toast("End date must be on or after the start date.", "error");
-      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, AssigneeEmail: assigneeEmail, StartDate: startDate, EndDate: endDate, Priority: byId("task-priority").value, Status: byId("task-status").value, Notes: byId("task-notes").value.trim(), createdAt: new Date().toISOString() });
+      const discipline = byId("task-discipline").value;
+      const deliverable = byId("task-deliverable").value;
+      const bimStage = byId("task-lod").value;
+      if (!discipline || !deliverable || !bimStage) return toast("Select discipline, deliverable, and BIM stage / LOD.", "error");
+      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, Discipline: discipline, Deliverable: deliverable, BIMStage: bimStage, ModelDrawingNo: byId("task-reference").value.trim(), Revision: byId("task-revision").value.trim(), AssigneeEmail: assigneeEmail, StartDate: startDate, EndDate: endDate, Priority: byId("task-priority").value, Status: byId("task-status").value, Notes: byId("task-notes").value.trim(), createdAt: new Date().toISOString() });
       try { await inviteToItem(filePath("tasks", id), assigneeEmail, "write"); }
       catch (error) { await refreshData("Task assigned"); toast(`Task saved, but ${assigneeEmail} could not be granted status-update access: ${error.message}`, "error"); return; }
       event.target.reset(); await refreshData("Task assigned"); toast("Task assigned.", "success");
