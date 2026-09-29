@@ -74,6 +74,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .task-status-control{display:grid;gap:4px;flex:1;color:#40514c;font-size:.74rem;font-weight:700}
 .task-status-select{width:100%;font:400 .86rem "DM Sans",sans-serif;border:1px solid #cedbd4;border-radius:8px;padding:8px;background:#fff;color:var(--ink)}
 .task-actions .button{padding:9px 12px;white-space:nowrap}
+.task-audit{font-size:.74rem!important;color:#78847f!important;margin-top:11px!important}
 .badge{border-radius:99px;padding:4px 8px;font-weight:700;background:#e3f5ee;color:#167457}
 .table-wrap{overflow-x:auto}
 .data-table{width:100%;border-collapse:collapse;font-size:.86rem}
@@ -81,6 +82,8 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .data-table th{font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
 .setup-card{max-width:680px}
 .setup-list{padding-left:20px;line-height:2}
+.filter-card{margin:0 0 18px;padding:18px}
+.register-note{margin:0}
 .toast-region{position:fixed;right:18px;bottom:18px;z-index:100;display:grid;gap:8px}
 .toast{padding:13px 15px;background:#222d2d;color:#fff;border-radius:10px;box-shadow:var(--shadow);max-width:360px;font-size:.86rem}
 .toast.error{background:#a93232}
