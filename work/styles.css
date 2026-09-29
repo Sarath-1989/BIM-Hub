@@ -1,7 +1,7 @@
 :root{--ink:#282a3a;--navy:#222d2d;--blue:#1e9e7b;--cyan:#e3f5ee;--paper:#f6f8f5;--card:#fff;--line:#dce5df;--muted:#66736e;--success:#16866b;--warn:#a96a09;--danger:#c64040;--shadow:0 14px 40px rgba(32,54,47,.10)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",sans-serif}
-.hidden{display:none!important}
+.hidden,.role-restricted{display:none!important}
 .sign-in-shell{min-height:100vh;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(360px,.85fr);background:#fff}
 .sign-in-panel{display:flex;min-height:100vh;max-width:690px;margin:0 auto;align-items:flex-start;justify-content:center;flex-direction:column;padding:64px}
 .brand-mark{width:54px;height:54px;border-radius:16px;background:linear-gradient(135deg,#2ebd98,#246a59);color:#fff;display:grid;place-items:center;font:800 18px Manrope,sans-serif;letter-spacing:-1px;box-shadow:0 12px 26px rgba(28,123,96,.24)}
