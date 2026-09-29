@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20260929g" />
+    <link rel="stylesheet" href="./styles.css?v=20260929h" />
     <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
   </head>
   <body>
@@ -126,13 +126,13 @@
           <section id="team-view" class="page-view hidden manager-only">
             <div class="page-heading"><div><p class="eyebrow">TEAM</p><h1>Team directory</h1><p class="muted">Adding an active employee creates a personal SharePoint workspace automatically.</p></div></div>
             <section class="card admin-only">
-              <div class="card-heading"><h2>Add or update team member</h2></div>
+              <div class="card-heading"><h2 id="employee-form-heading">Add team member</h2></div>
               <form id="employee-form" class="form-grid">
                 <label>Full name<input id="employee-name" required placeholder="Employee name" /></label>
                 <label>Email<input id="employee-email" type="email" required placeholder="name@asterwix.com" /></label>
                 <label>Portal role<select id="employee-role"><option>Staff</option><option>Team Lead</option><option>Admin</option></select></label>
                 <label>Account status<select id="employee-active"><option>Yes</option><option>No</option></select></label>
-                <div class="form-actions full-width"><button class="button button-primary" type="submit">Save and create workspace</button></div>
+                <div class="form-actions full-width"><div class="form-action-buttons"><button id="employee-save-button" class="button button-primary" type="submit">Save and create workspace</button><button id="employee-cancel-button" class="button button-quiet hidden" type="button">Cancel</button></div></div>
               </form>
             </section>
             <section class="card list-card"><div id="team-list" class="table-wrap"></div></section>
@@ -147,6 +147,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260929g"></script>
+    <script src="./app.js?v=20260929h"></script>
   </body>
 </html>
