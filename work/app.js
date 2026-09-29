@@ -260,10 +260,10 @@
     if (!isManager()) return;
     byId("task-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     const activeEmployees = state.employees.filter((employee) => employee.Active !== "No").sort((a, b) => String(a.DisplayName || a.Email).localeCompare(String(b.DisplayName || b.Email)));
-    byId("task-assignee").innerHTML = `<option value="">Select an active employee</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Email)}</option>`).join("")}`;
+    byId("task-assignee").innerHTML = `<option value="">Select an active employee</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM team member")} · ${esc(employee.Discipline || "—")}</option>`).join("")}`;
     byId("projects-list").innerHTML = state.projects.length ? `<table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Client</th><th>Status</th><th>Target</th></tr></thead><tbody>${state.projects.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
     const teamActionHeader = isAdmin() ? "<th>Action</th>" : "";
-    byId("team-list").innerHTML = state.employees.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th>${teamActionHeader}</tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">Add staff after portal storage is ready.</p>`;
+    byId("team-list").innerHTML = state.employees.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Designation</th><th>Discipline</th><th>Email</th><th>Portal role</th><th>Active</th>${teamActionHeader}</tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Designation || "—")}</td><td>${esc(employee.Discipline || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">Add BIM team members after portal storage is ready.</p>`;
   }
 
   function resetEmployeeForm() {
@@ -289,6 +289,8 @@
     byId("employee-name").value = employee.DisplayName || employee.Title || "";
     byId("employee-email").value = employee.Email || "";
     byId("employee-email").readOnly = true;
+    byId("employee-designation").value = employee.Designation || "BIM Modeler";
+    byId("employee-discipline").value = employee.Discipline || "Landscape";
     byId("employee-role").value = employee.Role || "Staff";
     byId("employee-active").value = employee.Active || "Yes";
     byId("employee-form-heading").textContent = "Update team member";
@@ -418,7 +420,7 @@
       const name = byId("employee-name").value.trim();
       const updating = Boolean(editingEmployeeEmail);
       if (updating && email !== editingEmployeeEmail) return toast("Email cannot be changed while updating a team member.", "error");
-      const employee = { Title: name, Email: email, DisplayName: name, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: state.employees.find((member) => (member.Email || "").toLowerCase() === email)?.createdAt || new Date().toISOString() };
+      const employee = { Title: name, Email: email, DisplayName: name, Designation: byId("employee-designation").value, Discipline: byId("employee-discipline").value, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: state.employees.find((member) => (member.Email || "").toLowerCase() === email)?.createdAt || new Date().toISOString() };
       await saveRecord("employees", emailKey(email), employee);
       await provisionEmployeeWorkspace(employee);
       resetEmployeeForm(); await refreshData("Team member saved"); toast(employee.Active === "No" ? "Team member saved as inactive." : updating ? "Team member updated." : "Team member and personal SharePoint workspace created.", "success");
