@@ -3,7 +3,7 @@
 
   const CONFIG = window.ASTERWIX_PORTAL_CONFIG;
   const GRAPH_SCOPES = ["User.Read", "Sites.ReadWrite.All"];
-  const FOLDERS = { employees: "employees", projects: "projects", tasks: "tasks", workLogs: "work-logs" };
+  const FOLDERS = { employees: "employees", projects: "projects", tasks: "tasks", workspaces: "employee-workspaces" };
   const state = { account: null, profile: null, role: "Staff", projects: [], tasks: [], workLogs: [], employees: [], missingFolders: [] };
   const byId = (id) => document.getElementById(id);
   const isManager = () => state.role === "Admin" || state.role === "Team Lead";
@@ -79,14 +79,64 @@
 
   function folderPath(key) { return `${CONFIG.storageFolder}/${FOLDERS[key]}`; }
   function filePath(key, id) { return `${folderPath(key)}/${id}.json`; }
+  function workspacePath(email = accountEmail()) { return `${folderPath("workspaces")}/${emailKey(String(email).toLowerCase())}`; }
+  function workspaceLogsPath(email = accountEmail()) { return `${workspacePath(email)}/work-logs`; }
   function drivePath(path, suffix = "") { return `/drives/${CONFIG.driveId}/root:/${path}:${suffix}`; }
 
-  async function checkFolders() {
-    const checks = await Promise.all(Object.keys(FOLDERS).map(async (key) => {
-      try { await graph(drivePath(folderPath(key))); return null; }
-      catch (error) { if (error.status === 404) return key; throw error; }
+  async function checkPaths(paths, append = false) {
+    const checks = await Promise.all(paths.map(async ({ label, path }) => {
+      try { await graph(drivePath(path)); return null; }
+      catch (error) { if (error.status === 404) return label; throw error; }
     }));
-    state.missingFolders = checks.filter(Boolean);
+    const missing = checks.filter(Boolean);
+    state.missingFolders = append ? [...state.missingFolders, ...missing] : missing;
+  }
+
+  async function checkFolders() {
+    await checkPaths(Object.entries(FOLDERS).filter(([key]) => key !== "workspaces").map(([key]) => ({ label: key, path: folderPath(key) })));
+  }
+
+  async function getFolder(path) { return graph(drivePath(path)); }
+
+  async function ensureFolder(parentPath, name) {
+    const path = `${parentPath}/${name}`;
+    try { return await getFolder(path); }
+    catch (error) {
+      if (error.status !== 404) throw error;
+      try {
+        return await graph(drivePath(parentPath, "/children"), { method: "POST", body: JSON.stringify({ name, folder: {}, "@microsoft.graph.conflictBehavior": "fail" }) });
+      } catch (createError) {
+        if (createError.status === 409) return getFolder(path);
+        throw createError;
+      }
+    }
+  }
+
+  async function ensureWorkspace(email = accountEmail()) {
+    await ensureFolder(CONFIG.storageFolder, FOLDERS.workspaces);
+    const workspace = await ensureFolder(folderPath("workspaces"), emailKey(String(email).toLowerCase()));
+    await ensureFolder(`${folderPath("workspaces")}/${workspace.name}`, "work-logs");
+    return workspace;
+  }
+
+  async function inviteToFolder(path, email, role) {
+    const item = await getFolder(path);
+    await graph(`/drives/${CONFIG.driveId}/items/${item.id}/invite`, {
+      method: "POST",
+      body: JSON.stringify({ recipients: [{ email }], roles: [role], requireSignIn: true, sendInvitation: false, retainInheritedPermissions: true })
+    });
+  }
+
+  async function provisionEmployeeWorkspace(employee) {
+    const email = String(employee.Email || "").toLowerCase();
+    if (!email || employee.Active === "No") return;
+    await ensureWorkspace(email);
+    if (employee.Role === "Admin") return;
+    await inviteToFolder(folderPath("employees"), email, "read");
+    await inviteToFolder(folderPath("projects"), email, employee.Role === "Team Lead" ? "write" : "read");
+    await inviteToFolder(folderPath("tasks"), email, employee.Role === "Team Lead" ? "write" : "read");
+    await inviteToFolder(workspacePath(email), email, "write");
+    if (employee.Role === "Team Lead") await inviteToFolder(folderPath("workspaces"), email, "read");
   }
 
   async function readRecord(item) {
@@ -94,22 +144,42 @@
     catch (error) { console.warn("Skipped unreadable record", item.name, error); return null; }
   }
 
-  async function listRecords(key) {
-    const response = await graph(`${drivePath(folderPath(key), "/children")}?$top=999`);
+  async function listRecordsAt(path) {
+    const response = await graph(`${drivePath(path, "/children")}?$top=999`);
     const records = await Promise.all((response.value || []).filter((item) => item.file && item.name.endsWith(".json")).map(readRecord));
     return records.filter(Boolean);
   }
 
-  async function saveRecord(key, id, fields) {
+  async function listRecords(key) { return listRecordsAt(folderPath(key)); }
+
+  async function saveRecordAt(path, id, fields) {
     const record = { ...fields, id, updatedAt: new Date().toISOString() };
-    await graph(drivePath(filePath(key, id), "/content"), { method: "PUT", body: JSON.stringify(record) });
+    await graph(drivePath(`${path}/${id}.json`, "/content"), { method: "PUT", body: JSON.stringify(record) });
     return record;
+  }
+
+  async function saveRecord(key, id, fields) {
+    return saveRecordAt(folderPath(key), id, fields);
+  }
+
+  async function listAllWorkspaceLogs() {
+    const response = await graph(`${drivePath(folderPath("workspaces"), "/children")}?$top=999`);
+    const folders = (response.value || []).filter((item) => item.folder);
+    const logs = await Promise.all(folders.map(async (folder) => {
+      try { return await listRecordsAt(`${folderPath("workspaces")}/${folder.name}/work-logs`); }
+      catch (error) { console.warn("Skipped unreadable employee workspace", folder.name, error); return []; }
+    }));
+    return logs.flat();
   }
 
   async function loadData() {
     await checkFolders();
     if (state.missingFolders.length) return;
-    [state.projects, state.tasks, state.workLogs, state.employees] = await Promise.all([listRecords("projects"), listRecords("tasks"), listRecords("workLogs"), listRecords("employees")]);
+    [state.projects, state.tasks, state.employees] = await Promise.all([listRecords("projects"), listRecords("tasks"), listRecords("employees")]);
+    setRole();
+    await checkPaths([{ label: isManager() ? FOLDERS.workspaces : "your personal work folder", path: isManager() ? folderPath("workspaces") : workspaceLogsPath() }], true);
+    if (state.missingFolders.length) return;
+    state.workLogs = isManager() ? await listAllWorkspaceLogs() : await listRecordsAt(workspaceLogsPath());
   }
 
   function accountEmail() { return state.profile?.mail || state.profile?.userPrincipalName || state.account?.username || ""; }
@@ -240,7 +310,8 @@
     if (!byId("work-project").value || !byId("work-task-title").value.trim() || !duration) return toast("Enter project, task, and valid start/end time.", "error");
     try {
       const taskTitle = byId("work-task-title").value.trim();
-      await saveRecord("workLogs", recordId("work"), { Title: `${byId("work-date").value} · ${taskTitle}`, WorkDate: byId("work-date").value, TaskTitle: taskTitle, ProjectCode: byId("work-project").value, EmployeeEmail: accountEmail(), EmployeeName: state.profile.displayName, StartTime: byId("work-start").value, EndTime: byId("work-end").value, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: new Date().toISOString() });
+      await ensureWorkspace();
+      await saveRecordAt(workspaceLogsPath(), recordId("work"), { Title: `${byId("work-date").value} · ${taskTitle}`, WorkDate: byId("work-date").value, TaskTitle: taskTitle, ProjectCode: byId("work-project").value, EmployeeEmail: accountEmail(), EmployeeName: state.profile.displayName, StartTime: byId("work-start").value, EndTime: byId("work-end").value, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: new Date().toISOString() });
       event.target.reset(); byId("work-date").value = dubaiDate(); updateDuration(); await refreshData("Work entry saved"); toast("Daily work entry saved to SharePoint.", "success");
     } catch (error) { toast(error.message || "Could not save work entry.", "error"); }
   }
@@ -267,8 +338,10 @@
     try {
       const email = byId("employee-email").value.trim().toLowerCase();
       const name = byId("employee-name").value.trim();
-      await saveRecord("employees", emailKey(email), { Title: name, Email: email, DisplayName: name, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: state.employees.find((employee) => (employee.Email || "").toLowerCase() === email)?.createdAt || new Date().toISOString() });
-      event.target.reset(); await refreshData("Team member saved"); toast("Team member saved.", "success");
+      const employee = { Title: name, Email: email, DisplayName: name, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: state.employees.find((member) => (member.Email || "").toLowerCase() === email)?.createdAt || new Date().toISOString() };
+      await saveRecord("employees", emailKey(email), employee);
+      await provisionEmployeeWorkspace(employee);
+      event.target.reset(); await refreshData("Team member and workspace saved"); toast(employee.Active === "No" ? "Team member saved as inactive." : "Team member and personal SharePoint workspace created.", "success");
     } catch (error) { toast(error.message || "Could not save team member.", "error"); }
   }
 
