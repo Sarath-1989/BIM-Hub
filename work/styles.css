@@ -86,7 +86,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .toast.success{background:#0b7351}
 @media(max-width:980px){.sign-in-shell{grid-template-columns:1fr}
 .sign-in-aside{display:none}
-.workspace{grid-template-columns:1fr}
+.workspace{grid-template-columns:1fr;grid-template-rows:auto minmax(0,1fr);min-height:0}
 .sidebar{padding:12px;display:flex;gap:10px;align-items:center;overflow-x:auto}
 .profile-card{display:none}
 .nav-list{display:flex;gap:4px}
