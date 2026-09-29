@@ -197,8 +197,10 @@
     byId("profile-role").textContent = `${state.role} · ${email}`;
     byId("profile-initials").textContent = name.split(/\s+/).slice(0, 2).map((part) => part[0]).join("").toUpperCase();
     byId("role-badge").textContent = state.role;
-    document.querySelectorAll(".manager-only").forEach((element) => element.classList.toggle("hidden", !isManager()));
-    document.querySelectorAll(".admin-only").forEach((element) => element.classList.toggle("hidden", !isAdmin()));
+    document.querySelectorAll(".manager-only:not(.page-view)").forEach((element) => element.classList.toggle("hidden", !isManager()));
+    document.querySelectorAll(".admin-only:not(.page-view)").forEach((element) => element.classList.toggle("hidden", !isAdmin()));
+    document.querySelectorAll(".page-view.manager-only").forEach((element) => element.classList.toggle("role-restricted", !isManager()));
+    document.querySelectorAll(".page-view.admin-only").forEach((element) => element.classList.toggle("role-restricted", !isAdmin()));
   }
 
   function visibleTasks() {
