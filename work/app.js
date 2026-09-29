@@ -258,6 +258,8 @@
   function renderManagers() {
     if (!isManager()) return;
     byId("task-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
+    const activeEmployees = state.employees.filter((employee) => employee.Active !== "No").sort((a, b) => String(a.DisplayName || a.Email).localeCompare(String(b.DisplayName || b.Email)));
+    byId("task-assignee").innerHTML = `<option value="">Select an active employee</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Email)}</option>`).join("")}`;
     byId("projects-list").innerHTML = state.projects.length ? `<table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Client</th><th>Status</th><th>Target</th></tr></thead><tbody>${state.projects.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
     byId("team-list").innerHTML = state.employees.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th></tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Add staff after portal storage is ready.</p>`;
   }
@@ -335,7 +337,10 @@
   async function submitProject(event) {
     event.preventDefault();
     try {
-      await saveRecord("projects", recordId("project"), { Title: byId("project-name").value.trim(), ProjectCode: byId("project-code").value.trim().toUpperCase(), Client: byId("project-client").value.trim(), Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: new Date().toISOString() });
+      const projectCode = byId("project-code").value.trim().toUpperCase();
+      if (!projectCode) return toast("Enter a project code.", "error");
+      if (state.projects.some((project) => String(project.ProjectCode || "").trim().toUpperCase() === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
+      await saveRecord("projects", recordId("project"), { Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: new Date().toISOString() });
       event.target.reset(); await refreshData("Project created"); toast("Project created.", "success");
     } catch (error) { toast(error.message || "Could not create project.", "error"); }
   }
@@ -345,7 +350,12 @@
     try {
       const id = recordId("task");
       const assigneeEmail = byId("task-assignee").value.trim().toLowerCase();
-      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, AssigneeEmail: assigneeEmail, StartDate: byId("task-start-date").value || "", EndDate: byId("task-end-date").value || "", Priority: byId("task-priority").value, Status: byId("task-status").value, Notes: byId("task-notes").value.trim(), createdAt: new Date().toISOString() });
+      const startDate = byId("task-start-date").value || "";
+      const endDate = byId("task-end-date").value || "";
+      const assignee = state.employees.find((employee) => (employee.Email || "").toLowerCase() === assigneeEmail && employee.Active !== "No");
+      if (!assignee) return toast("Select an active employee.", "error");
+      if (startDate && endDate && endDate < startDate) return toast("End date must be on or after the start date.", "error");
+      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, AssigneeEmail: assigneeEmail, StartDate: startDate, EndDate: endDate, Priority: byId("task-priority").value, Status: byId("task-status").value, Notes: byId("task-notes").value.trim(), createdAt: new Date().toISOString() });
       try { await inviteToItem(filePath("tasks", id), assigneeEmail, "write"); }
       catch (error) { await refreshData("Task assigned"); toast(`Task saved, but ${assigneeEmail} could not be granted status-update access: ${error.message}`, "error"); return; }
       event.target.reset(); await refreshData("Task assigned"); toast("Task assigned.", "success");
