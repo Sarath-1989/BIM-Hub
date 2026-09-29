@@ -345,7 +345,16 @@
     } catch (error) { toast(error.message || "Could not save team member.", "error"); }
   }
 
-  async function signOut() { await msalInstance.logoutPopup({ account: state.account, postLogoutRedirectUri: window.location.origin + window.location.pathname }); }
+  async function signOut() {
+    try { await msalInstance.clearCache({ account: state.account }); }
+    catch (error) { console.error("Could not clear the local portal session.", error); }
+    msalInstance.setActiveAccount(null);
+    state.account = null; state.profile = null; state.role = "Staff";
+    state.projects = []; state.tasks = []; state.workLogs = []; state.employees = []; state.missingFolders = [];
+    byId("app-view").classList.add("hidden");
+    byId("sign-in-view").classList.remove("hidden");
+    byId("sign-in-status").textContent = "You have exited the Work Portal.";
+  }
 
   async function boot() {
     byId("sign-in-button").addEventListener("click", signIn);
