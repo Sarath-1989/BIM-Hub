@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#0f1f3d" />
-    <title>Asterwix Work Portal</title>
+    <title>Asterwix BIM Delivery Portal</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
@@ -18,8 +18,8 @@
       <section class="sign-in-panel" aria-labelledby="portal-title">
         <img class="brand-logo sign-in-logo" src="./assets/asterwix-logo.svg" alt="Asterwix" />
         <p class="eyebrow">ASTERWIX · TEAM OPERATIONS</p>
-        <h1 id="portal-title">Work Portal</h1>
-        <p class="intro">Log daily work, manage project tasks, and keep the delivery team aligned.</p>
+        <h1 id="portal-title">BIM Delivery Portal</h1>
+        <p class="intro">Log BIM delivery work, manage project tasks, and keep the delivery team aligned.</p>
         <button id="sign-in-button" class="button button-primary button-wide" type="button">
           Sign in with Asterwix Microsoft account
         </button>
@@ -29,16 +29,16 @@
         <p class="eyebrow">DAILY TRACE</p>
         <h2>One record for every working day.</h2>
         <ul>
-          <li>Project and assigned task</li>
+          <li>Project and BIM deliverable</li>
           <li>Start time and end time</li>
-          <li>Clear work update for team leads</li>
+          <li>Clear update for BIM coordinators</li>
         </ul>
       </aside>
     </main>
 
     <div id="app-view" class="app-shell hidden">
       <header class="topbar">
-        <div class="topbar-brand"><img class="brand-logo topbar-logo" src="./assets/asterwix-logo.svg" alt="Asterwix" /><span><strong>Work Portal</strong></span></div>
+        <div class="topbar-brand"><img class="brand-logo topbar-logo" src="./assets/asterwix-logo.svg" alt="Asterwix" /><span><strong>BIM Delivery Portal</strong></span></div>
         <div class="topbar-actions">
           <span id="sync-status" class="sync-status">Connecting to SharePoint</span>
           <button id="sign-out-button" class="button button-quiet" type="button">Exit portal</button>
@@ -64,7 +64,7 @@
         <main class="content">
           <section id="dashboard-view" class="page-view">
             <div class="page-heading">
-              <div><p class="eyebrow">TODAY</p><h1>Daily work trace</h1><p id="today-label" class="muted"></p></div>
+              <div><p class="eyebrow">TODAY</p><h1>Daily BIM delivery trace</h1><p id="today-label" class="muted"></p></div>
               <div class="status-pill" id="role-badge">Staff</div>
             </div>
             <div class="metrics" id="metrics"></div>
@@ -89,12 +89,12 @@
           </section>
 
           <section id="tasks-view" class="page-view hidden">
-            <div class="page-heading"><div><p class="eyebrow">ASSIGNMENTS</p><h1>My tasks</h1><p class="muted">Keep delivery status current for your project team.</p></div></div>
+            <div class="page-heading"><div><p class="eyebrow">BIM ASSIGNMENTS</p><h1>My tasks</h1><p class="muted">Keep BIM delivery status current for your project team.</p></div></div>
             <div id="tasks-list" class="task-grid"></div>
           </section>
 
           <section id="projects-view" class="page-view hidden manager-only">
-            <div class="page-heading"><div><p class="eyebrow">PROJECT CONTROL</p><h1>Projects & tasks</h1></div></div>
+            <div class="page-heading"><div><p class="eyebrow">BIM PROJECT CONTROL</p><h1>Projects & deliverables</h1></div></div>
             <div class="content-grid manager-grid">
               <section class="card"><div class="card-heading"><h2>Create project</h2></div>
                 <form id="project-form" class="form-grid">
@@ -124,12 +124,14 @@
           </section>
 
           <section id="team-view" class="page-view hidden manager-only">
-            <div class="page-heading"><div><p class="eyebrow">TEAM</p><h1>Team directory</h1><p class="muted">Adding an active employee creates a personal SharePoint workspace automatically.</p></div></div>
+            <div class="page-heading"><div><p class="eyebrow">BIM TEAM</p><h1>BIM team directory</h1><p class="muted">Portal role controls access; BIM designation and discipline define delivery responsibility.</p></div></div>
             <section class="card admin-only">
               <div class="card-heading"><h2 id="employee-form-heading">Add team member</h2></div>
               <form id="employee-form" class="form-grid">
                 <label>Full name<input id="employee-name" required placeholder="Employee name" /></label>
                 <label>Email<input id="employee-email" type="email" required placeholder="name@asterwix.com" /></label>
+                <label>BIM designation<select id="employee-designation"><option>BIM Manager</option><option>BIM Coordinator</option><option>BIM Team Leader</option><option>Senior BIM Modeler</option><option selected>BIM Modeler</option><option>Junior BIM Modeler</option><option>BIM Technician</option><option>Document Controller</option></select></label>
+                <label>Primary discipline<select id="employee-discipline"><option selected>Landscape</option><option>Irrigation</option><option>Pools &amp; Water Features</option><option>Architecture (ARC)</option><option>Structure (STR)</option><option>Mechanical (MEC)</option><option>Electrical (ELE)</option><option>Plumbing (PLB)</option><option>Civil / Infrastructure</option><option>Multi-discipline</option></select></label>
                 <label>Portal role<select id="employee-role"><option>Staff</option><option>Team Lead</option><option>Admin</option></select></label>
                 <label>Account status<select id="employee-active"><option>Yes</option><option>No</option></select></label>
                 <div class="form-actions full-width"><div class="form-action-buttons"><button id="employee-save-button" class="button button-primary" type="submit">Save and create workspace</button><button id="employee-cancel-button" class="button button-quiet hidden" type="button">Cancel</button></div></div>
@@ -147,6 +149,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260929h"></script>
+    <script src="./app.js?v=20260929i"></script>
   </body>
 </html>
