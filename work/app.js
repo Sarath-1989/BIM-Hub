@@ -4,6 +4,7 @@
   const CONFIG = window.ASTERWIX_PORTAL_CONFIG;
   const GRAPH_SCOPES = ["User.Read", "Sites.ReadWrite.All"];
   const FOLDERS = { employees: "employees", projects: "projects", tasks: "tasks", workspaces: "employee-workspaces" };
+  const TASK_STATUSES = ["Not started", "In progress", "Blocked", "Completed"];
   const state = { account: null, profile: null, role: "Staff", projects: [], tasks: [], workLogs: [], employees: [], missingFolders: [] };
   const byId = (id) => document.getElementById(id);
   const isManager = () => state.role === "Admin" || state.role === "Team Lead";
@@ -127,6 +128,14 @@
     });
   }
 
+  async function inviteToItem(path, email, role) {
+    const item = await graph(drivePath(path));
+    await graph(`/drives/${CONFIG.driveId}/items/${item.id}/invite`, {
+      method: "POST",
+      body: JSON.stringify({ recipients: [{ email }], roles: [role], requireSignIn: true, sendInvitation: false, retainInheritedPermissions: true })
+    });
+  }
+
   async function provisionEmployeeWorkspace(employee) {
     const email = String(employee.Email || "").toLowerCase();
     if (!email || employee.Active === "No") return;
@@ -136,6 +145,7 @@
     await inviteToFolder(folderPath("projects"), email, employee.Role === "Team Lead" ? "write" : "read");
     await inviteToFolder(folderPath("tasks"), email, employee.Role === "Team Lead" ? "write" : "read");
     await inviteToFolder(workspacePath(email), email, "write");
+    await Promise.all(state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email && task.id).map((task) => inviteToItem(filePath("tasks", task.id), email, "write")));
     if (employee.Role === "Team Lead") await inviteToFolder(folderPath("workspaces"), email, "read");
   }
 
@@ -208,6 +218,8 @@
     return isManager() ? state.tasks : state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email);
   }
 
+  function canUpdateTask(task) { return isManager() || (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase(); }
+
   function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
 
   function renderMetrics() {
@@ -237,7 +249,9 @@
     const tasks = visibleTasks();
     byId("tasks-list").innerHTML = tasks.length ? tasks.map((task) => {
       const project = projectByCode(task.ProjectCode);
-      return `<article class="task-card"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(task.Status || "Not started")}</span><span>Due: ${esc(task.EndDate || "—")}</span></div></article>`;
+      const status = task.Status || "Not started";
+      const controls = canUpdateTask(task) && task.id ? `<div class="task-actions"><label class="task-status-control">Update status<select class="task-status-select">${TASK_STATUSES.map((option) => `<option${option === status ? " selected" : ""}>${esc(option)}</option>`).join("")}</select></label><button class="button button-primary" type="button" data-task-id="${esc(task.id)}">Save status</button></div>` : "";
+      return `<article class="task-card"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${controls}</article>`;
     }).join("") : `<section class="card"><p class="muted">No task is assigned to your Asterwix account yet.</p></section>`;
   }
 
@@ -329,9 +343,28 @@
   async function submitTask(event) {
     event.preventDefault();
     try {
-      await saveRecord("tasks", recordId("task"), { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, AssigneeEmail: byId("task-assignee").value.trim().toLowerCase(), StartDate: byId("task-start-date").value || "", EndDate: byId("task-end-date").value || "", Priority: byId("task-priority").value, Status: byId("task-status").value, Notes: byId("task-notes").value.trim(), createdAt: new Date().toISOString() });
+      const id = recordId("task");
+      const assigneeEmail = byId("task-assignee").value.trim().toLowerCase();
+      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, AssigneeEmail: assigneeEmail, StartDate: byId("task-start-date").value || "", EndDate: byId("task-end-date").value || "", Priority: byId("task-priority").value, Status: byId("task-status").value, Notes: byId("task-notes").value.trim(), createdAt: new Date().toISOString() });
+      try { await inviteToItem(filePath("tasks", id), assigneeEmail, "write"); }
+      catch (error) { await refreshData("Task assigned"); toast(`Task saved, but ${assigneeEmail} could not be granted status-update access: ${error.message}`, "error"); return; }
       event.target.reset(); await refreshData("Task assigned"); toast("Task assigned.", "success");
     } catch (error) { toast(error.message || "Could not assign task.", "error"); }
+  }
+
+  async function updateTaskStatus(event) {
+    const button = event.target.closest("[data-task-id]");
+    if (!button) return;
+    const task = state.tasks.find((item) => item.id === button.dataset.taskId);
+    if (!task || !canUpdateTask(task)) return toast("You cannot update this task.", "error");
+    const status = button.closest(".task-card")?.querySelector(".task-status-select")?.value;
+    if (!TASK_STATUSES.includes(status)) return toast("Choose a valid task status.", "error");
+    const label = button.textContent; button.disabled = true; button.textContent = "Saving…";
+    try {
+      await saveRecord("tasks", task.id, { ...task, Status: status });
+      await refreshData("Task status updated"); toast("Task status updated.", "success");
+    } catch (error) { toast(error.message || "Could not update task status.", "error"); }
+    finally { button.disabled = false; button.textContent = label; }
   }
 
   async function submitEmployee(event) {
@@ -364,6 +397,7 @@
     byId("work-log-form").addEventListener("submit", submitWork);
     byId("project-form").addEventListener("submit", submitProject);
     byId("task-form").addEventListener("submit", submitTask);
+    byId("tasks-list").addEventListener("click", updateTaskStatus);
     byId("employee-form").addEventListener("submit", submitEmployee);
     byId("refresh-setup").addEventListener("click", refreshSetup);
     [byId("work-start"), byId("work-end")].forEach((input) => input.addEventListener("input", updateDuration));
