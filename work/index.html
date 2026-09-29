@@ -70,10 +70,10 @@
             <div class="metrics" id="metrics"></div>
             <div class="content-grid">
               <section class="card work-card">
-                <div class="card-heading"><div><p class="eyebrow">NEW ENTRY</p><h2>Log today’s work</h2></div></div>
+                <div class="card-heading"><div><p class="eyebrow">NEW ENTRY</p><h2>Log today’s BIM work</h2></div></div>
                 <form id="work-log-form" class="form-grid">
-                  <label>Project<select id="work-project" required><option value="">Select a project</option></select></label>
-                  <label>Task<input id="work-task-title" required placeholder="What did you work on?" /></label>
+                  <label>BIM project<select id="work-project" required><option value="">Select a project</option></select></label>
+                  <label>BIM task / activity<input id="work-task-title" required placeholder="What BIM deliverable did you work on?" /></label>
                   <label>Work date<input id="work-date" type="date" required /></label>
                   <label>Start time<input id="work-start" type="time" required /></label>
                   <label>End time<input id="work-end" type="time" required /></label>
@@ -96,7 +96,7 @@
           <section id="projects-view" class="page-view hidden manager-only">
             <div class="page-heading"><div><p class="eyebrow">BIM PROJECT CONTROL</p><h1>Projects & deliverables</h1></div></div>
             <div class="content-grid manager-grid">
-              <section class="card"><div class="card-heading"><h2>Create project</h2></div>
+              <section class="card"><div class="card-heading"><h2>Create BIM project</h2></div>
                 <form id="project-form" class="form-grid">
                   <label>Project code<input id="project-code" required placeholder="AST-001" /></label>
                   <label>Project name<input id="project-name" required placeholder="Project name" /></label>
@@ -106,13 +106,18 @@
                   <div class="form-actions full-width"><button class="button button-primary" type="submit">Create project</button></div>
                 </form>
               </section>
-              <section class="card"><div class="card-heading"><h2>Assign task</h2></div>
+              <section class="card"><div class="card-heading"><h2>Assign BIM task</h2></div>
                 <form id="task-form" class="form-grid">
                   <label>Project<select id="task-project" required><option value="">Select project</option></select></label>
                   <label>Assignee<select id="task-assignee" required><option value="">Select an active employee</option></select></label>
-                  <label class="full-width">Task<input id="task-title" required placeholder="Describe the deliverable" /></label>
+                  <label>Discipline<select id="task-discipline" required><option value="">Select discipline</option><option>Landscape</option><option>Irrigation</option><option>Pools &amp; Water Features</option><option>Architecture (ARC)</option><option>Structure (STR)</option><option>Mechanical (MEC)</option><option>Electrical (ELE)</option><option>Plumbing (PLB)</option><option>Civil / Infrastructure</option><option>Multi-discipline</option></select></label>
+                  <label>Deliverable<select id="task-deliverable" required><option value="">Select deliverable</option><option>Revit Model</option><option>Shop Drawing</option><option>Clash Coordination</option><option>QA/QC Review</option><option>RFI</option><option>Model Submission</option><option>Drawing Package</option><option>Quantity / Schedule</option><option>As-built Model</option><option>COBie / Asset Register</option><option>BEP / TIDP</option><option>Other BIM Deliverable</option></select></label>
+                  <label class="full-width">Task<input id="task-title" required placeholder="Describe the BIM task or deliverable" /></label>
+                  <label>BIM stage / LOD<select id="task-lod" required><option value="">Select stage / LOD</option><option>LOD 300</option><option>LOD 400</option><option>As-built (LOD 500)</option><option>Not applicable</option></select></label>
+                  <label>Model / drawing no.<input id="task-reference" placeholder="e.g. AWX-PRJ-LA-M3-001" /></label>
+                  <label>Revision<input id="task-revision" placeholder="e.g. P01 or Rev 00" /></label>
                   <label>Start date<input id="task-start-date" type="date" /></label>
-                  <label>End date<input id="task-end-date" type="date" /></label>
+                  <label>Due date<input id="task-end-date" type="date" /></label>
                   <label>Priority<select id="task-priority"><option>Medium</option><option>High</option><option>Low</option></select></label>
                   <label>Status<select id="task-status"><option>Not started</option><option>In progress</option><option>Blocked</option><option>Completed</option></select></label>
                   <label class="full-width">Notes<textarea id="task-notes" rows="2" placeholder="Scope, links, or coordination note"></textarea></label>
@@ -149,6 +154,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260929i"></script>
+    <script src="./app.js?v=20260929j"></script>
   </body>
 </html>
