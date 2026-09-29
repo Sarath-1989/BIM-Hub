@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f1f3d" />
+    <title>Asterwix Work Portal</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./styles.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
+  </head>
+  <body>
+    <div id="toast-region" class="toast-region" aria-live="polite"></div>
+
+    <main id="sign-in-view" class="sign-in-shell">
+      <section class="sign-in-panel" aria-labelledby="portal-title">
+        <div class="brand-mark" aria-hidden="true">AX</div>
+        <p class="eyebrow">ASTERWIX · TEAM OPERATIONS</p>
+        <h1 id="portal-title">Work Portal</h1>
+        <p class="intro">Log daily work, manage project tasks, and keep the delivery team aligned.</p>
+        <button id="sign-in-button" class="button button-primary button-wide" type="button">
+          Sign in with Asterwix Microsoft account
+        </button>
+        <p id="sign-in-status" class="muted">Only approved Asterwix users can access work data.</p>
+      </section>
+      <aside class="sign-in-aside">
+        <p class="eyebrow">DAILY TRACE</p>
+        <h2>One record for every working day.</h2>
+        <ul>
+          <li>Project and assigned task</li>
+          <li>Start time and end time</li>
+          <li>Clear work update for team leads</li>
+        </ul>
+      </aside>
+    </main>
+
+    <div id="app-view" class="app-shell hidden">
+      <header class="topbar">
+        <div class="topbar-brand"><span class="brand-mark brand-mark-small">AX</span><span>Asterwix <strong>Work Portal</strong></span></div>
+        <div class="topbar-actions">
+          <span id="sync-status" class="sync-status">Connecting to SharePoint</span>
+          <button id="sign-out-button" class="button button-quiet" type="button">Sign out</button>
+        </div>
+      </header>
+
+      <div class="workspace">
+        <aside class="sidebar" aria-label="Portal navigation">
+          <div class="profile-card">
+            <div id="profile-initials" class="avatar">AX</div>
+            <div><strong id="profile-name">Asterwix User</strong><span id="profile-role">Staff</span></div>
+          </div>
+          <nav class="nav-list">
+            <button class="nav-item active" type="button" data-view="dashboard">Dashboard</button>
+            <button class="nav-item" type="button" data-view="tasks">My tasks</button>
+            <button class="nav-item manager-only" type="button" data-view="projects">Projects</button>
+            <button class="nav-item manager-only" type="button" data-view="team">Team</button>
+            <button class="nav-item admin-only" type="button" data-view="setup">SharePoint setup</button>
+          </nav>
+          <p class="sidebar-note">Work data is stored in Asterwix SharePoint.</p>
+        </aside>
+
+        <main class="content">
+          <section id="dashboard-view" class="page-view">
+            <div class="page-heading">
+              <div><p class="eyebrow">TODAY</p><h1>Daily work trace</h1><p id="today-label" class="muted"></p></div>
+              <div class="status-pill" id="role-badge">Staff</div>
+            </div>
+            <div class="metrics" id="metrics"></div>
+            <div class="content-grid">
+              <section class="card work-card">
+                <div class="card-heading"><div><p class="eyebrow">NEW ENTRY</p><h2>Log today’s work</h2></div></div>
+                <form id="work-log-form" class="form-grid">
+                  <label>Project<select id="work-project" required><option value="">Select a project</option></select></label>
+                  <label>Task<input id="work-task-title" required placeholder="What did you work on?" /></label>
+                  <label>Work date<input id="work-date" type="date" required /></label>
+                  <label>Start time<input id="work-start" type="time" required /></label>
+                  <label>End time<input id="work-end" type="time" required /></label>
+                  <label class="full-width">Work update<textarea id="work-note" rows="3" placeholder="What was completed or coordinated today?"></textarea></label>
+                  <div class="form-actions full-width"><span id="work-duration" class="muted">Duration: —</span><button class="button button-primary" type="submit">Save work entry</button></div>
+                </form>
+              </section>
+              <section class="card activity-card">
+                <div class="card-heading"><div><p class="eyebrow">RECENT</p><h2>Work entries</h2></div></div>
+                <div id="recent-work" class="activity-list"></div>
+              </section>
+            </div>
+          </section>
+
+          <section id="tasks-view" class="page-view hidden">
+            <div class="page-heading"><div><p class="eyebrow">ASSIGNMENTS</p><h1>My tasks</h1><p class="muted">Keep delivery status current for your project team.</p></div></div>
+            <div id="tasks-list" class="task-grid"></div>
+          </section>
+
+          <section id="projects-view" class="page-view hidden manager-only">
+            <div class="page-heading"><div><p class="eyebrow">PROJECT CONTROL</p><h1>Projects & tasks</h1></div></div>
+            <div class="content-grid manager-grid">
+              <section class="card"><div class="card-heading"><h2>Create project</h2></div>
+                <form id="project-form" class="form-grid">
+                  <label>Project code<input id="project-code" required placeholder="AST-001" /></label>
+                  <label>Project name<input id="project-name" required placeholder="Project name" /></label>
+                  <label>Client<input id="project-client" placeholder="Client name" /></label>
+                  <label>Target date<input id="project-target-date" type="date" /></label>
+                  <label class="full-width">Status<select id="project-status"><option>Active</option><option>On hold</option><option>Completed</option></select></label>
+                  <div class="form-actions full-width"><button class="button button-primary" type="submit">Create project</button></div>
+                </form>
+              </section>
+              <section class="card"><div class="card-heading"><h2>Assign task</h2></div>
+                <form id="task-form" class="form-grid">
+                  <label>Project<select id="task-project" required><option value="">Select project</option></select></label>
+                  <label>Assignee email<input id="task-assignee" type="email" required placeholder="staff@asterwix.com" /></label>
+                  <label class="full-width">Task<input id="task-title" required placeholder="Describe the deliverable" /></label>
+                  <label>Start date<input id="task-start-date" type="date" /></label>
+                  <label>End date<input id="task-end-date" type="date" /></label>
+                  <label>Priority<select id="task-priority"><option>Medium</option><option>High</option><option>Low</option></select></label>
+                  <label>Status<select id="task-status"><option>Not started</option><option>In progress</option><option>Blocked</option><option>Completed</option></select></label>
+                  <label class="full-width">Notes<textarea id="task-notes" rows="2" placeholder="Scope, links, or coordination note"></textarea></label>
+                  <div class="form-actions full-width"><button class="button button-primary" type="submit">Assign task</button></div>
+                </form>
+              </section>
+            </div>
+            <section class="card list-card"><div class="card-heading"><h2>Active projects</h2></div><div id="projects-list" class="table-wrap"></div></section>
+          </section>
+
+          <section id="team-view" class="page-view hidden manager-only">
+            <div class="page-heading"><div><p class="eyebrow">TEAM</p><h1>Team directory</h1><p class="muted">Roles are controlled in secure Asterwix SharePoint employee records.</p></div></div>
+            <section class="card admin-only">
+              <div class="card-heading"><h2>Add or update team member</h2></div>
+              <form id="employee-form" class="form-grid">
+                <label>Full name<input id="employee-name" required placeholder="Employee name" /></label>
+                <label>Email<input id="employee-email" type="email" required placeholder="name@asterwix.com" /></label>
+                <label>Portal role<select id="employee-role"><option>Staff</option><option>Team Lead</option><option>Admin</option></select></label>
+                <label>Account status<select id="employee-active"><option>Yes</option><option>No</option></select></label>
+                <div class="form-actions full-width"><button class="button button-primary" type="submit">Save team member</button></div>
+              </form>
+            </section>
+            <section class="card list-card"><div id="team-list" class="table-wrap"></div></section>
+          </section>
+
+          <section id="setup-view" class="page-view hidden admin-only">
+            <div class="page-heading"><div><p class="eyebrow">ADMIN ONLY</p><h1>SharePoint setup</h1><p class="muted">The portal stores each work record as a separate protected SharePoint file.</p></div></div>
+            <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><button id="refresh-setup" class="button button-primary" type="button">Refresh storage status</button><p class="muted">Folders are created once by the Asterwix SharePoint administrator. Daily work records never overwrite one shared database file.</p></section>
+          </section>
+        </main>
+      </div>
+    </div>
+
+    <script src="./config.js"></script>
+    <script src="./app.js"></script>
+  </body>
+</html>
