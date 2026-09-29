@@ -124,7 +124,7 @@
           </section>
 
           <section id="team-view" class="page-view hidden manager-only">
-            <div class="page-heading"><div><p class="eyebrow">TEAM</p><h1>Team directory</h1><p class="muted">Roles are controlled in secure Asterwix SharePoint employee records.</p></div></div>
+            <div class="page-heading"><div><p class="eyebrow">TEAM</p><h1>Team directory</h1><p class="muted">Adding an active employee creates a personal SharePoint workspace automatically.</p></div></div>
             <section class="card admin-only">
               <div class="card-heading"><h2>Add or update team member</h2></div>
               <form id="employee-form" class="form-grid">
@@ -132,15 +132,15 @@
                 <label>Email<input id="employee-email" type="email" required placeholder="name@asterwix.com" /></label>
                 <label>Portal role<select id="employee-role"><option>Staff</option><option>Team Lead</option><option>Admin</option></select></label>
                 <label>Account status<select id="employee-active"><option>Yes</option><option>No</option></select></label>
-                <div class="form-actions full-width"><button class="button button-primary" type="submit">Save team member</button></div>
+                <div class="form-actions full-width"><button class="button button-primary" type="submit">Save and create workspace</button></div>
               </form>
             </section>
             <section class="card list-card"><div id="team-list" class="table-wrap"></div></section>
           </section>
 
           <section id="setup-view" class="page-view hidden admin-only">
-            <div class="page-heading"><div><p class="eyebrow">ADMIN ONLY</p><h1>SharePoint setup</h1><p class="muted">The portal stores each work record as a separate protected SharePoint file.</p></div></div>
-            <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><button id="refresh-setup" class="button button-primary" type="button">Refresh storage status</button><p class="muted">Folders are created once by the Asterwix SharePoint administrator. Daily work records never overwrite one shared database file.</p></section>
+            <div class="page-heading"><div><p class="eyebrow">ADMIN ONLY</p><h1>SharePoint setup</h1><p class="muted">Every employee receives a separate protected work-log folder.</p></div></div>
+            <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><button id="refresh-setup" class="button button-primary" type="button">Refresh storage status</button><p class="muted">When an Admin adds an active employee, the portal creates that employee’s workspace and grants only the required SharePoint access.</p></section>
           </section>
         </main>
       </div>
