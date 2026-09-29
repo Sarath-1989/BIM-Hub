@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20260929h" />
+    <link rel="stylesheet" href="./styles.css?v=20260929i" />
     <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
   </head>
   <body>
@@ -55,6 +55,8 @@
             <button class="nav-item active" type="button" data-view="dashboard">Dashboard</button>
             <button class="nav-item" type="button" data-view="tasks">My tasks</button>
             <button class="nav-item manager-only" type="button" data-view="projects">Projects</button>
+            <button class="nav-item manager-only" type="button" data-view="issues">BIM issues</button>
+            <button class="nav-item manager-only" type="button" data-view="registers">Model / sheet register</button>
             <button class="nav-item manager-only" type="button" data-view="team">Team</button>
             <button class="nav-item admin-only" type="button" data-view="setup">SharePoint setup</button>
           </nav>
@@ -73,7 +75,7 @@
                 <div class="card-heading"><div><p class="eyebrow">NEW ENTRY</p><h2>Log today’s BIM work</h2></div></div>
                 <form id="work-log-form" class="form-grid">
                   <label>BIM project<select id="work-project" required><option value="">Select a project</option></select></label>
-                  <label>BIM task / activity<input id="work-task-title" required placeholder="What BIM deliverable did you work on?" /></label>
+                  <label>Assigned BIM task<select id="work-task" required><option value="">Select a project first</option></select></label>
                   <label>Work date<input id="work-date" type="date" required /></label>
                   <label>Start time<input id="work-start" type="time" required /></label>
                   <label>End time<input id="work-end" type="time" required /></label>
@@ -90,6 +92,14 @@
 
           <section id="tasks-view" class="page-view hidden">
             <div class="page-heading"><div><p class="eyebrow">BIM ASSIGNMENTS</p><h1>My tasks</h1><p class="muted">Keep BIM delivery status current for your project team.</p></div></div>
+            <form id="task-filter-form" class="card form-grid filter-card">
+              <label>Project<select id="task-filter-project"><option value="">All projects</option></select></label>
+              <label>Discipline<select id="task-filter-discipline"><option value="">All disciplines</option></select></label>
+              <label>Status<select id="task-filter-status"><option value="">All statuses</option></select></label>
+              <label class="manager-only">Assignee<select id="task-filter-assignee"><option value="">All assignees</option></select></label>
+              <label>Due date<select id="task-filter-due"><option value="">All dates</option><option value="overdue">Overdue</option><option value="due">Due today / overdue</option><option value="next-7">Due within 7 days</option></select></label>
+              <div class="form-actions full-width"><span class="muted">Filter the BIM task register by project, discipline, responsibility, status, or due date.</span><button id="clear-task-filters" class="button button-quiet" type="button">Clear filters</button></div>
+            </form>
             <div id="tasks-list" class="task-grid"></div>
           </section>
 
@@ -119,13 +129,58 @@
                   <label>Start date<input id="task-start-date" type="date" /></label>
                   <label>Due date<input id="task-end-date" type="date" /></label>
                   <label>Priority<select id="task-priority"><option>Medium</option><option>High</option><option>Low</option></select></label>
-                  <label>Status<select id="task-status"><option>Not started</option><option>In progress</option><option>Blocked</option><option>Completed</option></select></label>
+                  <label>Status<select id="task-status"><option>Not started</option><option>In progress</option><option>Ready for QA/QC</option><option>QA/QC review</option><option>Revise &amp; resubmit</option><option>Ready to submit</option><option>Submitted</option><option>Client review</option><option>Approved</option><option>Blocked</option><option>Completed</option></select></label>
                   <label class="full-width">Notes<textarea id="task-notes" rows="2" placeholder="Scope, links, or coordination note"></textarea></label>
                   <div class="form-actions full-width"><button class="button button-primary" type="submit">Assign task</button></div>
                 </form>
               </section>
             </div>
             <section class="card list-card"><div class="card-heading"><h2>Active projects</h2></div><div id="projects-list" class="table-wrap"></div></section>
+          </section>
+
+          <section id="issues-view" class="page-view hidden manager-only">
+            <div class="page-heading"><div><p class="eyebrow">BIM COORDINATION</p><h1>Clash &amp; issue register</h1><p class="muted">Record clashes, RFIs, QA findings, and coordination actions in one project register.</p></div></div>
+            <div class="content-grid manager-grid">
+              <section class="card"><div class="card-heading"><h2>Log BIM issue</h2></div>
+                <form id="issue-form" class="form-grid">
+                  <label>Project<select id="issue-project" required><option value="">Select project</option></select></label>
+                  <label>Issue type<select id="issue-type"><option>Clash / coordination</option><option>RFI</option><option>QA/QC finding</option><option>Design change</option><option>Site feedback</option><option>Information required</option></select></label>
+                  <label>Discipline<select id="issue-discipline"><option>Landscape</option><option>Irrigation</option><option>Pools &amp; Water Features</option><option>Architecture (ARC)</option><option>Structure (STR)</option><option>Mechanical (MEC)</option><option>Electrical (ELE)</option><option>Plumbing (PLB)</option><option>Civil / Infrastructure</option><option>Multi-discipline</option></select></label>
+                  <label>Responsible person<select id="issue-owner"><option value="">Select responsible person</option></select></label>
+                  <label class="full-width">Issue title<input id="issue-title" required placeholder="Describe the clash, query, or BIM coordination action" /></label>
+                  <label>Model / drawing reference<input id="issue-reference" placeholder="e.g. AWX-PRJ-MEP-M3-001 · Rev P02" /></label>
+                  <label>Due date<input id="issue-due-date" type="date" /></label>
+                  <label>Priority<select id="issue-priority"><option>Medium</option><option>High</option><option>Low</option></select></label>
+                  <label>Status<select id="issue-status"><option>Open</option><option>In progress</option><option>Waiting on others</option><option>Closed</option></select></label>
+                  <label class="full-width">Coordination note<textarea id="issue-notes" rows="2" placeholder="Issue location, action required, or meeting reference"></textarea></label>
+                  <div class="form-actions full-width"><button class="button button-primary" type="submit">Log BIM issue</button></div>
+                </form>
+              </section>
+              <section class="card list-card"><div class="card-heading"><div><p class="eyebrow">REGISTER</p><h2>Open and closed issues</h2></div></div><div id="issues-list" class="table-wrap"></div></section>
+            </div>
+          </section>
+
+          <section id="registers-view" class="page-view hidden manager-only">
+            <div class="page-heading"><div><p class="eyebrow">BIM INFORMATION MANAGEMENT</p><h1>Model &amp; sheet register</h1><p class="muted">Track model, drawing, and sheet deliveries with revision and approval status.</p></div></div>
+            <div class="content-grid manager-grid">
+              <section class="card"><div class="card-heading"><h2>Add delivery record</h2></div>
+                <form id="register-form" class="form-grid">
+                  <label>Record type<select id="register-type"><option>Revit model</option><option>Drawing / sheet</option><option>Drawing package</option><option>Schedule / quantity</option><option>As-built model</option><option>COBie / asset register</option></select></label>
+                  <label>Project<select id="register-project" required><option value="">Select project</option></select></label>
+                  <label>Discipline<select id="register-discipline"><option>Landscape</option><option>Irrigation</option><option>Pools &amp; Water Features</option><option>Architecture (ARC)</option><option>Structure (STR)</option><option>Mechanical (MEC)</option><option>Electrical (ELE)</option><option>Plumbing (PLB)</option><option>Civil / Infrastructure</option><option>Multi-discipline</option></select></label>
+                  <label>BIM stage / LOD<select id="register-lod"><option>LOD 300</option><option>LOD 400</option><option>As-built (LOD 500)</option><option>Not applicable</option></select></label>
+                  <label>Model / sheet no.<input id="register-number" required placeholder="e.g. AWX-PRJ-LA-DR-001" /></label>
+                  <label>Revision<input id="register-revision" placeholder="e.g. P01 or Rev 00" /></label>
+                  <label class="full-width">Title<input id="register-title" required placeholder="Model, drawing, or sheet title" /></label>
+                  <label>Status<select id="register-status"><option>WIP</option><option>For QA/QC</option><option>Submitted</option><option>Client review</option><option>Approved</option><option>Revise &amp; resubmit</option><option>Superseded</option></select></label>
+                  <label>Planned submission date<input id="register-date" type="date" /></label>
+                  <label class="full-width">SharePoint link (optional)<input id="register-link" type="url" placeholder="https://…" /></label>
+                  <label class="full-width">Delivery note<textarea id="register-notes" rows="2" placeholder="Submission, review, or document-control note"></textarea></label>
+                  <div class="form-actions full-width"><button class="button button-primary" type="submit">Add to register</button></div>
+                </form>
+              </section>
+              <section class="card list-card"><div class="card-heading"><div><p class="eyebrow">REGISTER</p><h2>Model and sheet deliveries</h2></div></div><div id="register-list" class="table-wrap"></div></section>
+            </div>
           </section>
 
           <section id="team-view" class="page-view hidden manager-only">
@@ -147,13 +202,13 @@
 
           <section id="setup-view" class="page-view hidden admin-only">
             <div class="page-heading"><div><p class="eyebrow">ADMIN ONLY</p><h1>SharePoint setup</h1><p class="muted">Every employee receives a separate protected work-log folder.</p></div></div>
-            <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><button id="refresh-setup" class="button button-primary" type="button">Refresh storage status</button><p class="muted">When an Admin adds an active employee, the portal creates that employee’s workspace and grants only the required SharePoint access.</p></section>
+            <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><div class="form-action-buttons"><button id="prepare-bim-registers" class="button button-primary" type="button">Prepare BIM registers</button><button id="refresh-setup" class="button button-quiet" type="button">Refresh storage status</button></div><p class="muted">Prepare BIM registers once to create the issue and model/sheet register folders, with Team Lead access. When an Admin adds an active employee, the portal creates that employee’s workspace and grants only the required SharePoint access.</p></section>
           </section>
         </main>
       </div>
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260929j"></script>
+    <script src="./app.js?v=20260929k"></script>
   </body>
 </html>
