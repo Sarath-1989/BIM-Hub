@@ -7,6 +7,7 @@
   const TASK_STATUSES = ["Not started", "In progress", "Blocked", "Completed"];
   const state = { account: null, profile: null, role: "Staff", projects: [], tasks: [], workLogs: [], employees: [], missingFolders: [] };
   const byId = (id) => document.getElementById(id);
+  let editingEmployeeEmail = "";
   const isManager = () => state.role === "Admin" || state.role === "Team Lead";
   const isAdmin = () => state.role === "Admin";
   const dubaiDate = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dubai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -261,7 +262,39 @@
     const activeEmployees = state.employees.filter((employee) => employee.Active !== "No").sort((a, b) => String(a.DisplayName || a.Email).localeCompare(String(b.DisplayName || b.Email)));
     byId("task-assignee").innerHTML = `<option value="">Select an active employee</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Email)}</option>`).join("")}`;
     byId("projects-list").innerHTML = state.projects.length ? `<table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Client</th><th>Status</th><th>Target</th></tr></thead><tbody>${state.projects.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
-    byId("team-list").innerHTML = state.employees.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th></tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">Add staff after portal storage is ready.</p>`;
+    const teamActionHeader = isAdmin() ? "<th>Action</th>" : "";
+    byId("team-list").innerHTML = state.employees.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Active</th>${teamActionHeader}</tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">Add staff after portal storage is ready.</p>`;
+  }
+
+  function resetEmployeeForm() {
+    editingEmployeeEmail = "";
+    byId("employee-form").reset();
+    byId("employee-email").readOnly = false;
+    byId("employee-form-heading").textContent = "Add team member";
+    byId("employee-cancel-button").classList.add("hidden");
+    updateEmployeeSaveLabel();
+  }
+
+  function updateEmployeeSaveLabel() {
+    byId("employee-save-button").textContent = editingEmployeeEmail ? "Save changes" : byId("employee-active").value === "No" ? "Save team member" : "Save and create workspace";
+  }
+
+  function beginEmployeeEdit(event) {
+    const button = event.target.closest("[data-edit-employee]");
+    if (!button || !isAdmin()) return;
+    const email = button.dataset.editEmployee || "";
+    const employee = state.employees.find((member) => (member.Email || "").toLowerCase() === email.toLowerCase());
+    if (!employee) return toast("Team member could not be found.", "error");
+    editingEmployeeEmail = employee.Email.toLowerCase();
+    byId("employee-name").value = employee.DisplayName || employee.Title || "";
+    byId("employee-email").value = employee.Email || "";
+    byId("employee-email").readOnly = true;
+    byId("employee-role").value = employee.Role || "Staff";
+    byId("employee-active").value = employee.Active || "Yes";
+    byId("employee-form-heading").textContent = "Update team member";
+    byId("employee-cancel-button").classList.remove("hidden");
+    updateEmployeeSaveLabel();
+    byId("employee-name").focus();
   }
 
   function renderSetup() {
@@ -383,10 +416,12 @@
     try {
       const email = byId("employee-email").value.trim().toLowerCase();
       const name = byId("employee-name").value.trim();
+      const updating = Boolean(editingEmployeeEmail);
+      if (updating && email !== editingEmployeeEmail) return toast("Email cannot be changed while updating a team member.", "error");
       const employee = { Title: name, Email: email, DisplayName: name, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: state.employees.find((member) => (member.Email || "").toLowerCase() === email)?.createdAt || new Date().toISOString() };
       await saveRecord("employees", emailKey(email), employee);
       await provisionEmployeeWorkspace(employee);
-      event.target.reset(); await refreshData("Team member and workspace saved"); toast(employee.Active === "No" ? "Team member saved as inactive." : "Team member and personal SharePoint workspace created.", "success");
+      resetEmployeeForm(); await refreshData("Team member saved"); toast(employee.Active === "No" ? "Team member saved as inactive." : updating ? "Team member updated." : "Team member and personal SharePoint workspace created.", "success");
     } catch (error) { toast(error.message || "Could not save team member.", "error"); }
   }
 
@@ -409,6 +444,9 @@
     byId("task-form").addEventListener("submit", submitTask);
     byId("tasks-list").addEventListener("click", updateTaskStatus);
     byId("employee-form").addEventListener("submit", submitEmployee);
+    byId("team-list").addEventListener("click", beginEmployeeEdit);
+    byId("employee-cancel-button").addEventListener("click", resetEmployeeForm);
+    byId("employee-active").addEventListener("change", updateEmployeeSaveLabel);
     byId("refresh-setup").addEventListener("click", refreshSetup);
     [byId("work-start"), byId("work-end")].forEach((input) => input.addEventListener("input", updateDuration));
     document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
