@@ -213,3 +213,27 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
   .mobile-nav-toggle{white-space:normal;overflow-wrap:anywhere;line-height:1.2}
   .sidebar.menu-open .nav-list{max-width:100%;overflow:visible}
 }
+
+/* Admin monitoring dashboard */
+.admin-monitor{display:grid;gap:18px}
+.admin-monitor-toolbar{display:flex;align-items:end;justify-content:space-between;gap:18px}
+.admin-monitor-toolbar .muted{margin:6px 0 0;max-width:720px}
+.monitor-filter{display:grid;gap:6px;min-width:235px;color:#40514c;font-size:.8rem;font-weight:700}
+.monitor-filter select{font:400 .9rem "DM Sans",sans-serif;border:1px solid #cedbd4;border-radius:8px;padding:10px;background:#fff;color:var(--ink)}
+.admin-monitor-summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.monitor-stat{background:#eff8f4;border:1px solid #d8ebe3;border-radius:12px;padding:15px;display:grid;gap:3px}
+.monitor-stat strong{font:800 1.25rem Manrope,sans-serif;letter-spacing:-.04em}
+.monitor-stat span{font-size:.76rem;color:var(--muted)}
+.admin-monitor-alerts{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.monitor-alert{display:grid;gap:4px;border:1px solid #e0e8e4;border-left:4px solid #31b391;background:#fff;border-radius:10px;padding:13px}
+.monitor-alert.risk{border-left-color:#c64040;background:#fff8f8}
+.monitor-alert.notice{border-left-color:#d18a16;background:#fffaf0}
+.monitor-alert.clear{border-left-color:#16866b;background:#f5fbf8}
+.monitor-alert strong{font-size:.86rem}
+.monitor-alert span{font-size:.76rem;color:var(--muted)}
+.admin-monitor-grid{display:grid;grid-template-columns:1.15fr .85fr;gap:18px}
+.monitor-table td{min-width:130px}
+.monitor-progress{height:6px;overflow:hidden;margin:8px 0 4px;border-radius:999px;background:#e5eeea}
+.monitor-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#29ae8c,#16866b)}
+@media(max-width:980px){.admin-monitor-grid{grid-template-columns:1fr}.admin-monitor-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.admin-monitor-toolbar{display:grid;align-items:stretch}.monitor-filter{min-width:0;width:100%}.admin-monitor-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.monitor-stat{padding:13px}.admin-monitor-alerts{grid-template-columns:1fr}.monitor-table{min-width:760px}}
