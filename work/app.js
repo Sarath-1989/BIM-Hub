@@ -72,7 +72,8 @@
 
   async function graph(path, options = {}) {
     const token = await accessToken();
-    const response = await fetch(`https://graph.microsoft.com/v1.0${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(options.headers || {}) } });
+    const graphUrl = path.startsWith("https://graph.microsoft.com/v1.0/") ? path : `https://graph.microsoft.com/v1.0${path}`;
+    const response = await fetch(graphUrl, { ...options, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json", ...(options.headers || {}) } });
     if (!response.ok) {
       const body = await response.json().catch(() => ({}));
       const error = new Error(body?.error?.message || `SharePoint request failed (${response.status}).`);
@@ -83,6 +84,29 @@
     return (response.headers.get("content-type") || "").includes("json") ? response.json() : response.text();
   }
 
+  async function listGraphCollection(path) {
+    const values = [];
+    let next = path;
+    while (next) {
+      const response = await graph(next);
+      values.push(...(response.value || []));
+      next = response["@odata.nextLink"] || "";
+    }
+    return values;
+  }
+
+  async function mapWithConcurrency(items, mapper, limit = 8) {
+    const results = new Array(items.length);
+    let nextIndex = 0;
+    const worker = async () => {
+      while (nextIndex < items.length) {
+        const index = nextIndex++;
+        results[index] = await mapper(items[index]);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(limit, items.length) }, worker));
+    return results;
+  }
   function folderPath(key) { return `${CONFIG.storageFolder}/${FOLDERS[key]}`; }
   function filePath(key, id) { return `${folderPath(key)}/${id}.json`; }
   function workspacePath(email = accountEmail()) { return `${folderPath("workspaces")}/${emailKey(String(email).toLowerCase())}`; }
@@ -155,16 +179,13 @@
     let item;
     try { item = await getFolder(path); }
     catch (error) { if (error.status === 404) return; throw error; }
-    const response = await graph(`/drives/${CONFIG.driveId}/items/${item.id}/permissions`);
-    const matching = (response.value || []).filter((permission) => permissionEmails(permission).includes(String(email).toLowerCase()));
+    const permissions = await listGraphCollection(`/drives/${CONFIG.driveId}/items/${item.id}/permissions`);
+    const matching = permissions.filter((permission) => permissionEmails(permission).includes(String(email).toLowerCase()));
     for (const permission of matching) {
       try { await graph(`/drives/${CONFIG.driveId}/items/${item.id}/permissions/${permission.id}`, { method: "DELETE" }); }
-      catch (error) {
-        if (error.status !== 404 && !/inherited/i.test(error.message || "")) throw error;
-      }
+      catch (error) { if (error.status !== 404) throw error; }
     }
   }
-
   async function revokeEmployeePortalAccess(employee) {
     const email = String(employee.Email || "").toLowerCase();
     if (!email || employee.Role === "Admin") return;
@@ -195,11 +216,10 @@
   }
 
   async function listRecordsAt(path) {
-    const response = await graph(`${drivePath(path, "/children")}?$top=999`);
-    const records = await Promise.all((response.value || []).filter((item) => item.file && item.name.endsWith(".json")).map(readRecord));
+    const items = await listGraphCollection(`${drivePath(path, "/children")}?$top=999`);
+    const records = await mapWithConcurrency(items.filter((item) => item.file && item.name.endsWith(".json")), readRecord);
     return records.filter(Boolean);
   }
-
   async function listRecords(key) { return listRecordsAt(folderPath(key)); }
 
   async function listOptionalRecords(key) {
@@ -227,15 +247,13 @@
   }
 
   async function listAllWorkspaceLogs() {
-    const response = await graph(`${drivePath(folderPath("workspaces"), "/children")}?$top=999`);
-    const folders = (response.value || []).filter((item) => item.folder);
-    const logs = await Promise.all(folders.map(async (folder) => {
+    const folders = (await listGraphCollection(`${drivePath(folderPath("workspaces"), "/children")}?$top=999`)).filter((item) => item.folder);
+    const logs = await mapWithConcurrency(folders, async (folder) => {
       try { return await listRecordsAt(`${folderPath("workspaces")}/${folder.name}/work-logs`); }
       catch (error) { console.warn("Skipped unreadable employee workspace", folder.name, error); return []; }
-    }));
+    }, 6);
     return logs.flat();
   }
-
   async function loadData() {
     state.issues = []; state.registers = []; state.bimStorage = { issues: false, registers: false }; state.inactive = false;
     await checkFolders();
@@ -245,10 +263,11 @@
     if (state.inactive) return;
     await checkPaths([{ label: isManager() ? FOLDERS.workspaces : "your personal work folder", path: isManager() ? folderPath("workspaces") : workspaceLogsPath() }], true);
     if (state.missingFolders.length) return;
-    state.workLogs = isManager() ? await listAllWorkspaceLogs() : await listRecordsAt(workspaceLogsPath());
+    const loadedWorkLogs = isManager() ? await listAllWorkspaceLogs() : await listRecordsAt(workspaceLogsPath());
+    const email = accountEmail().toLowerCase();
+    state.workLogs = isAdmin() ? loadedWorkLogs : isCoordinator() ? loadedWorkLogs.filter((entry) => canManageProject(projectByCode(entry.ProjectCode)) || (entry.EmployeeEmail || "").toLowerCase() === email) : loadedWorkLogs;
     if (isManager()) [state.issues, state.registers] = await Promise.all([listOptionalRecords("issues"), listOptionalRecords("registers")]);
   }
-
   function accountEmail() { return state.profile?.mail || state.profile?.userPrincipalName || state.account?.username || ""; }
 
   function setRole() {
@@ -282,6 +301,13 @@
     return isAdmin() ? state.projects : state.projects.filter((project) => coordinatorEmailFor(project) === email);
   }
 
+  function canManageProject(project) {
+    return Boolean(isAdmin() || (isCoordinator() && project && coordinatorEmailFor(project) === accountEmail().toLowerCase()));
+  }
+
+  function scopedManagerRecords(records) {
+    return isAdmin() ? records : records.filter((record) => canManageProject(projectByCode(record.ProjectCode)));
+  }
   function visibleTasks() {
     const email = accountEmail().toLowerCase();
     if (isAdmin()) return state.tasks;
@@ -292,8 +318,10 @@
     return state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email);
   }
 
-  function canUpdateTask(task) { return isManager() || (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase(); }
-
+  function canUpdateTask(task) {
+    const isAssignee = (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase();
+    return isAdmin() || canManageProject(projectByCode(task.ProjectCode)) || isAssignee;
+  }
   function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
   function coordinatorEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role === "Team Lead"); }
   function modellerEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin" && /Modell?er|Technician/i.test(employee.Designation || "")); }
@@ -305,11 +333,10 @@
     const activeProjects = accessibleProjects.filter((project) => project.Status === "Active").length;
     const openTasks = tasks.filter((task) => task.Status !== "Completed");
     const dueTasks = openTasks.filter((task) => task.EndDate && task.EndDate <= today).length;
-    const modelOrSheetDeliveries = isManager() ? state.registers.filter((item) => !["Approved", "Superseded"].includes(item.Status || "")).length : openTasks.filter((task) => /model|drawing/i.test(task.Deliverable || "")).length;
-    const coordinationIssues = isManager() ? state.issues.filter((issue) => issue.Status !== "Closed").length : openTasks.filter((task) => task.Status === "Blocked" || ["Clash Coordination", "RFI"].includes(task.Deliverable)).length;
+    const modelOrSheetDeliveries = isManager() ? scopedManagerRecords(state.registers).filter((item) => !["Approved", "Superseded"].includes(item.Status || "")).length : openTasks.filter((task) => /model|drawing/i.test(task.Deliverable || "")).length;
+    const coordinationIssues = isManager() ? scopedManagerRecords(state.issues).filter((issue) => issue.Status !== "Closed").length : openTasks.filter((task) => task.Status === "Blocked" || ["Clash Coordination", "RFI"].includes(task.Deliverable)).length;
     byId("metrics").innerHTML = [[String(activeProjects), "Active BIM projects"], [String(dueTasks), "Tasks due / overdue"], [String(modelOrSheetDeliveries), "Model / sheet deliveries"], [String(coordinationIssues), "Open coordination issues"]].map(([value, label]) => `<div class="metric"><div class="metric-value">${esc(value)}</div><div class="metric-label">${esc(label)}</div></div>`).join("");
   }
-
   function renderWorkForm() {
     const select = byId("work-project");
     const selectedProject = select.value;
@@ -323,9 +350,8 @@
   function workLogTasks() {
     const projectCode = byId("work-project").value;
     const email = accountEmail().toLowerCase();
-    return visibleTasks().filter((task) => task.ProjectCode === projectCode && task.Status !== "Completed" && (isManager() || (task.AssigneeEmail || "").toLowerCase() === email));
+    return visibleTasks().filter((task) => task.ProjectCode === projectCode && task.Status !== "Completed" && (task.AssigneeEmail || "").toLowerCase() === email);
   }
-
   function renderWorkTaskOptions() {
     const select = byId("work-task");
     const selectedTaskId = select.value;
@@ -336,10 +362,9 @@
 
   function renderRecentWork() {
     const email = accountEmail().toLowerCase();
-    const entries = state.workLogs.filter((entry) => isManager() || (entry.EmployeeEmail || "").toLowerCase() === email).sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 7);
+    const entries = state.workLogs.filter((entry) => isAdmin() || canManageProject(projectByCode(entry.ProjectCode)) || (entry.EmployeeEmail || "").toLowerCase() === email).sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 7);
     byId("recent-work").innerHTML = entries.length ? entries.map((entry) => `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span></div>`).join("") : `<p class="muted">No work entries have been logged yet.</p>`;
   }
-
   function renderTaskFilters() {
     const setOptions = (id, options, placeholder) => {
       const select = byId(id);
@@ -347,12 +372,16 @@
       select.innerHTML = `<option value="">${esc(placeholder)}</option>${options.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}`;
       if ([...select.options].some((option) => option.value === previous)) select.value = previous;
     };
-    setOptions("task-filter-project", state.projects.map((project) => [project.ProjectCode, `${project.ProjectCode} · ${project.Title}`]), "All projects");
-    setOptions("task-filter-discipline", [...new Set(visibleTasks().map((task) => task.Discipline).filter(Boolean))].sort().map((discipline) => [discipline, discipline]), "All disciplines");
+    const tasks = visibleTasks();
+    const projectCodes = new Set(tasks.map((task) => task.ProjectCode));
+    managedProjects().forEach((project) => projectCodes.add(project.ProjectCode));
+    const visibleProjects = state.projects.filter((project) => projectCodes.has(project.ProjectCode));
+    const assigneeEmails = new Set(tasks.map((task) => (task.AssigneeEmail || "").toLowerCase()).filter(Boolean));
+    setOptions("task-filter-project", visibleProjects.map((project) => [project.ProjectCode, `${project.ProjectCode} · ${project.Title}`]), "All projects");
+    setOptions("task-filter-discipline", [...new Set(tasks.map((task) => task.Discipline).filter(Boolean))].sort().map((discipline) => [discipline, discipline]), "All disciplines");
     setOptions("task-filter-status", TASK_STATUSES.map((status) => [status, status]), "All statuses");
-    setOptions("task-filter-assignee", state.employees.filter((employee) => employee.Active !== "No").map((employee) => [employee.Email, `${employee.DisplayName || employee.Email} · ${employee.Designation || "BIM team member"}`]), "All assignees");
+    setOptions("task-filter-assignee", state.employees.filter((employee) => employee.Active !== "No" && assigneeEmails.has((employee.Email || "").toLowerCase())).map((employee) => [employee.Email, `${employee.DisplayName || employee.Email} · ${employee.Designation || "BIM team member"}`]), "All assignees");
   }
-
   function filteredTasks(tasks = visibleTasks()) {
     const project = byId("task-filter-project").value;
     const discipline = byId("task-filter-discipline").value;
@@ -430,17 +459,15 @@
   function renderIssueRegister() {
     if (!isManager()) return;
     const storageNote = state.bimStorage.issues ? "" : `<p class="muted register-note">Issue register storage is not ready yet. An Admin can prepare it from SharePoint setup.</p>`;
-    const issues = [...state.issues].sort((a, b) => `${a.Status === "Closed" ? 1 : 0}${a.DueDate || "9999"}`.localeCompare(`${b.Status === "Closed" ? 1 : 0}${b.DueDate || "9999"}`));
+    const issues = [...scopedManagerRecords(state.issues)].sort((a, b) => `${a.Status === "Closed" ? 1 : 0}${a.DueDate || "9999"}`.localeCompare(`${b.Status === "Closed" ? 1 : 0}${b.DueDate || "9999"}`));
     byId("issues-list").innerHTML = storageNote || (issues.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Issue</th><th>Project</th><th>Discipline</th><th>Reference</th><th>Responsible</th><th>Due</th><th>Status</th></tr></thead><tbody>${issues.map((issue) => `<tr><td><strong>${esc(issue.Title)}</strong><br><span class="muted">${esc(issue.IssueType || "Issue")} · ${esc(issue.Priority || "Medium")}</span></td><td>${esc(issue.ProjectCode || "—")}</td><td>${esc(issue.Discipline || "—")}</td><td>${esc(issue.Reference || "—")}</td><td>${esc(issue.OwnerName || issue.OwnerEmail || "—")}</td><td>${esc(issue.DueDate || "—")}</td><td>${esc(issue.Status || "Open")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No BIM issues have been logged yet.</p>`);
   }
-
   function renderModelSheetRegister() {
     if (!isManager()) return;
     const storageNote = state.bimStorage.registers ? "" : `<p class="muted register-note">Model and sheet register storage is not ready yet. An Admin can prepare it from SharePoint setup.</p>`;
-    const records = [...state.registers].sort((a, b) => `${a.ProjectCode || ""}${a.Number || ""}`.localeCompare(`${b.ProjectCode || ""}${b.Number || ""}`));
+    const records = [...scopedManagerRecords(state.registers)].sort((a, b) => `${a.ProjectCode || ""}${a.Number || ""}`.localeCompare(`${b.ProjectCode || ""}${b.Number || ""}`));
     byId("register-list").innerHTML = storageNote || (records.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Type</th><th>Project</th><th>Discipline</th><th>Number / title</th><th>Revision</th><th>Stage</th><th>Status</th></tr></thead><tbody>${records.map((record) => `<tr><td>${esc(record.RecordType || "—")}</td><td>${esc(record.ProjectCode || "—")}</td><td>${esc(record.Discipline || "—")}</td><td><strong>${esc(record.Number || "—")}</strong><br><span class="muted">${esc(record.Title || "—")}</span></td><td>${esc(record.Revision || "—")}</td><td>${esc(record.BIMStage || "—")}</td><td>${esc(record.Status || "WIP")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No model or sheet delivery records have been added yet.</p>`);
   }
-
   function resetEmployeeForm() {
     editingEmployeeEmail = "";
     byId("employee-form").reset();
@@ -548,13 +575,13 @@
     const task = state.tasks.find((item) => item.id === byId("work-task").value);
     if (!byId("work-project").value || !task || !duration) return toast("Select project, assigned BIM task, and valid start/end time.", "error");
     if (task.ProjectCode !== byId("work-project").value || task.Status === "Completed") return toast("Choose an active BIM task from the selected project.", "error");
+    if ((task.AssigneeEmail || "").toLowerCase() !== accountEmail().toLowerCase()) return toast("You can log work only against a BIM task assigned to you.", "error");
     try {
       await ensureWorkspace();
       await saveRecordAt(workspaceLogsPath(), recordId("work"), { Title: `${byId("work-date").value} · ${task.Title}`, WorkDate: byId("work-date").value, TaskId: task.id, TaskTitle: task.Title, ProjectCode: task.ProjectCode, Discipline: task.Discipline || "", Deliverable: task.Deliverable || "", BIMStage: task.BIMStage || "", ModelDrawingNo: task.ModelDrawingNo || "", Revision: task.Revision || "", EmployeeEmail: accountEmail(), EmployeeName: state.profile.displayName, StartTime: byId("work-start").value, EndTime: byId("work-end").value, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: new Date().toISOString() });
       event.target.reset(); byId("work-date").value = dubaiDate(); updateDuration(); await refreshData("Work entry saved"); toast("Daily work entry saved to SharePoint.", "success");
     } catch (error) { toast(error.message || "Could not save work entry.", "error"); }
   }
-
   function resetProjectForm() {
     editingProjectId = "";
     byId("project-form").reset();
@@ -589,12 +616,20 @@
     const project = state.projects.find((item) => item.id === button.dataset.archiveProject);
     if (!project) return toast("Project could not be found.", "error");
     if (project.Status === "Archived") return toast("This project is already archived. Its records are retained.", "success");
-    const now = new Date().toISOString();
-    const history = [...(Array.isArray(project.UpdateHistory) ? project.UpdateHistory : []), { at: now, by: state.profile.displayName || accountEmail(), action: "Archived" }];
-    await saveRecord("projects", project.id, { ...project, Status: "Archived", ArchivedAt: now, ArchivedBy: state.profile.displayName || accountEmail(), LastUpdateAction: "Archived", UpdateHistory: history });
-    await refreshData("Project archived"); toast("Project archived. No project data, tasks, logs, issues, or registers were deleted.", "success");
+    const label = button.textContent;
+    button.disabled = true; button.textContent = "Archiving…";
+    try {
+      const now = new Date().toISOString();
+      const history = [...(Array.isArray(project.UpdateHistory) ? project.UpdateHistory : []), { at: now, by: state.profile.displayName || accountEmail(), action: "Archived" }];
+      await saveRecord("projects", project.id, { ...project, Status: "Archived", ArchivedAt: now, ArchivedBy: state.profile.displayName || accountEmail(), LastUpdateAction: "Archived", UpdateHistory: history });
+      await refreshData("Project archived");
+      toast("Project archived. No project data, tasks, logs, issues, or registers were deleted.", "success");
+    } catch (error) {
+      toast(error.message || "Could not archive this project.", "error");
+    } finally {
+      button.disabled = false; button.textContent = label;
+    }
   }
-
   async function deleteProject(event) {
     const button = event.target.closest("[data-delete-project]");
     if (!button || !isAdmin()) return;
@@ -714,24 +749,26 @@
     event.preventDefault();
     if (!isManager()) return;
     try {
+      const project = projectByCode(byId("issue-project").value);
+      if (!project || !canManageProject(project) || ["Completed", "Archived"].includes(project.Status)) return toast("Select an active project that you manage.", "error");
       await ensureBimRegister("issues");
       const ownerEmail = byId("issue-owner").value;
       const owner = state.employees.find((employee) => (employee.Email || "").toLowerCase() === ownerEmail.toLowerCase());
-      await saveRecord("issues", recordId("issue"), { Title: byId("issue-title").value.trim(), ProjectCode: byId("issue-project").value, Discipline: byId("issue-discipline").value, IssueType: byId("issue-type").value, Reference: byId("issue-reference").value.trim(), OwnerEmail: ownerEmail, OwnerName: owner?.DisplayName || owner?.Title || ownerEmail, DueDate: byId("issue-due-date").value || "", Priority: byId("issue-priority").value, Status: byId("issue-status").value, Notes: byId("issue-notes").value.trim(), ReportedBy: state.profile.displayName || accountEmail(), createdAt: new Date().toISOString() });
+      await saveRecord("issues", recordId("issue"), { Title: byId("issue-title").value.trim(), ProjectCode: project.ProjectCode, Discipline: byId("issue-discipline").value, IssueType: byId("issue-type").value, Reference: byId("issue-reference").value.trim(), OwnerEmail: ownerEmail, OwnerName: owner?.DisplayName || owner?.Title || ownerEmail, DueDate: byId("issue-due-date").value || "", Priority: byId("issue-priority").value, Status: byId("issue-status").value, Notes: byId("issue-notes").value.trim(), ReportedBy: state.profile.displayName || accountEmail(), createdAt: new Date().toISOString() });
       event.target.reset(); await refreshData("BIM issue logged"); toast("BIM issue logged.", "success");
     } catch (error) { toast(error.message || "Could not log BIM issue.", "error"); }
   }
-
   async function submitRegister(event) {
     event.preventDefault();
     if (!isManager()) return;
     try {
+      const project = projectByCode(byId("register-project").value);
+      if (!project || !canManageProject(project) || ["Completed", "Archived"].includes(project.Status)) return toast("Select an active project that you manage.", "error");
       await ensureBimRegister("registers");
-      await saveRecord("registers", recordId("register"), { RecordType: byId("register-type").value, ProjectCode: byId("register-project").value, Discipline: byId("register-discipline").value, Number: byId("register-number").value.trim(), Title: byId("register-title").value.trim(), Revision: byId("register-revision").value.trim(), BIMStage: byId("register-lod").value, Status: byId("register-status").value, PlannedDate: byId("register-date").value || "", SharePointLink: byId("register-link").value.trim(), Notes: byId("register-notes").value.trim(), RegisteredBy: state.profile.displayName || accountEmail(), createdAt: new Date().toISOString() });
+      await saveRecord("registers", recordId("register"), { RecordType: byId("register-type").value, ProjectCode: project.ProjectCode, Discipline: byId("register-discipline").value, Number: byId("register-number").value.trim(), Title: byId("register-title").value.trim(), Revision: byId("register-revision").value.trim(), BIMStage: byId("register-lod").value, Status: byId("register-status").value, PlannedDate: byId("register-date").value || "", SharePointLink: byId("register-link").value.trim(), Notes: byId("register-notes").value.trim(), RegisteredBy: state.profile.displayName || accountEmail(), createdAt: new Date().toISOString() });
       event.target.reset(); await refreshData("Model or sheet registered"); toast("Model or sheet delivery added to the register.", "success");
     } catch (error) { toast(error.message || "Could not add model or sheet register entry.", "error"); }
   }
-
   async function signOut() {
     try { await msalInstance.clearCache({ account: state.account }); }
     catch (error) { console.error("Could not clear the local portal session.", error); }
