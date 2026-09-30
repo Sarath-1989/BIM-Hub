@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20260930j" />
+    <link rel="stylesheet" href="./styles.css?v=20260930k" />
     <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
   </head>
   <body>
@@ -134,6 +134,7 @@
               <label>Project<select id="task-filter-project"><option value="">All projects</option></select></label>
               <label>Discipline<select id="task-filter-discipline"><option value="">All disciplines</option></select></label>
               <label>Status<select id="task-filter-status"><option value="">All statuses</option></select></label>
+              <label class="manager-only">Task records<select id="task-filter-record-state"><option value="active">Active tasks</option><option value="recycle">Recycle Bin</option></select></label>
               <label class="manager-only">Assignee<select id="task-filter-assignee"><option value="">All assignees</option></select></label>
               <label>Due date<select id="task-filter-due"><option value="">All dates</option><option value="overdue">Overdue</option><option value="due">Due today / overdue</option><option value="next-7">Due within 7 days</option></select></label>
               <div class="form-actions full-width"><span class="muted">Filter the BIM task register by project, discipline, responsibility, status, or due date.</span><button id="clear-task-filters" class="button button-quiet" type="button">Clear filters</button></div>
@@ -249,6 +250,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260930l"></script>
+    <script src="./app.js?v=20260930m"></script>
   </body>
 </html>
