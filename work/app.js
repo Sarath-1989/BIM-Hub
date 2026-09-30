@@ -10,8 +10,10 @@
   const state = { account: null, profile: null, role: "Staff", projects: [], tasks: [], workLogs: [], employees: [], issues: [], registers: [], missingFolders: [], bimStorage: { issues: false, registers: false }, inactive: false };
   const byId = (id) => document.getElementById(id);
   let editingEmployeeEmail = "";
+  let editingProjectId = "";
   const isManager = () => state.role === "Admin" || state.role === "Team Lead";
   const isAdmin = () => state.role === "Admin";
+  const isCoordinator = () => state.role === "Team Lead";
   const dubaiDate = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Dubai", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
   const esc = (value = "") => String(value).replace(/[&<>'"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[c]));
   const emailKey = (email) => `employee-${btoa(unescape(encodeURIComponent(email.toLowerCase()))).replace(/[+/=]/g, "-")}`;
@@ -270,14 +272,26 @@
     document.querySelectorAll(".page-view.admin-only").forEach((element) => element.classList.toggle("role-restricted", !isAdmin()));
   }
 
+  function managedProjects() {
+    const email = accountEmail().toLowerCase();
+    return isAdmin() ? state.projects : state.projects.filter((project) => (project.CoordinatorEmail || "").toLowerCase() === email);
+  }
+
   function visibleTasks() {
     const email = accountEmail().toLowerCase();
-    return isManager() ? state.tasks : state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email);
+    if (isAdmin()) return state.tasks;
+    if (isCoordinator()) {
+      const codes = new Set(managedProjects().map((project) => project.ProjectCode));
+      return state.tasks.filter((task) => codes.has(task.ProjectCode) || (task.AssigneeEmail || "").toLowerCase() === email);
+    }
+    return state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email);
   }
 
   function canUpdateTask(task) { return isManager() || (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase(); }
 
   function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
+  function coordinatorEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && (employee.Role === "Team Lead" || /BIM Coordinator|BIM Team Leader/i.test(employee.Designation || ""))); }
+  function modellerEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin" && /Modeler|Technician/i.test(employee.Designation || "")); }
 
   function renderMetrics() {
     const today = dubaiDate();
@@ -302,7 +316,7 @@
   function workLogTasks() {
     const projectCode = byId("work-project").value;
     const email = accountEmail().toLowerCase();
-    return state.tasks.filter((task) => task.ProjectCode === projectCode && task.Status !== "Completed" && (isManager() || (task.AssigneeEmail || "").toLowerCase() === email));
+    return visibleTasks().filter((task) => task.ProjectCode === projectCode && task.Status !== "Completed" && (isManager() || (task.AssigneeEmail || "").toLowerCase() === email));
   }
 
   function renderWorkTaskOptions() {
