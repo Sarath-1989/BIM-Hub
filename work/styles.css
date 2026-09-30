@@ -254,3 +254,10 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .project-monthly-workmanship-card .card-heading{align-items:flex-start}
 .project-monthly-workmanship-card .card-heading .muted{margin:5px 0 0;max-width:760px}
 .project-monthly-workmanship-table td{min-width:120px}
+
+/* Recoverable task-delete controls */
+.task-recycle-actions{display:flex;align-items:center;justify-content:flex-end;gap:10px;margin-top:10px;padding-top:10px;border-top:1px solid #eef2ef}
+.task-recycle-note{flex:1;margin:0;color:var(--muted);font-size:.74rem;line-height:1.4}
+.task-card-recycled{border-color:#ead4a8;background:#fffdf7}
+.task-card-recycled .badge{background:#fff2d8;color:#966100}
+@media(max-width:620px){.task-recycle-actions{flex-wrap:wrap;align-items:stretch}.task-recycle-actions .button{width:100%}.task-recycle-note{flex-basis:100%}}
