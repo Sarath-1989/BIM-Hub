@@ -245,11 +245,11 @@
             <div class="page-heading"><div><p class="eyebrow">ADMIN ONLY</p><h1>SharePoint setup</h1><p class="muted">Every employee receives a separate protected work-log folder.</p></div></div>
             <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><div class="form-action-buttons"><button id="prepare-bim-registers" class="button button-primary" type="button">Prepare BIM registers</button><button id="refresh-setup" class="button button-quiet" type="button">Refresh storage status</button></div><p class="muted">Prepare BIM registers once to create the issue and model/sheet register folders, with Team Lead access. When an Admin adds an active employee, the portal creates that employee’s workspace and grants only the required SharePoint access.</p></section>
             <section class="card setup-card reset-card">
-              <div class="card-heading"><div><p class="eyebrow">FRESH PORTAL</p><h2>Reset operational work data</h2></div></div>
-              <p class="muted">This clears projects, tasks, employee work logs, BIM issues, and model / sheet registers from the active portal. Your Admin account, staff directory, access setup, folders, and portal code remain unchanged.</p>
+              <div class="card-heading"><div><p class="eyebrow">TASKS &amp; WORK HOURS</p><h2>Clear task assignments &amp; work hours</h2></div></div>
+              <p class="muted">This clears only task assignments and employee work logs, which resets project work-hour figures. Projects, staff directory, BIM issues, model / sheet registers, access setup, folders, and portal code remain unchanged.</p>
               <label class="reset-confirmation-label">Type <strong>RESET</strong> to enable this action<input id="reset-confirmation" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="RESET" /></label>
-              <button id="reset-portal-data" class="button button-danger" type="button" disabled>Reset work data</button>
-              <p class="reset-warning">The portal will show the exact record count and ask for one final confirmation. Deleted files may remain recoverable in the SharePoint Recycle Bin, depending on your tenant policy.</p>
+              <button id="reset-portal-data" class="button button-danger" type="button" disabled>Clear tasks &amp; work hours</button>
+              <p class="reset-warning">The portal will show the exact task and work-hour record count and ask for one final confirmation. Deleted files may remain recoverable in the SharePoint Recycle Bin, depending on your tenant policy.</p>
             </section>
           </section>
         </main>
@@ -257,6 +257,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260930n"></script>
+    <script src="./app.js?v=20260930o"></script>
   </body>
 </html>
