@@ -519,6 +519,69 @@
     return Number.isFinite(saved) && saved > 0 ? saved : durationMinutes(entry.StartTime, entry.EndTime);
   }
 
+  function workLogSignature(entry) {
+    const employee = String(entry?.EmployeeEmail || "").trim().toLowerCase();
+    const workDate = String(entry?.WorkDate || "").slice(0, 10);
+    const project = String(entry?.ProjectCode || "").trim().toUpperCase();
+    const task = String(entry?.TaskId || "").trim();
+    const start = String(entry?.StartTime || "");
+    const end = String(entry?.EndTime || "");
+    return employee && workDate && start && end ? [employee, workDate, project, task, start, end].join("|") : "";
+  }
+
+  function uniqueWorkLogs(entries) {
+    const seen = new Set();
+    return entries.filter((entry) => {
+      const signature = workLogSignature(entry);
+      if (!signature || !seen.has(signature)) {
+        if (signature) seen.add(signature);
+        return true;
+      }
+      return false;
+    });
+  }
+
+  function workTimeRange(start, end) {
+    const duration = durationMinutes(start, end);
+    if (!duration) return null;
+    const [hours, minutes] = String(start).split(":").map(Number);
+    return { start: hours * 60 + minutes, end: hours * 60 + minutes + duration };
+  }
+
+  function workLogInterval(entry) {
+    return workTimeRange(entry?.StartTime, entry?.EndTime);
+  }
+
+  function workLogTotalMinutes(entries) {
+    const groups = new Map();
+    let fallbackMinutes = 0;
+    uniqueWorkLogs(entries).forEach((entry) => {
+      const employee = String(entry?.EmployeeEmail || "").trim().toLowerCase();
+      const workDate = String(entry?.WorkDate || "").slice(0, 10);
+      const interval = workLogInterval(entry);
+      if (!employee || !workDate || !interval) {
+        fallbackMinutes += workLogMinutes(entry);
+        return;
+      }
+      const key = `${employee}|${workDate}`;
+      groups.set(key, [...(groups.get(key) || []), interval]);
+    });
+    return fallbackMinutes + [...groups.values()].reduce((total, intervals) => {
+      let lastEnd = -1;
+      return total + intervals.sort((a, b) => a.start - b.start || a.end - b.end).reduce((minutes, interval) => {
+        const segmentStart = Math.max(interval.start, lastEnd);
+        lastEnd = Math.max(lastEnd, interval.end);
+        return interval.end > segmentStart ? minutes + interval.end - segmentStart : minutes;
+      }, 0);
+    }, 0);
+  }
+
+  function workTimesOverlap(start, end, entry) {
+    const candidate = workTimeRange(start, end);
+    const existing = workLogInterval(entry);
+    return Boolean(candidate && existing && candidate.start < existing.end && existing.start < candidate.end);
+  }
+
   function monitoringDataForProject(project, today = dubaiDate()) {
     const startInfo = projectStartInfo(project);
     const start = startInfo.value;
@@ -535,7 +598,7 @@
     }
     const tasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && task.ProjectCode === project.ProjectCode);
     const logs = state.workLogs.filter((entry) => entry.ProjectCode === project.ProjectCode);
-    const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
+    const actualMinutes = workLogTotalMinutes(logs);
     const completedTasks = tasks.filter((task) => task.Status === "Completed").length;
     const overdueTasks = tasks.filter((task) => task.EndDate && task.EndDate < today && task.Status !== "Completed");
     const blockedTasks = tasks.filter((task) => task.Status === "Blocked");
@@ -593,9 +656,9 @@
       const email = String(employee.Email || "").toLowerCase();
       const tasks = relevantTasks.filter((task) => String(task.AssigneeEmail || "").toLowerCase() === email);
       const logs = relevantLogs.filter((entry) => String(entry.EmployeeEmail || "").toLowerCase() === email);
-      const todayMinutes = logs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
-      const weekMinutes = logs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
-      const monthMinutes = logs.filter((entry) => entry.WorkDate >= monthStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const todayMinutes = workLogTotalMinutes(logs.filter((entry) => entry.WorkDate === today));
+      const weekMinutes = workLogTotalMinutes(logs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today));
+      const monthMinutes = workLogTotalMinutes(logs.filter((entry) => entry.WorkDate >= monthStart && entry.WorkDate <= today));
       const latest = [...logs].sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`))[0];
       const openTasks = tasks.filter((task) => task.Status !== "Completed");
       return { employee, tasks, openTasks, todayMinutes, weekMinutes, monthMinutes, latest, noDailyLog: normalDayMinutes(toUtcDate(today)) > 0 && openTasks.length > 0 && todayMinutes === 0 };
@@ -604,14 +667,14 @@
 
   function monthlyWorkmanshipRows(projectCode, today = dubaiDate(), count = 6) {
     const currentMonth = monthKey(today);
-    const visibleLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
+    const visibleLogs = uniqueWorkLogs(state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode));
     return recentMonthKeys(today, count).map((month) => {
       const periodEnd = month === currentMonth ? today : monthEndKey(month);
       const normalSchedule = normalTimeBetween(monthStartKey(month), periodEnd);
       const logs = visibleLogs.filter((entry) => monthKey(entry.WorkDate) === month);
-      const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const actualMinutes = workLogTotalMinutes(logs);
       const contributors = new Set(logs.map((entry) => String(entry.EmployeeEmail || "").toLowerCase()).filter(Boolean));
-      return { month, label: monthLabel(month), monthToDate: month === currentMonth, normalSchedule, actualMinutes, contributors, entryCount: logs.length };
+      return { month, label: monthLabel(month), monthToDate: month === currentMonth, normalSchedule, actualMinutes, contributors, entryCount: uniqueWorkLogs(logs).length };
     });
   }
 
@@ -620,7 +683,7 @@
     if (isAdmin()) {
       const activeProjects = state.projects.filter((project) => project.Status === "Active").length;
       const activeTeam = state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").length;
-      const todayMinutes = state.workLogs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const todayMinutes = workLogTotalMinutes(state.workLogs.filter((entry) => entry.WorkDate === today));
       const overdueTasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && task.EndDate && task.EndDate < today && task.Status !== "Completed").length;
       byId("metrics").innerHTML = [[String(activeProjects), "Active BIM projects"], [String(activeTeam), "Active team members"], [formatMinutes(todayMinutes), "Team workmanship today"], [String(overdueTasks), "Overdue BIM tasks"]].map(([value, label]) => `<div class="metric"><div class="metric-value">${esc(value)}</div><div class="metric-label">${esc(label)}</div></div>`).join("");
       return;
@@ -659,7 +722,7 @@
 
   function renderRecentWork() {
     const email = accountEmail().toLowerCase();
-    const entries = state.workLogs.filter((entry) => isAdmin() || canManageProject(projectByCode(entry.ProjectCode)) || (entry.EmployeeEmail || "").toLowerCase() === email).sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 7);
+    const entries = uniqueWorkLogs(state.workLogs.filter((entry) => isAdmin() || canManageProject(projectByCode(entry.ProjectCode)) || (entry.EmployeeEmail || "").toLowerCase() === email)).sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 7);
     byId("recent-work").innerHTML = entries.length ? entries.map((entry) => `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span></div>`).join("") : `<p class="muted">No work entries have been logged yet.</p>`;
   }
 
@@ -668,11 +731,11 @@
     return projects.filter((project) => !projectCode || project.ProjectCode === projectCode).map((project) => {
       const logs = state.workLogs.filter((entry) => entry.ProjectCode === project.ProjectCode && monthKey(entry.WorkDate) === month);
       const tasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && task.ProjectCode === project.ProjectCode);
-      const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const actualMinutes = workLogTotalMinutes(logs);
       const contributors = new Set(logs.map((entry) => String(entry.EmployeeEmail || "").toLowerCase()).filter(Boolean));
       const assignedMembers = new Set(tasks.map((task) => String(task.AssigneeEmail || "").toLowerCase()).filter(Boolean));
       const openTasks = tasks.filter((task) => task.Status !== "Completed");
-      return { project, actualMinutes, contributors, assignedMembers, entryCount: logs.length, openTasks, taskCount: tasks.length };
+      return { project, actualMinutes, contributors, assignedMembers, entryCount: uniqueWorkLogs(logs).length, openTasks, taskCount: tasks.length };
     }).sort((a, b) => b.actualMinutes - a.actualMinutes || String(a.project.ProjectCode || "").localeCompare(String(b.project.ProjectCode || "")));
   }
 
@@ -694,10 +757,10 @@
     const teamRows = monitoringTeamRows(projectCode, today);
     const monthlyRows = monthlyWorkmanshipRows(projectCode, today);
     const projectMonthlyRows = projectMonthlyWorkmanshipRows(currentProjects, projectCode, today);
-    const visibleLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
-    const todayMinutes = visibleLogs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+    const visibleLogs = uniqueWorkLogs(state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode));
+    const todayMinutes = workLogTotalMinutes(visibleLogs.filter((entry) => entry.WorkDate === today));
     const weekStart = mondayOfWeek(today);
-    const weekMinutes = visibleLogs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+    const weekMinutes = workLogTotalMinutes(visibleLogs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today));
     const currentMonth = monthlyRows[0] || { actualMinutes: 0, normalSchedule: { normalMinutes: 0 }, entryCount: 0, contributors: new Set() };
     const overdueTasks = projectData.flatMap((item) => item.overdueTasks);
     const blockedTasks = projectData.flatMap((item) => item.blockedTasks);
@@ -950,14 +1013,23 @@
 
   async function submitWork(event) {
     event.preventDefault();
-    const duration = durationMinutes(byId("work-start").value, byId("work-end").value);
+    const workDate = byId("work-date").value;
+    const startTime = byId("work-start").value;
+    const endTime = byId("work-end").value;
+    const duration = durationMinutes(startTime, endTime);
     const task = state.tasks.find((item) => item.id === byId("work-task").value);
     if (!byId("work-project").value || !task || !duration) return toast("Select project, assigned BIM task, and valid start/end time.", "error");
     if (task.ProjectCode !== byId("work-project").value || task.Status === "Completed" || isTaskInRecycleBin(task)) return toast("Choose an active BIM task from the selected project.", "error");
-    if ((task.AssigneeEmail || "").toLowerCase() !== accountEmail().toLowerCase()) return toast("You can log work only against a BIM task assigned to you.", "error");
+    const employeeEmail = accountEmail().toLowerCase();
+    if ((task.AssigneeEmail || "").toLowerCase() !== employeeEmail) return toast("You can log work only against a BIM task assigned to you.", "error");
+    const candidate = { EmployeeEmail: employeeEmail, WorkDate: workDate, ProjectCode: task.ProjectCode, TaskId: task.id, StartTime: startTime, EndTime: endTime };
+    const existingDayLogs = state.workLogs.filter((entry) => String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.WorkDate === workDate);
+    if (existingDayLogs.some((entry) => workLogSignature(entry) === workLogSignature(candidate))) return toast("This work entry already exists for the same task, date, and time. It was not saved again.", "error");
+    const overlappingEntry = existingDayLogs.find((entry) => workTimesOverlap(startTime, endTime, entry));
+    if (overlappingEntry) return toast(`This time overlaps your saved work entry (${overlappingEntry.StartTime}–${overlappingEntry.EndTime}). Use non-overlapping time.`, "error");
     try {
       await ensureWorkspace();
-      await saveRecordAt(workspaceLogsPath(), recordId("work"), { Title: `${byId("work-date").value} · ${task.Title}`, WorkDate: byId("work-date").value, TaskId: task.id, TaskTitle: task.Title, ProjectCode: task.ProjectCode, Discipline: task.Discipline || "", Deliverable: task.Deliverable || "", BIMStage: task.BIMStage || "", ModelDrawingNo: task.ModelDrawingNo || "", Revision: task.Revision || "", EmployeeEmail: accountEmail(), EmployeeName: state.profile.displayName, StartTime: byId("work-start").value, EndTime: byId("work-end").value, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: new Date().toISOString() });
+      await saveRecordAt(workspaceLogsPath(), recordId("work"), { Title: `${workDate} · ${task.Title}`, WorkDate: workDate, TaskId: task.id, TaskTitle: task.Title, ProjectCode: task.ProjectCode, Discipline: task.Discipline || "", Deliverable: task.Deliverable || "", BIMStage: task.BIMStage || "", ModelDrawingNo: task.ModelDrawingNo || "", Revision: task.Revision || "", EmployeeEmail: employeeEmail, EmployeeName: state.profile.displayName, StartTime: startTime, EndTime: endTime, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: new Date().toISOString() });
       event.target.reset(); byId("work-date").value = dubaiDate(); updateDuration(); await refreshData("Work entry saved"); toast("Daily work entry saved to SharePoint.", "success");
     } catch (error) { toast(error.message || "Could not save work entry.", "error"); }
   }
