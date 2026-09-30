@@ -222,6 +222,58 @@
   }
   async function listRecords(key) { return listRecordsAt(folderPath(key)); }
 
+  async function recordItemsAt(path) {
+    try {
+      const items = await listGraphCollection(`${drivePath(path, "/children")}?$top=999`);
+      return items.filter((item) => item.file && item.name.endsWith(".json"));
+    } catch (error) {
+      if (error.status === 404) return [];
+      throw error;
+    }
+  }
+
+  async function workspaceLogRecordItems() {
+    let folders;
+    try {
+      folders = (await listGraphCollection(`${drivePath(folderPath("workspaces"), "/children")}?$top=999`)).filter((item) => item.folder);
+    } catch (error) {
+      if (error.status === 404) return [];
+      throw error;
+    }
+    const groups = await mapWithConcurrency(folders, async (folder) => recordItemsAt(`${folderPath("workspaces")}/${folder.name}/work-logs`), 6);
+    return groups.flat();
+  }
+
+  async function portalResetRecordGroups() {
+    const [projects, tasks, issues, registers, workLogs] = await Promise.all([
+      recordItemsAt(folderPath("projects")),
+      recordItemsAt(folderPath("tasks")),
+      recordItemsAt(folderPath("issues")),
+      recordItemsAt(folderPath("registers")),
+      workspaceLogRecordItems()
+    ]);
+    return [
+      { key: "projects", label: "project record", items: projects },
+      { key: "tasks", label: "task record", items: tasks },
+      { key: "workLogs", label: "work-log record", items: workLogs },
+      { key: "issues", label: "BIM issue", items: issues },
+      { key: "registers", label: "model or sheet record", items: registers }
+    ];
+  }
+
+  async function deleteDriveItems(items) {
+    const results = await mapWithConcurrency(items, async (item) => {
+      try {
+        await graph(`/drives/${CONFIG.driveId}/items/${item.id}`, { method: "DELETE" });
+        return { item, deleted: true };
+      } catch (error) {
+        return { item, error };
+      }
+    }, 6);
+    const failures = results.filter((result) => result?.error);
+    return { deleted: items.length - failures.length, failures };
+  }
+
   async function listOptionalRecords(key) {
     try {
       const records = await listRecords(key);
@@ -840,6 +892,7 @@
       const ready = CORE_FOLDERS.includes(key) ? !state.missingFolders.includes(key) : key === "workspaces" ? !state.missingFolders.includes(key) : state.bimStorage[key];
       return `<li><strong>${esc(name)}</strong> — ${ready ? "ready" : key === "issues" || key === "registers" ? "prepare BIM registers" : "not created"}</li>`;
     }).join("");
+    updateResetButtonState();
   }
 
   function renderAll() {
@@ -1143,6 +1196,48 @@
     } catch (error) { toast(error.message || "Could not save team member.", "error"); }
   }
 
+  function updateResetButtonState() {
+    const input = byId("reset-confirmation");
+    const button = byId("reset-portal-data");
+    if (!input || !button) return;
+    button.disabled = input.value.trim().toUpperCase() !== "RESET";
+  }
+
+  async function resetPortalWorkData() {
+    if (!isAdmin()) return;
+    const input = byId("reset-confirmation");
+    const button = byId("reset-portal-data");
+    if (!input || !button) return;
+    if (input.value.trim().toUpperCase() !== "RESET") return toast("Type RESET to enable this action.", "error");
+    const label = button.textContent;
+    try {
+      const groups = await portalResetRecordGroups();
+      const total = groups.reduce((sum, group) => sum + group.items.length, 0);
+      const summary = groups.map((group) => `${group.items.length} ${group.label}${group.items.length === 1 ? "" : "s"}`).join(", ");
+      if (!total) return toast("The portal is already fresh. Staff accounts and setup are unchanged.", "success");
+      const confirmed = window.confirm(`Remove ${total} operational record(s) from the active portal?\n\n${summary}\n\nStaff accounts, Admin access, SharePoint folders, and portal code will remain. Deleted files may be retained in the SharePoint Recycle Bin according to tenant policy.`);
+      if (!confirmed) return;
+      button.disabled = true;
+      button.textContent = "Resetting…";
+      const results = [];
+    for (const group of groups) results.push({ ...group, ...(await deleteDriveItems(group.items)) });
+      const deleted = results.reduce((sum, result) => sum + result.deleted, 0);
+      const failures = results.flatMap((result) => result.failures);
+      await refreshData(failures.length ? "Reset partly completed" : "Fresh portal reset");
+      if (failures.length) {
+        input.value = "";
+        throw new Error(`${deleted} records were cleared, but ${failures.length} could not be removed. Do not retry until an Admin checks SharePoint access.`);
+      }
+      input.value = "";
+      toast(`Fresh portal ready. ${deleted} operational records were cleared from active portal data; staff accounts and setup remain.`, "success");
+    } catch (error) {
+      toast(error.message || "Could not reset the portal work data.", "error");
+    } finally {
+      button.textContent = label;
+      updateResetButtonState();
+    }
+  }
+
   async function prepareBimRegisters() {
     if (!isAdmin()) return;
     const button = byId("prepare-bim-registers");
@@ -1215,6 +1310,8 @@
     byId("employee-active").addEventListener("change", updateEmployeeSaveLabel);
     byId("refresh-setup").addEventListener("click", refreshSetup);
     byId("prepare-bim-registers").addEventListener("click", prepareBimRegisters);
+    byId("reset-confirmation").addEventListener("input", updateResetButtonState);
+    byId("reset-portal-data").addEventListener("click", resetPortalWorkData);
     byId("work-project").addEventListener("change", renderWorkTaskOptions);
     byId("admin-monitor-project")?.addEventListener("change", renderAdminMonitor);
     byId("task-filter-form").addEventListener("submit", (event) => event.preventDefault());
