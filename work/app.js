@@ -401,7 +401,9 @@
     byId("issue-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     byId("issue-owner").innerHTML = `<option value="">Select responsible person</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM team member")}</option>`).join("")}`;
     byId("register-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
-    byId("projects-list").innerHTML = state.projects.length ? `<table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Client</th><th>Status</th><th>Target</th></tr></thead><tbody>${state.projects.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
+    const projectRows = isAdmin() ? state.projects : managedProjects();
+    const projectActions = isAdmin() ? "<th>Action</th>" : "";
+    byId("projects-list").innerHTML = projectRows.length ? `<table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || "—")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions"><button class="button button-quiet" type="button" data-edit-project="${esc(project.id || "")}">Edit</button><button class="button button-quiet" type="button" data-archive-project="${esc(project.id || "")}">Archive</button><button class="button button-danger" type="button" data-delete-project="${esc(project.id || "")}">Delete</button></div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
     const teamActionHeader = isAdmin() ? "<th>Action</th>" : "";
     byId("team-list").innerHTML = state.employees.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Designation</th><th>Discipline</th><th>Email</th><th>Portal role</th><th>Active</th>${teamActionHeader}</tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Designation || "—")}</td><td>${esc(employee.Discipline || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">Add BIM team members after portal storage is ready.</p>`;
     renderIssueRegister();
@@ -535,6 +537,56 @@
     } catch (error) { toast(error.message || "Could not save work entry.", "error"); }
   }
 
+  function resetProjectForm() {
+    editingProjectId = "";
+    byId("project-form").reset();
+    byId("project-code").readOnly = false;
+    byId("project-form-heading").textContent = "Create BIM project";
+    byId("project-save-button").textContent = "Create project";
+    byId("project-cancel-button").classList.add("hidden");
+  }
+
+  function beginProjectEdit(event) {
+    const button = event.target.closest("[data-edit-project]");
+    if (!button || !isAdmin()) return;
+    const project = state.projects.find((item) => item.id === button.dataset.editProject);
+    if (!project) return toast("Project could not be found.", "error");
+    editingProjectId = project.id;
+    byId("project-code").value = project.ProjectCode || "";
+    byId("project-code").readOnly = true;
+    byId("project-name").value = project.Title || "";
+    byId("project-client").value = project.Client || "";
+    byId("project-coordinator").value = project.CoordinatorEmail || "";
+    byId("project-target-date").value = project.TargetDate || "";
+    byId("project-status").value = project.Status || "Active";
+    byId("project-form-heading").textContent = "Update BIM project";
+    byId("project-save-button").textContent = "Save project changes";
+    byId("project-cancel-button").classList.remove("hidden");
+    byId("project-name").focus();
+  }
+
+  async function archiveProject(event) {
+    const button = event.target.closest("[data-archive-project]");
+    if (!button || !isAdmin()) return;
+    const project = state.projects.find((item) => item.id === button.dataset.archiveProject);
+    if (!project) return toast("Project could not be found.", "error");
+    await saveRecord("projects", project.id, { ...project, Status: "Archived", ArchivedAt: new Date().toISOString(), ArchivedBy: state.profile.displayName || accountEmail() });
+    await refreshData("Project archived"); toast("Project archived. Its records are retained.", "success");
+  }
+
+  async function deleteProject(event) {
+    const button = event.target.closest("[data-delete-project]");
+    if (!button || !isAdmin()) return;
+    const project = state.projects.find((item) => item.id === button.dataset.deleteProject);
+    if (!project) return toast("Project could not be found.", "error");
+    const linked = state.tasks.some((task) => task.ProjectCode === project.ProjectCode) || state.workLogs.some((log) => log.ProjectCode === project.ProjectCode) || state.issues.some((issue) => issue.ProjectCode === project.ProjectCode) || state.registers.some((record) => record.ProjectCode === project.ProjectCode);
+    if (linked) return toast("This project has linked records. Archive it instead of deleting it.", "error");
+    if (!window.confirm(`Delete project ${project.ProjectCode}? This cannot be undone.`)) return;
+    await graph(drivePath(filePath("projects", project.id)), { method: "DELETE" });
+    if (editingProjectId === project.id) resetProjectForm();
+    await refreshData("Project deleted"); toast("Project deleted.", "success");
+  }
+
   async function submitProject(event) {
     event.preventDefault();
     if (!isAdmin()) return toast("Only an Admin can create or edit projects.", "error");
@@ -544,9 +596,12 @@
       const coordinator = coordinatorEmployees().find((employee) => (employee.Email || "").toLowerCase() === coordinatorEmail);
       if (!projectCode) return toast("Enter a project code.", "error");
       if (!coordinator) return toast("Select an active BIM Coordinator or Team Lead.", "error");
-      if (state.projects.some((project) => String(project.ProjectCode || "").trim().toUpperCase() === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
-      await saveRecord("projects", recordId("project"), { Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: new Date().toISOString() });
-      event.target.reset(); await refreshData("Project created"); toast("Project created.", "success");
+      if (!editingProjectId && state.projects.some((project) => String(project.ProjectCode || "").trim().toUpperCase() === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
+      const existing = state.projects.find((project) => project.id === editingProjectId);
+      const id = editingProjectId || recordId("project");
+      await saveRecord("projects", id, { Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: existing?.createdAt || new Date().toISOString() });
+      const message = editingProjectId ? "Project updated" : "Project created";
+      resetProjectForm(); await refreshData(message); toast(`${message}.`, "success");
     } catch (error) { toast(error.message || "Could not create project.", "error"); }
   }
 
@@ -668,10 +723,12 @@
     byId("sign-out-button").addEventListener("click", signOut);
     byId("work-log-form").addEventListener("submit", submitWork);
     byId("project-form").addEventListener("submit", submitProject);
+    byId("project-cancel-button").addEventListener("click", resetProjectForm);
     byId("task-form").addEventListener("submit", submitTask);
     byId("issue-form").addEventListener("submit", submitIssue);
     byId("register-form").addEventListener("submit", submitRegister);
     byId("tasks-list").addEventListener("click", updateTaskStatus);
+    byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); deleteProject(event); });
     byId("employee-form").addEventListener("submit", submitEmployee);
     byId("team-list").addEventListener("click", beginEmployeeEdit);
     byId("employee-cancel-button").addEventListener("click", resetEmployeeForm);
