@@ -245,19 +245,13 @@
   }
 
   async function portalResetRecordGroups() {
-    const [projects, tasks, issues, registers, workLogs] = await Promise.all([
-      recordItemsAt(folderPath("projects")),
+    const [tasks, workLogs] = await Promise.all([
       recordItemsAt(folderPath("tasks")),
-      recordItemsAt(folderPath("issues")),
-      recordItemsAt(folderPath("registers")),
       workspaceLogRecordItems()
     ]);
     return [
-      { key: "projects", label: "project record", items: projects },
-      { key: "tasks", label: "task record", items: tasks },
-      { key: "workLogs", label: "work-log record", items: workLogs },
-      { key: "issues", label: "BIM issue", items: issues },
-      { key: "registers", label: "model or sheet record", items: registers }
+      { key: "tasks", label: "task assignment", items: tasks },
+      { key: "workLogs", label: "work-hour log", items: workLogs }
     ];
   }
 
@@ -1214,8 +1208,8 @@
       const groups = await portalResetRecordGroups();
       const total = groups.reduce((sum, group) => sum + group.items.length, 0);
       const summary = groups.map((group) => `${group.items.length} ${group.label}${group.items.length === 1 ? "" : "s"}`).join(", ");
-      if (!total) return toast("The portal is already fresh. Staff accounts and setup are unchanged.", "success");
-      const confirmed = window.confirm(`Remove ${total} operational record(s) from the active portal?\n\n${summary}\n\nStaff accounts, Admin access, SharePoint folders, and portal code will remain. Deleted files may be retained in the SharePoint Recycle Bin according to tenant policy.`);
+      if (!total) return toast("Task assignments and project work-hour logs are already clear. All other portal data is unchanged.", "success");
+      const confirmed = window.confirm(`Remove ${total} task assignment or work-hour record(s) from the active portal?\n\n${summary}\n\nProjects, staff accounts, BIM issues, model / sheet registers, Admin access, SharePoint folders, and portal code will remain. Deleted files may be retained in the SharePoint Recycle Bin according to tenant policy.`);
       if (!confirmed) return;
       button.disabled = true;
       button.textContent = "Resetting…";
@@ -1223,15 +1217,15 @@
     for (const group of groups) results.push({ ...group, ...(await deleteDriveItems(group.items)) });
       const deleted = results.reduce((sum, result) => sum + result.deleted, 0);
       const failures = results.flatMap((result) => result.failures);
-      await refreshData(failures.length ? "Reset partly completed" : "Fresh portal reset");
+      await refreshData(failures.length ? "Task/work-hour reset partly completed" : "Tasks and work hours cleared");
       if (failures.length) {
         input.value = "";
-        throw new Error(`${deleted} records were cleared, but ${failures.length} could not be removed. Do not retry until an Admin checks SharePoint access.`);
+        throw new Error(`${deleted} task or work-hour records were cleared, but ${failures.length} could not be removed. Do not retry until an Admin checks SharePoint access.`);
       }
       input.value = "";
-      toast(`Fresh portal ready. ${deleted} operational records were cleared from active portal data; staff accounts and setup remain.`, "success");
+      toast(`Tasks and project work-hour logs cleared. ${deleted} records were removed from active portal data; all other portal data remains.`, "success");
     } catch (error) {
-      toast(error.message || "Could not reset the portal work data.", "error");
+      toast(error.message || "Could not clear task assignments and work-hour logs.", "error");
     } finally {
       button.textContent = label;
       updateResetButtonState();
