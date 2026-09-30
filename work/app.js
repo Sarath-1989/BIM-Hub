@@ -537,17 +537,22 @@
 
   async function submitProject(event) {
     event.preventDefault();
+    if (!isAdmin()) return toast("Only an Admin can create or edit projects.", "error");
     try {
       const projectCode = byId("project-code").value.trim().toUpperCase();
+      const coordinatorEmail = byId("project-coordinator").value.trim().toLowerCase();
+      const coordinator = coordinatorEmployees().find((employee) => (employee.Email || "").toLowerCase() === coordinatorEmail);
       if (!projectCode) return toast("Enter a project code.", "error");
+      if (!coordinator) return toast("Select an active BIM Coordinator or Team Lead.", "error");
       if (state.projects.some((project) => String(project.ProjectCode || "").trim().toUpperCase() === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
-      await saveRecord("projects", recordId("project"), { Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: new Date().toISOString() });
+      await saveRecord("projects", recordId("project"), { Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: new Date().toISOString() });
       event.target.reset(); await refreshData("Project created"); toast("Project created.", "success");
     } catch (error) { toast(error.message || "Could not create project.", "error"); }
   }
 
   async function submitTask(event) {
     event.preventDefault();
+    if (!isManager()) return toast("Only an Admin or assigned Coordinator can assign tasks.", "error");
     try {
       const id = recordId("task");
       const assigneeEmail = byId("task-assignee").value.trim().toLowerCase();
@@ -555,6 +560,10 @@
       const endDate = byId("task-end-date").value || "";
       const assignee = state.employees.find((employee) => (employee.Email || "").toLowerCase() === assigneeEmail && employee.Active !== "No");
       if (!assignee) return toast("Select an active employee.", "error");
+      const project = projectByCode(byId("task-project").value);
+      if (!project || ["Completed", "Archived"].includes(project.Status)) return toast("Select an active project.", "error");
+      if (isCoordinator() && (project.CoordinatorEmail || "").toLowerCase() !== accountEmail().toLowerCase()) return toast("You can assign tasks only in projects assigned to you as Coordinator.", "error");
+      if (isCoordinator() && !modellerEmployees().some((employee) => (employee.Email || "").toLowerCase() === assigneeEmail)) return toast("A Coordinator can assign tasks only to active BIM Modelers or BIM Technicians.", "error");
       if (startDate && endDate && endDate < startDate) return toast("End date must be on or after the start date.", "error");
       const discipline = byId("task-discipline").value;
       const deliverable = byId("task-deliverable").value;
