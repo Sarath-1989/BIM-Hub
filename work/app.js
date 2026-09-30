@@ -296,7 +296,8 @@
   function renderMetrics() {
     const today = dubaiDate();
     const tasks = visibleTasks();
-    const activeProjects = state.projects.filter((project) => project.Status === "Active").length;
+    const accessibleProjects = isAdmin() ? state.projects : isCoordinator() ? managedProjects() : state.projects.filter((project) => tasks.some((task) => task.ProjectCode === project.ProjectCode));
+    const activeProjects = accessibleProjects.filter((project) => project.Status === "Active").length;
     const openTasks = tasks.filter((task) => task.Status !== "Completed");
     const dueTasks = openTasks.filter((task) => task.EndDate && task.EndDate <= today).length;
     const modelOrSheetDeliveries = isManager() ? state.registers.filter((item) => !["Approved", "Superseded"].includes(item.Status || "")).length : openTasks.filter((task) => /model|drawing/i.test(task.Deliverable || "")).length;
@@ -307,7 +308,8 @@
   function renderWorkForm() {
     const select = byId("work-project");
     const selectedProject = select.value;
-    select.innerHTML = `<option value="">Select a project</option>${state.projects.filter((project) => project.Status !== "Completed").map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
+    const availableProjects = (isAdmin() ? state.projects : isCoordinator() ? managedProjects() : state.projects.filter((project) => visibleTasks().some((task) => task.ProjectCode === project.ProjectCode))).filter((project) => !["Completed", "Archived"].includes(project.Status));
+    select.innerHTML = `<option value="">Select a project</option>${availableProjects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     if ([...select.options].some((option) => option.value === selectedProject)) select.value = selectedProject;
     renderWorkTaskOptions();
     if (!byId("work-date").value) byId("work-date").value = dubaiDate();
@@ -398,14 +400,14 @@
     byId("task-assignee").innerHTML = `<option value="">${isAdmin() ? "Select an active employee" : "Select a BIM modeller"}</option>${taskAssignees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM team member")} · ${esc(employee.Discipline || "—")}</option>`).join("")}`;
     byId("task-form-heading").textContent = isAdmin() ? "Assign BIM task" : "Delegate task to BIM modeller";
     byId("task-assignment-note").textContent = isAdmin() ? "Assign the project coordinator's package or a direct BIM task." : "You can assign tasks only within projects where you are the assigned Coordinator.";
-    byId("issue-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
+    byId("issue-project").innerHTML = `<option value="">Select project</option>${availableProjects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     byId("issue-owner").innerHTML = `<option value="">Select responsible person</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM team member")}</option>`).join("")}`;
-    byId("register-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
+    byId("register-project").innerHTML = `<option value="">Select project</option>${availableProjects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     const projectRows = isAdmin() ? state.projects : managedProjects();
     const projectActions = isAdmin() ? "<th>Action</th>" : "";
-    byId("projects-list").innerHTML = projectRows.length ? `<table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || "—")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions"><button class="button button-quiet" type="button" data-edit-project="${esc(project.id || "")}">Edit</button><button class="button button-quiet" type="button" data-archive-project="${esc(project.id || "")}">Archive</button><button class="button button-danger" type="button" data-delete-project="${esc(project.id || "")}">Delete</button></div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
+    byId("projects-list").innerHTML = projectRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || "—")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions"><button class="button button-quiet" type="button" data-edit-project="${esc(project.id || "")}">Edit</button><button class="button button-quiet" type="button" data-archive-project="${esc(project.id || "")}">Archive</button><button class="button button-danger" type="button" data-delete-project="${esc(project.id || "")}">Delete</button></div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
     const teamActionHeader = isAdmin() ? "<th>Action</th>" : "";
-    byId("team-list").innerHTML = state.employees.length ? `<table class="data-table"><thead><tr><th>Name</th><th>Designation</th><th>Discipline</th><th>Email</th><th>Portal role</th><th>Active</th>${teamActionHeader}</tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Designation || "—")}</td><td>${esc(employee.Discipline || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">Add BIM team members after portal storage is ready.</p>`;
+    byId("team-list").innerHTML = state.employees.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Name</th><th>Designation</th><th>Discipline</th><th>Email</th><th>Portal role</th><th>Active</th>${teamActionHeader}</tr></thead><tbody>${state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Designation || "—")}</td><td>${esc(employee.Discipline || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">Add BIM team members after portal storage is ready.</p>`;
     renderIssueRegister();
     renderModelSheetRegister();
   }
@@ -414,14 +416,14 @@
     if (!isManager()) return;
     const storageNote = state.bimStorage.issues ? "" : `<p class="muted register-note">Issue register storage is not ready yet. An Admin can prepare it from SharePoint setup.</p>`;
     const issues = [...state.issues].sort((a, b) => `${a.Status === "Closed" ? 1 : 0}${a.DueDate || "9999"}`.localeCompare(`${b.Status === "Closed" ? 1 : 0}${b.DueDate || "9999"}`));
-    byId("issues-list").innerHTML = storageNote || (issues.length ? `<table class="data-table"><thead><tr><th>Issue</th><th>Project</th><th>Discipline</th><th>Reference</th><th>Responsible</th><th>Due</th><th>Status</th></tr></thead><tbody>${issues.map((issue) => `<tr><td><strong>${esc(issue.Title)}</strong><br><span class="muted">${esc(issue.IssueType || "Issue")} · ${esc(issue.Priority || "Medium")}</span></td><td>${esc(issue.ProjectCode || "—")}</td><td>${esc(issue.Discipline || "—")}</td><td>${esc(issue.Reference || "—")}</td><td>${esc(issue.OwnerName || issue.OwnerEmail || "—")}</td><td>${esc(issue.DueDate || "—")}</td><td>${esc(issue.Status || "Open")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No BIM issues have been logged yet.</p>`);
+    byId("issues-list").innerHTML = storageNote || (issues.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Issue</th><th>Project</th><th>Discipline</th><th>Reference</th><th>Responsible</th><th>Due</th><th>Status</th></tr></thead><tbody>${issues.map((issue) => `<tr><td><strong>${esc(issue.Title)}</strong><br><span class="muted">${esc(issue.IssueType || "Issue")} · ${esc(issue.Priority || "Medium")}</span></td><td>${esc(issue.ProjectCode || "—")}</td><td>${esc(issue.Discipline || "—")}</td><td>${esc(issue.Reference || "—")}</td><td>${esc(issue.OwnerName || issue.OwnerEmail || "—")}</td><td>${esc(issue.DueDate || "—")}</td><td>${esc(issue.Status || "Open")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No BIM issues have been logged yet.</p>`);
   }
 
   function renderModelSheetRegister() {
     if (!isManager()) return;
     const storageNote = state.bimStorage.registers ? "" : `<p class="muted register-note">Model and sheet register storage is not ready yet. An Admin can prepare it from SharePoint setup.</p>`;
     const records = [...state.registers].sort((a, b) => `${a.ProjectCode || ""}${a.Number || ""}`.localeCompare(`${b.ProjectCode || ""}${b.Number || ""}`));
-    byId("register-list").innerHTML = storageNote || (records.length ? `<table class="data-table"><thead><tr><th>Type</th><th>Project</th><th>Discipline</th><th>Number / title</th><th>Revision</th><th>Stage</th><th>Status</th></tr></thead><tbody>${records.map((record) => `<tr><td>${esc(record.RecordType || "—")}</td><td>${esc(record.ProjectCode || "—")}</td><td>${esc(record.Discipline || "—")}</td><td><strong>${esc(record.Number || "—")}</strong><br><span class="muted">${esc(record.Title || "—")}</span></td><td>${esc(record.Revision || "—")}</td><td>${esc(record.BIMStage || "—")}</td><td>${esc(record.Status || "WIP")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No model or sheet delivery records have been added yet.</p>`);
+    byId("register-list").innerHTML = storageNote || (records.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Type</th><th>Project</th><th>Discipline</th><th>Number / title</th><th>Revision</th><th>Stage</th><th>Status</th></tr></thead><tbody>${records.map((record) => `<tr><td>${esc(record.RecordType || "—")}</td><td>${esc(record.ProjectCode || "—")}</td><td>${esc(record.Discipline || "—")}</td><td><strong>${esc(record.Number || "—")}</strong><br><span class="muted">${esc(record.Title || "—")}</span></td><td>${esc(record.Revision || "—")}</td><td>${esc(record.BIMStage || "—")}</td><td>${esc(record.Status || "WIP")}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No model or sheet delivery records have been added yet.</p>`);
   }
 
   function resetEmployeeForm() {
@@ -473,6 +475,8 @@
   function showView(name) {
     document.querySelectorAll(".page-view").forEach((view) => view.classList.toggle("hidden", view.id !== `${name}-view`));
     document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
+    document.querySelector(".sidebar")?.classList.remove("menu-open");
+    byId("mobile-nav-toggle")?.setAttribute("aria-expanded", "false");
   }
 
   function durationMinutes(start, end) {
@@ -741,6 +745,13 @@
     byId("clear-task-filters").addEventListener("click", () => { byId("task-filter-form").reset(); renderTaskFilters(); renderTasks(); });
     [byId("work-start"), byId("work-end")].forEach((input) => input.addEventListener("input", updateDuration));
     document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
+    const mobileNavToggle = byId("mobile-nav-toggle");
+    mobileNavToggle?.addEventListener("click", () => {
+      const sidebar = document.querySelector(".sidebar");
+      const open = sidebar?.classList.toggle("menu-open") || false;
+      mobileNavToggle.setAttribute("aria-expanded", String(open));
+      mobileNavToggle.textContent = open ? "Close menu" : "Menu";
+    });
     try { await initialiseAuth(); if (state.account) await openPortal(); }
     catch (error) { console.error(error); byId("sign-in-status").textContent = "Microsoft login configuration needs attention."; }
   }
