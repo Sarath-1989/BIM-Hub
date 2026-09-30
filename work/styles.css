@@ -249,3 +249,8 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .monthly-workmanship-card .card-heading .muted{margin:5px 0 0;max-width:760px}
 .monthly-workmanship-table td{min-width:120px}
 @media(min-width:981px){.admin-monitor-summary{grid-template-columns:repeat(5,minmax(0,1fr))}}
+
+/* Project-wise monthly workmanship */
+.project-monthly-workmanship-card .card-heading{align-items:flex-start}
+.project-monthly-workmanship-card .card-heading .muted{margin:5px 0 0;max-width:760px}
+.project-monthly-workmanship-table td{min-width:120px}
