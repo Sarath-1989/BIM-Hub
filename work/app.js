@@ -326,10 +326,123 @@
   function coordinatorEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role === "Team Lead"); }
   function modellerEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin" && /Modell?er|Technician/i.test(employee.Designation || "")); }
 
+  function toUtcDate(value) {
+    const text = String(value || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+    const date = new Date(`${text}T00:00:00Z`);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+
+  function dateKey(date) { return date.toISOString().slice(0, 10); }
+
+  function normalDayMinutes(date) {
+    const day = date.getUTCDay();
+    return day === 0 ? 0 : day === 6 ? 240 : 480;
+  }
+
+  function normalTimeBetween(startValue, endValue) {
+    const start = toUtcDate(startValue);
+    const end = toUtcDate(endValue);
+    if (!start || !end || end < start) return { calendarDays: 0, normalMinutes: 0, normalWorkDays: 0 };
+    let calendarDays = 0;
+    let normalMinutes = 0;
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      calendarDays += 1;
+      normalMinutes += normalDayMinutes(cursor);
+      cursor.setUTCDate(cursor.getUTCDate() + 1);
+    }
+    return { calendarDays, normalMinutes, normalWorkDays: normalMinutes / 480 };
+  }
+
+  function projectStartInfo(project) {
+    const explicitStart = String(project.StartDate || project.ProjectStartDate || "").slice(0, 10);
+    const recordedStart = String(project.createdAt || "").slice(0, 10);
+    return { value: explicitStart || recordedStart, usesRecordedStart: !explicitStart && Boolean(recordedStart) };
+  }
+
+  function formatMinutes(minutes) {
+    const total = Math.max(0, Math.round(Number(minutes) || 0));
+    const hours = Math.floor(total / 60);
+    const remainder = total % 60;
+    return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+  }
+
+  function formatManDays(minutes) {
+    const days = Math.max(0, Number(minutes) || 0) / 480;
+    return `${Number.isInteger(days) ? days : days.toFixed(1)} man-days`;
+  }
+
+  function formatNormalTime(summary) {
+    return summary.normalMinutes ? `${summary.normalWorkDays % 1 ? summary.normalWorkDays.toFixed(1) : summary.normalWorkDays} workdays · ${formatMinutes(summary.normalMinutes)}` : "Set project start and target dates";
+  }
+
+  function workLogMinutes(entry) {
+    const saved = Number(entry.DurationMinutes);
+    return Number.isFinite(saved) && saved > 0 ? saved : durationMinutes(entry.StartTime, entry.EndTime);
+  }
+
+  function monitoringDataForProject(project, today = dubaiDate()) {
+    const startInfo = projectStartInfo(project);
+    const start = startInfo.value;
+    const target = String(project.TargetDate || "").slice(0, 10);
+    const todayDate = toUtcDate(today);
+    const startDate = toUtcDate(start);
+    const targetDate = toUtcDate(target);
+    const totalSchedule = normalTimeBetween(start, target);
+    let elapsedSchedule = { calendarDays: 0, normalMinutes: 0, normalWorkDays: 0 };
+    let remainingSchedule = { calendarDays: 0, normalMinutes: 0, normalWorkDays: 0 };
+    if (startDate && targetDate && todayDate) {
+      if (todayDate >= startDate) elapsedSchedule = normalTimeBetween(start, dateKey(todayDate > targetDate ? targetDate : todayDate));
+      if (todayDate <= targetDate) remainingSchedule = normalTimeBetween(dateKey(todayDate > startDate ? todayDate : startDate), target);
+    }
+    const tasks = state.tasks.filter((task) => task.ProjectCode === project.ProjectCode);
+    const logs = state.workLogs.filter((entry) => entry.ProjectCode === project.ProjectCode);
+    const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
+    const completedTasks = tasks.filter((task) => task.Status === "Completed").length;
+    const overdueTasks = tasks.filter((task) => task.EndDate && task.EndDate < today && task.Status !== "Completed");
+    const blockedTasks = tasks.filter((task) => task.Status === "Blocked");
+    const members = new Set(tasks.map((task) => String(task.AssigneeEmail || "").toLowerCase()).filter(Boolean));
+    const scheduleProgress = totalSchedule.normalMinutes ? Math.min(100, Math.round((elapsedSchedule.normalMinutes / totalSchedule.normalMinutes) * 100)) : null;
+    return { project, start, target, startInfo, totalSchedule, elapsedSchedule, remainingSchedule, tasks, logs, actualMinutes, completedTasks, overdueTasks, blockedTasks, members, scheduleProgress };
+  }
+
+  function mondayOfWeek(dateValue) {
+    const date = toUtcDate(dateValue);
+    if (!date) return "";
+    const offset = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - offset);
+    return dateKey(date);
+  }
+
+  function monitoringTeamRows(projectCode, today = dubaiDate()) {
+    const weekStart = mondayOfWeek(today);
+    const relevantTasks = state.tasks.filter((task) => !projectCode || task.ProjectCode === projectCode);
+    const relevantLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
+    return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").map((employee) => {
+      const email = String(employee.Email || "").toLowerCase();
+      const tasks = relevantTasks.filter((task) => String(task.AssigneeEmail || "").toLowerCase() === email);
+      const logs = relevantLogs.filter((entry) => String(entry.EmployeeEmail || "").toLowerCase() === email);
+      const todayMinutes = logs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const weekMinutes = logs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const latest = [...logs].sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`))[0];
+      const openTasks = tasks.filter((task) => task.Status !== "Completed");
+      return { employee, tasks, openTasks, todayMinutes, weekMinutes, latest, noDailyLog: normalDayMinutes(toUtcDate(today)) > 0 && openTasks.length > 0 && todayMinutes === 0 };
+    }).filter((row) => !projectCode || row.tasks.length || row.todayMinutes || row.weekMinutes).sort((a, b) => b.todayMinutes - a.todayMinutes || b.openTasks.length - a.openTasks.length);
+  }
+
   function renderMetrics() {
     const today = dubaiDate();
+    if (isAdmin()) {
+      const activeProjects = state.projects.filter((project) => project.Status === "Active").length;
+      const activeTeam = state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").length;
+      const todayMinutes = state.workLogs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const overdueTasks = state.tasks.filter((task) => task.EndDate && task.EndDate < today && task.Status !== "Completed").length;
+      byId("metrics").innerHTML = [[String(activeProjects), "Active BIM projects"], [String(activeTeam), "Active team members"], [formatMinutes(todayMinutes), "Team workmanship today"], [String(overdueTasks), "Overdue BIM tasks"]].map(([value, label]) => `<div class="metric"><div class="metric-value">${esc(value)}</div><div class="metric-label">${esc(label)}</div></div>`).join("");
+      return;
+    }
     const tasks = visibleTasks();
-    const accessibleProjects = isAdmin() ? state.projects : isCoordinator() ? managedProjects() : state.projects.filter((project) => tasks.some((task) => task.ProjectCode === project.ProjectCode));
+    const accessibleProjects = isCoordinator() ? managedProjects() : state.projects.filter((project) => tasks.some((task) => task.ProjectCode === project.ProjectCode));
     const activeProjects = accessibleProjects.filter((project) => project.Status === "Active").length;
     const openTasks = tasks.filter((task) => task.Status !== "Completed");
     const dueTasks = openTasks.filter((task) => task.EndDate && task.EndDate <= today).length;
@@ -364,6 +477,55 @@
     const email = accountEmail().toLowerCase();
     const entries = state.workLogs.filter((entry) => isAdmin() || canManageProject(projectByCode(entry.ProjectCode)) || (entry.EmployeeEmail || "").toLowerCase() === email).sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 7);
     byId("recent-work").innerHTML = entries.length ? entries.map((entry) => `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span></div>`).join("") : `<p class="muted">No work entries have been logged yet.</p>`;
+  }
+
+  function renderAdminMonitor() {
+    const staffDashboard = byId("staff-dashboard-content");
+    const monitor = byId("admin-monitor");
+    if (!staffDashboard || !monitor) return;
+    staffDashboard.classList.toggle("hidden", isAdmin());
+    monitor.classList.toggle("hidden", !isAdmin());
+    if (!isAdmin()) return;
+    const today = dubaiDate();
+    const projectSelect = byId("admin-monitor-project");
+    const currentProjects = state.projects.filter((project) => project.Status !== "Archived");
+    const selectedProjectCode = projectSelect.value;
+    projectSelect.innerHTML = `<option value="">All current projects</option>${currentProjects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
+    if ([...projectSelect.options].some((option) => option.value === selectedProjectCode)) projectSelect.value = selectedProjectCode;
+    const projectCode = projectSelect.value;
+    const projectData = currentProjects.filter((project) => !projectCode || project.ProjectCode === projectCode).map((project) => monitoringDataForProject(project, today));
+    const teamRows = monitoringTeamRows(projectCode, today);
+    const visibleLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
+    const todayMinutes = visibleLogs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+    const weekStart = mondayOfWeek(today);
+    const weekMinutes = visibleLogs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+    const overdueTasks = projectData.flatMap((item) => item.overdueTasks);
+    const blockedTasks = projectData.flatMap((item) => item.blockedTasks);
+    const missingCoordinator = projectData.filter((item) => !coordinatorEmailFor(item.project));
+    const noDailyLogRows = teamRows.filter((row) => row.noDailyLog);
+    byId("admin-monitor-summary").innerHTML = [[formatMinutes(todayMinutes), "Workmanship logged today"], [formatMinutes(weekMinutes), "Workmanship logged this week"], [formatMinutes(normalDayMinutes(toUtcDate(today))), "Normal member workday"], [String(overdueTasks.length), "Overdue BIM tasks"]].map(([value, label]) => `<div class="monitor-stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join("");
+    const alerts = [
+      overdueTasks.length ? { kind: "risk", title: `${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"}`, text: "Check task dates, assignees, and recovery action." } : null,
+      blockedTasks.length ? { kind: "risk", title: `${blockedTasks.length} blocked task${blockedTasks.length === 1 ? "" : "s"}`, text: "Review the blocker, issue owner, and next coordination action." } : null,
+      missingCoordinator.length ? { kind: "risk", title: `${missingCoordinator.length} project${missingCoordinator.length === 1 ? "" : "s"} without a Coordinator`, text: "Assign a Coordinator before task delegation." } : null,
+      noDailyLogRows.length ? { kind: "notice", title: `${noDailyLogRows.length} team member${noDailyLogRows.length === 1 ? "" : "s"} with no log today`, text: "They have open tasks but no daily work entry yet." } : null
+    ].filter(Boolean);
+    byId("admin-monitor-alerts").innerHTML = alerts.length ? alerts.map((alert) => `<article class="monitor-alert ${alert.kind}"><strong>${esc(alert.title)}</strong><span>${esc(alert.text)}</span></article>`).join("") : `<article class="monitor-alert clear"><strong>No critical monitoring alerts</strong><span>Current project, task, and daily-log records do not show an immediate issue.</span></article>`;
+    byId("admin-project-monitor").innerHTML = projectData.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table monitor-table"><thead><tr><th>Project / coordinator</th><th>Programme duration</th><th>Normal working time</th><th>Actual workmanship</th><th>Tasks / schedule</th></tr></thead><tbody>${projectData.map((item) => {
+      const programme = item.start && item.target ? `${item.start} → ${item.target}${item.startInfo.usesRecordedStart ? " · recorded start" : ""}` : "Set project start and target dates";
+      const taskText = item.tasks.length ? `${item.completedTasks}/${item.tasks.length} completed · ${item.members.size} assigned` : "No tasks assigned";
+      const progress = item.scheduleProgress === null ? "Programme dates pending" : `${item.scheduleProgress}% programme elapsed`;
+      const width = item.scheduleProgress === null ? 0 : item.scheduleProgress;
+      return `<tr><td><strong>${esc(item.project.ProjectCode || "—")}</strong><br><span class="muted">${esc(item.project.Title || "Untitled project")}</span><br><span class="muted">${esc(item.project.CoordinatorName || item.project.CoordinatorEmail || "Coordinator required")}</span></td><td>${esc(programme)}<br><span class="muted">${esc(item.totalSchedule.calendarDays ? `${item.totalSchedule.calendarDays} calendar days` : "Programme dates pending")}</span></td><td>${esc(formatNormalTime(item.totalSchedule))}<br><span class="muted">${esc(item.remainingSchedule.normalMinutes ? `${formatMinutes(item.remainingSchedule.normalMinutes)} remaining` : item.target && item.target < today ? "Target date passed" : "—")}</span></td><td><strong>${esc(formatMinutes(item.actualMinutes))}</strong><br><span class="muted">${esc(formatManDays(item.actualMinutes))}</span></td><td>${esc(taskText)}<div class="monitor-progress" aria-label="${esc(progress)}"><span style="width:${width}%"></span></div><span class="muted">${esc(progress)}</span></td></tr>`;
+    }).join("")}</tbody></table>` : `<p class="muted">No current projects match this monitoring filter.</p>`;
+    byId("admin-team-monitor").innerHTML = teamRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table monitor-table"><thead><tr><th>Team member</th><th>Assigned work</th><th>Today</th><th>This week</th><th>Latest activity</th></tr></thead><tbody>${teamRows.map((row) => {
+      const name = row.employee.DisplayName || row.employee.Title || row.employee.Email || "Team member";
+      const latest = row.latest ? `${row.latest.WorkDate || ""} · ${row.latest.TaskTitle || "Work entry"}` : "No work entry yet";
+      const taskText = row.openTasks.length ? `${row.openTasks.length} open task${row.openTasks.length === 1 ? "" : "s"} · ${[...new Set(row.tasks.map((task) => task.ProjectCode).filter(Boolean))].join(", ")}` : "No open task";
+      return `<tr><td><strong>${esc(name)}</strong><br><span class="muted">${esc(row.employee.Designation || row.employee.Role || "BIM team member")}</span></td><td>${esc(taskText)}</td><td><strong>${esc(formatMinutes(row.todayMinutes))}</strong><br><span class="muted">${row.noDailyLog ? "No log yet" : "Logged"}</span></td><td>${esc(formatMinutes(row.weekMinutes))}</td><td>${esc(latest)}</td></tr>`;
+    }).join("")}</tbody></table>` : `<p class="muted">No active team activity matches this monitoring filter.</p>`;
+    const recent = [...visibleLogs].sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 10);
+    byId("admin-activity-timeline").innerHTML = recent.length ? recent.map((entry) => `<div class="activity-row"><strong>${esc(entry.EmployeeName || entry.EmployeeEmail || "Team member")} · ${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(formatMinutes(workLogMinutes(entry)))} · ${esc(entry.WorkNote || "No note")}</span></div>`).join("") : `<p class="muted">No work entries have been logged for this monitoring filter.</p>`;
   }
   function renderTaskFilters() {
     const setOptions = (id, options, placeholder) => {
@@ -511,9 +673,8 @@
 
   function renderAll() {
     byId("today-label").textContent = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Dubai", weekday: "long", year: "numeric", month: "long", day: "numeric" }).format(new Date());
-    setProfileUI(); renderMetrics(); renderWorkForm(); renderRecentWork(); renderTaskFilters(); renderTasks(); renderManagers(); renderSetup();
+    setProfileUI(); renderMetrics(); renderWorkForm(); renderRecentWork(); renderAdminMonitor(); renderTaskFilters(); renderTasks(); renderManagers(); renderSetup();
   }
-
   function showView(name) {
     document.querySelectorAll(".page-view").forEach((view) => view.classList.toggle("hidden", view.id !== `${name}-view`));
     document.querySelectorAll(".nav-item").forEach((button) => button.classList.toggle("active", button.dataset.view === name));
@@ -602,6 +763,7 @@
     byId("project-name").value = project.Title || "";
     byId("project-client").value = project.Client || "";
     byId("project-coordinator").value = coordinatorEmailFor(project);
+    byId("project-start-date").value = project.StartDate || project.ProjectStartDate || "";
     byId("project-target-date").value = project.TargetDate || "";
     byId("project-status").value = project.Status || "Active";
     byId("project-form-heading").textContent = "Update BIM project";
@@ -609,7 +771,6 @@
     byId("project-cancel-button").classList.remove("hidden");
     byId("project-name").focus();
   }
-
   async function archiveProject(event) {
     const button = event.target.closest("[data-archive-project]");
     if (!button || !isAdmin()) return;
@@ -643,20 +804,22 @@
       const projectCode = byId("project-code").value.trim().toUpperCase();
       const coordinatorEmail = byId("project-coordinator").value.trim().toLowerCase();
       const coordinator = coordinatorEmployees().find((employee) => (employee.Email || "").toLowerCase() === coordinatorEmail);
+      const startDate = byId("project-start-date").value || "";
+      const targetDate = byId("project-target-date").value || "";
       if (!projectCode) return toast("Enter a project code.", "error");
       if (!coordinator) return toast("Select an active BIM Coordinator or Team Lead.", "error");
+      if (startDate && targetDate && targetDate < startDate) return toast("Target date must be on or after the project start date.", "error");
       if (!editingProjectId && state.projects.some((project) => String(project.ProjectCode || "").trim().toUpperCase() === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
       const existing = state.projects.find((project) => project.id === editingProjectId);
       const id = editingProjectId || recordId("project");
       const now = new Date().toISOString();
       const action = editingProjectId ? "Project updated" : "Project created";
       const history = [...(Array.isArray(existing?.UpdateHistory) ? existing.UpdateHistory : []), { at: now, by: state.profile.displayName || accountEmail(), action }];
-      await saveRecord("projects", id, { ...(existing || {}), Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: existing?.createdAt || now, UpdatedBy: state.profile.displayName || accountEmail(), LastUpdateAction: action, UpdateHistory: history });
+      await saveRecord("projects", id, { ...(existing || {}), Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, StartDate: startDate, Status: byId("project-status").value, TargetDate: targetDate, createdAt: existing?.createdAt || now, UpdatedBy: state.profile.displayName || accountEmail(), LastUpdateAction: action, UpdateHistory: history });
       const message = action;
       resetProjectForm(); await refreshData(message); toast(`${message}.`, "success");
     } catch (error) { toast(error.message || "Could not create project.", "error"); }
   }
-
   async function submitTask(event) {
     event.preventDefault();
     if (!isManager()) return toast("Only an Admin or assigned Coordinator can assign tasks.", "error");
@@ -798,6 +961,7 @@
     byId("refresh-setup").addEventListener("click", refreshSetup);
     byId("prepare-bim-registers").addEventListener("click", prepareBimRegisters);
     byId("work-project").addEventListener("change", renderWorkTaskOptions);
+    byId("admin-monitor-project")?.addEventListener("change", renderAdminMonitor);
     byId("task-filter-form").addEventListener("submit", (event) => event.preventDefault());
     ["task-filter-project", "task-filter-discipline", "task-filter-status", "task-filter-assignee", "task-filter-due"].forEach((id) => byId(id).addEventListener("change", renderTasks));
     byId("clear-task-filters").addEventListener("click", () => { byId("task-filter-form").reset(); renderTaskFilters(); renderTasks(); });
