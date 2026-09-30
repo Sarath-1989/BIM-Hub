@@ -564,15 +564,19 @@
         return;
       }
       const key = `${employee}|${workDate}`;
-      groups.set(key, [...(groups.get(key) || []), interval]);
+      const group = groups.get(key) || { workDate, intervals: [] };
+      group.intervals.push(interval);
+      groups.set(key, group);
     });
-    return fallbackMinutes + [...groups.values()].reduce((total, intervals) => {
+    return fallbackMinutes + [...groups.values()].reduce((total, group) => {
       let lastEnd = -1;
-      return total + intervals.sort((a, b) => a.start - b.start || a.end - b.end).reduce((minutes, interval) => {
+      const rawMinutes = group.intervals.sort((a, b) => a.start - b.start || a.end - b.end).reduce((minutes, interval) => {
         const segmentStart = Math.max(interval.start, lastEnd);
         lastEnd = Math.max(lastEnd, interval.end);
         return interval.end > segmentStart ? minutes + interval.end - segmentStart : minutes;
       }, 0);
+      const normalMinutes = normalDayMinutes(toUtcDate(group.workDate));
+      return total + (normalMinutes ? Math.min(rawMinutes, normalMinutes) : rawMinutes);
     }, 0);
   }
 
