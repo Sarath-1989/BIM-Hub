@@ -389,9 +389,15 @@
 
   function renderManagers() {
     if (!isManager()) return;
-    byId("task-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
+    const availableProjects = managedProjects().filter((project) => !["Completed", "Archived"].includes(project.Status));
+    const coordinators = coordinatorEmployees();
+    const taskAssignees = isAdmin() ? state.employees.filter((employee) => employee.Active !== "No") : modellerEmployees();
+    byId("project-coordinator").innerHTML = `<option value="">Select BIM Coordinator / Team Lead</option>${coordinators.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM Coordinator")}</option>`).join("")}`;
+    byId("task-project").innerHTML = `<option value="">Select project</option>${availableProjects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     const activeEmployees = state.employees.filter((employee) => employee.Active !== "No").sort((a, b) => String(a.DisplayName || a.Email).localeCompare(String(b.DisplayName || b.Email)));
-    byId("task-assignee").innerHTML = `<option value="">Select an active employee</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM team member")} · ${esc(employee.Discipline || "—")}</option>`).join("")}`;
+    byId("task-assignee").innerHTML = `<option value="">${isAdmin() ? "Select an active employee" : "Select a BIM modeller"}</option>${taskAssignees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM team member")} · ${esc(employee.Discipline || "—")}</option>`).join("")}`;
+    byId("task-form-heading").textContent = isAdmin() ? "Assign BIM task" : "Delegate task to BIM modeller";
+    byId("task-assignment-note").textContent = isAdmin() ? "Assign the project coordinator's package or a direct BIM task." : "You can assign tasks only within projects where you are the assigned Coordinator.";
     byId("issue-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     byId("issue-owner").innerHTML = `<option value="">Select responsible person</option>${activeEmployees.map((employee) => `<option value="${esc(employee.Email)}">${esc(employee.DisplayName || employee.Email)} · ${esc(employee.Designation || "BIM team member")}</option>`).join("")}`;
     byId("register-project").innerHTML = `<option value="">Select project</option>${state.projects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
