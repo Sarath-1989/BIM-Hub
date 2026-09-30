@@ -237,3 +237,9 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .monitor-progress span{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#29ae8c,#16866b)}
 @media(max-width:980px){.admin-monitor-grid{grid-template-columns:1fr}.admin-monitor-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.admin-monitor-toolbar{display:grid;align-items:stretch}.monitor-filter{min-width:0;width:100%}.admin-monitor-summary{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.monitor-stat{padding:13px}.admin-monitor-alerts{grid-template-columns:1fr}.monitor-table{min-width:760px}}
+
+/* Align the Asterwix logo and WORK SPACE lockup to one baseline. */
+.topbar-brand{align-items:flex-end}
+.topbar-brand>span{display:flex;align-items:flex-end;min-height:34px;padding-bottom:1px;line-height:1;white-space:nowrap}
+.topbar-brand>span strong{display:block;line-height:1}
+@media(max-width:620px){.topbar-brand>span{min-height:28px;padding-bottom:1px}}
