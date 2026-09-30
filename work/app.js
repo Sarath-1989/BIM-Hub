@@ -489,8 +489,41 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     return dateKey(date);
   }
 
+  function monthKey(dateValue) {
+    return String(dateValue || "").slice(0, 7);
+  }
+
+  function monthStartKey(dateValue) {
+    const month = monthKey(dateValue);
+    return /^\d{4}-\d{2}$/.test(month) ? `${month}-01` : "";
+  }
+
+  function monthEndKey(month) {
+    if (!/^\d{4}-\d{2}$/.test(month)) return "";
+    const [year, value] = month.split("-").map(Number);
+    return dateKey(new Date(Date.UTC(year, value, 0)));
+  }
+
+  function monthLabel(month) {
+    const date = toUtcDate(`${month}-01`);
+    return date ? new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", month: "short", year: "numeric" }).format(date) : month || "—";
+  }
+
+  function recentMonthKeys(today = dubaiDate(), count = 6) {
+    const first = toUtcDate(monthStartKey(today));
+    if (!first) return [];
+    const months = [];
+    const cursor = new Date(first);
+    for (let index = 0; index < count; index += 1) {
+      months.push(dateKey(cursor).slice(0, 7));
+      cursor.setUTCMonth(cursor.getUTCMonth() - 1);
+    }
+    return months;
+  }
+
   function monitoringTeamRows(projectCode, today = dubaiDate()) {
     const weekStart = mondayOfWeek(today);
+    const monthStart = monthStartKey(today);
     const relevantTasks = state.tasks.filter((task) => !projectCode || task.ProjectCode === projectCode);
     const relevantLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
     return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").map((employee) => {
@@ -499,10 +532,24 @@ function projectByCode(code) { return state.projects.find((project) => project.P
       const logs = relevantLogs.filter((entry) => String(entry.EmployeeEmail || "").toLowerCase() === email);
       const todayMinutes = logs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
       const weekMinutes = logs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const monthMinutes = logs.filter((entry) => entry.WorkDate >= monthStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
       const latest = [...logs].sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`))[0];
       const openTasks = tasks.filter((task) => task.Status !== "Completed");
-      return { employee, tasks, openTasks, todayMinutes, weekMinutes, latest, noDailyLog: normalDayMinutes(toUtcDate(today)) > 0 && openTasks.length > 0 && todayMinutes === 0 };
-    }).filter((row) => !projectCode || row.tasks.length || row.todayMinutes || row.weekMinutes).sort((a, b) => b.todayMinutes - a.todayMinutes || b.openTasks.length - a.openTasks.length);
+      return { employee, tasks, openTasks, todayMinutes, weekMinutes, monthMinutes, latest, noDailyLog: normalDayMinutes(toUtcDate(today)) > 0 && openTasks.length > 0 && todayMinutes === 0 };
+    }).filter((row) => !projectCode || row.tasks.length || row.todayMinutes || row.weekMinutes || row.monthMinutes).sort((a, b) => b.monthMinutes - a.monthMinutes || b.todayMinutes - a.todayMinutes || b.openTasks.length - a.openTasks.length);
+  }
+
+  function monthlyWorkmanshipRows(projectCode, today = dubaiDate(), count = 6) {
+    const currentMonth = monthKey(today);
+    const visibleLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
+    return recentMonthKeys(today, count).map((month) => {
+      const periodEnd = month === currentMonth ? today : monthEndKey(month);
+      const normalSchedule = normalTimeBetween(monthStartKey(month), periodEnd);
+      const logs = visibleLogs.filter((entry) => monthKey(entry.WorkDate) === month);
+      const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const contributors = new Set(logs.map((entry) => String(entry.EmployeeEmail || "").toLowerCase()).filter(Boolean));
+      return { month, label: monthLabel(month), monthToDate: month === currentMonth, normalSchedule, actualMinutes, contributors, entryCount: logs.length };
+    });
   }
 
   function renderMetrics() {
@@ -569,15 +616,17 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     const projectCode = projectSelect.value;
     const projectData = currentProjects.filter((project) => !projectCode || project.ProjectCode === projectCode).map((project) => monitoringDataForProject(project, today));
     const teamRows = monitoringTeamRows(projectCode, today);
+    const monthlyRows = monthlyWorkmanshipRows(projectCode, today);
     const visibleLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
     const todayMinutes = visibleLogs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
     const weekStart = mondayOfWeek(today);
     const weekMinutes = visibleLogs.filter((entry) => entry.WorkDate >= weekStart && entry.WorkDate <= today).reduce((total, entry) => total + workLogMinutes(entry), 0);
+    const currentMonth = monthlyRows[0] || { actualMinutes: 0, normalSchedule: { normalMinutes: 0 }, entryCount: 0, contributors: new Set() };
     const overdueTasks = projectData.flatMap((item) => item.overdueTasks);
     const blockedTasks = projectData.flatMap((item) => item.blockedTasks);
     const missingCoordinator = projectData.filter((item) => !coordinatorEmailFor(item.project));
     const noDailyLogRows = teamRows.filter((row) => row.noDailyLog);
-    byId("admin-monitor-summary").innerHTML = [[formatMinutes(todayMinutes), "Workmanship logged today"], [formatMinutes(weekMinutes), "Workmanship logged this week"], [formatMinutes(normalDayMinutes(toUtcDate(today))), "Normal member workday"], [String(overdueTasks.length), "Overdue BIM tasks"]].map(([value, label]) => `<div class="monitor-stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join("");
+    byId("admin-monitor-summary").innerHTML = [[formatMinutes(todayMinutes), "Workmanship logged today"], [formatMinutes(weekMinutes), "Workmanship logged this week"], [formatMinutes(currentMonth.actualMinutes), "Workmanship logged this month"], [formatMinutes(normalDayMinutes(toUtcDate(today))), "Normal member workday"], [String(overdueTasks.length), "Overdue BIM tasks"]].map(([value, label]) => `<div class="monitor-stat"><strong>${esc(value)}</strong><span>${esc(label)}</span></div>`).join("");
     const alerts = [
       overdueTasks.length ? { kind: "risk", title: `${overdueTasks.length} overdue task${overdueTasks.length === 1 ? "" : "s"}`, text: "Check task dates, assignees, and recovery action." } : null,
       blockedTasks.length ? { kind: "risk", title: `${blockedTasks.length} blocked task${blockedTasks.length === 1 ? "" : "s"}`, text: "Review the blocker, issue owner, and next coordination action." } : null,
@@ -592,15 +641,17 @@ function projectByCode(code) { return state.projects.find((project) => project.P
       const width = item.scheduleProgress === null ? 0 : item.scheduleProgress;
       return `<tr><td><strong>${esc(item.project.ProjectCode || "—")}</strong><br><span class="muted">${esc(item.project.Title || "Untitled project")}</span><br><span class="muted">${esc(item.project.CoordinatorName || item.project.CoordinatorEmail || "Coordinator required")}</span></td><td>${esc(programme)}<br><span class="muted">${esc(item.totalSchedule.calendarDays ? `${item.totalSchedule.calendarDays} calendar days` : "Programme dates pending")}</span></td><td>${esc(formatNormalTime(item.totalSchedule))}<br><span class="muted">${esc(item.remainingSchedule.normalMinutes ? `${formatMinutes(item.remainingSchedule.normalMinutes)} remaining` : item.target && item.target < today ? "Target date passed" : "—")}</span></td><td><strong>${esc(formatMinutes(item.actualMinutes))}</strong><br><span class="muted">${esc(formatManDays(item.actualMinutes))}</span></td><td>${esc(taskText)}<div class="monitor-progress" aria-label="${esc(progress)}"><span style="width:${width}%"></span></div><span class="muted">${esc(progress)}</span></td></tr>`;
     }).join("")}</tbody></table>` : `<p class="muted">No current projects match this monitoring filter.</p>`;
-    byId("admin-team-monitor").innerHTML = teamRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table monitor-table"><thead><tr><th>Team member</th><th>Assigned work</th><th>Today</th><th>This week</th><th>Latest activity</th></tr></thead><tbody>${teamRows.map((row) => {
+    byId("admin-team-monitor").innerHTML = teamRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table monitor-table"><thead><tr><th>Team member</th><th>Assigned work</th><th>Today</th><th>This week</th><th>This month</th><th>Latest activity</th></tr></thead><tbody>${teamRows.map((row) => {
       const name = row.employee.DisplayName || row.employee.Title || row.employee.Email || "Team member";
       const latest = row.latest ? `${row.latest.WorkDate || ""} · ${row.latest.TaskTitle || "Work entry"}` : "No work entry yet";
       const taskText = row.openTasks.length ? `${row.openTasks.length} open task${row.openTasks.length === 1 ? "" : "s"} · ${[...new Set(row.tasks.map((task) => task.ProjectCode).filter(Boolean))].join(", ")}` : "No open task";
-      return `<tr><td><strong>${esc(name)}</strong><br><span class="muted">${esc(row.employee.Designation || row.employee.Role || "BIM team member")}</span></td><td>${esc(taskText)}</td><td><strong>${esc(formatMinutes(row.todayMinutes))}</strong><br><span class="muted">${row.noDailyLog ? "No log yet" : "Logged"}</span></td><td>${esc(formatMinutes(row.weekMinutes))}</td><td>${esc(latest)}</td></tr>`;
+      return `<tr><td><strong>${esc(name)}</strong><br><span class="muted">${esc(row.employee.Designation || row.employee.Role || "BIM team member")}</span></td><td>${esc(taskText)}</td><td><strong>${esc(formatMinutes(row.todayMinutes))}</strong><br><span class="muted">${row.noDailyLog ? "No log yet" : "Logged"}</span></td><td>${esc(formatMinutes(row.weekMinutes))}</td><td><strong>${esc(formatMinutes(row.monthMinutes))}</strong><br><span class="muted">${esc(formatManDays(row.monthMinutes))}</span></td><td>${esc(latest)}</td></tr>`;
     }).join("")}</tbody></table>` : `<p class="muted">No active team activity matches this monitoring filter.</p>`;
+    byId("admin-monthly-workmanship").innerHTML = monthlyRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table monitor-table monthly-workmanship-table"><thead><tr><th>Month</th><th>Normal work time / member</th><th>Logged workmanship</th><th>Man-days</th><th>Contributors</th><th>Work entries</th></tr></thead><tbody>${monthlyRows.map((row) => `<tr><td><strong>${esc(row.label)}</strong><br><span class="muted">${row.monthToDate ? "Month to date" : "Full month"}</span></td><td>${esc(formatNormalTime(row.normalSchedule))}</td><td><strong>${esc(formatMinutes(row.actualMinutes))}</strong></td><td>${esc(formatManDays(row.actualMinutes))}</td><td>${esc(String(row.contributors.size))}</td><td>${esc(String(row.entryCount))}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No monthly workmanship data is available for this monitoring filter.</p>`;
     const recent = [...visibleLogs].sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 10);
     byId("admin-activity-timeline").innerHTML = recent.length ? recent.map((entry) => `<div class="activity-row"><strong>${esc(entry.EmployeeName || entry.EmployeeEmail || "Team member")} · ${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(formatMinutes(workLogMinutes(entry)))} · ${esc(entry.WorkNote || "No note")}</span></div>`).join("") : `<p class="muted">No work entries have been logged for this monitoring filter.</p>`;
   }
+
   function renderTaskFilters() {
     const setOptions = (id, options, placeholder) => {
       const select = byId(id);
