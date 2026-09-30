@@ -243,3 +243,9 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .topbar-brand>span{display:flex;align-items:flex-end;min-height:34px;padding-bottom:1px;line-height:1;white-space:nowrap}
 .topbar-brand>span strong{display:block;line-height:1}
 @media(max-width:620px){.topbar-brand>span{min-height:28px;padding-bottom:1px}}
+
+/* Monthly workmanship monitoring */
+.monthly-workmanship-card .card-heading{align-items:flex-start}
+.monthly-workmanship-card .card-heading .muted{margin:5px 0 0;max-width:760px}
+.monthly-workmanship-table td{min-width:120px}
+@media(min-width:981px){.admin-monitor-summary{grid-template-columns:repeat(5,minmax(0,1fr))}}
