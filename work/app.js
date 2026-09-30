@@ -272,9 +272,13 @@
     document.querySelectorAll(".page-view.admin-only").forEach((element) => element.classList.toggle("role-restricted", !isAdmin()));
   }
 
+  function coordinatorEmailFor(project) {
+    return String(project.CoordinatorEmail || project.AssignedCoordinatorEmail || "").trim().toLowerCase();
+  }
+
   function managedProjects() {
     const email = accountEmail().toLowerCase();
-    return isAdmin() ? state.projects : state.projects.filter((project) => (project.CoordinatorEmail || "").toLowerCase() === email);
+    return isAdmin() ? state.projects : state.projects.filter((project) => coordinatorEmailFor(project) === email);
   }
 
   function visibleTasks() {
@@ -405,7 +409,10 @@
     byId("register-project").innerHTML = `<option value="">Select project</option>${availableProjects.map((project) => `<option value="${esc(project.ProjectCode)}">${esc(project.ProjectCode)} · ${esc(project.Title)}</option>`).join("")}`;
     const projectRows = isAdmin() ? state.projects : managedProjects();
     const projectActions = isAdmin() ? "<th>Action</th>" : "";
-    byId("projects-list").innerHTML = projectRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || "—")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions"><button class="button button-quiet" type="button" data-edit-project="${esc(project.id || "")}">Edit</button><button class="button button-quiet" type="button" data-archive-project="${esc(project.id || "")}">Archive</button><button class="button button-danger" type="button" data-delete-project="${esc(project.id || "")}">Delete</button></div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">No projects created yet.</p>`;
+    const noProjectMessage = isAdmin()
+      ? "No projects created yet. Archived projects and their records are retained."
+      : "No projects are assigned to your account yet. Existing project records are retained; ask an Admin to assign or update the Coordinator."; 
+    byId("projects-list").innerHTML = projectRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || project.AssignedCoordinatorEmail || "Unassigned — Admin action required")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions"><button class="button button-quiet" type="button" data-edit-project="${esc(project.id || "")}">Edit</button>${project.Status !== "Archived" ? `<button class="button button-quiet" type="button" data-archive-project="${esc(project.id || "")}">Archive</button>` : ""}</div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">${noProjectMessage}</p>`;
     const teamActionHeader = isAdmin() ? "<th>Action</th>" : "";
     const teamTableRows = state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Designation || "—")}</td><td>${esc(employee.Discipline || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("");
     const teamMobileCards = state.employees.map((employee) => {
@@ -581,21 +588,17 @@
     if (!button || !isAdmin()) return;
     const project = state.projects.find((item) => item.id === button.dataset.archiveProject);
     if (!project) return toast("Project could not be found.", "error");
-    await saveRecord("projects", project.id, { ...project, Status: "Archived", ArchivedAt: new Date().toISOString(), ArchivedBy: state.profile.displayName || accountEmail() });
-    await refreshData("Project archived"); toast("Project archived. Its records are retained.", "success");
+    if (project.Status === "Archived") return toast("This project is already archived. Its records are retained.", "success");
+    const now = new Date().toISOString();
+    const history = [...(Array.isArray(project.UpdateHistory) ? project.UpdateHistory : []), { at: now, by: state.profile.displayName || accountEmail(), action: "Archived" }];
+    await saveRecord("projects", project.id, { ...project, Status: "Archived", ArchivedAt: now, ArchivedBy: state.profile.displayName || accountEmail(), LastUpdateAction: "Archived", UpdateHistory: history });
+    await refreshData("Project archived"); toast("Project archived. No project data, tasks, logs, issues, or registers were deleted.", "success");
   }
 
   async function deleteProject(event) {
     const button = event.target.closest("[data-delete-project]");
     if (!button || !isAdmin()) return;
-    const project = state.projects.find((item) => item.id === button.dataset.deleteProject);
-    if (!project) return toast("Project could not be found.", "error");
-    const linked = state.tasks.some((task) => task.ProjectCode === project.ProjectCode) || state.workLogs.some((log) => log.ProjectCode === project.ProjectCode) || state.issues.some((issue) => issue.ProjectCode === project.ProjectCode) || state.registers.some((record) => record.ProjectCode === project.ProjectCode);
-    if (linked) return toast("This project has linked records. Archive it instead of deleting it.", "error");
-    if (!window.confirm(`Delete project ${project.ProjectCode}? This cannot be undone.`)) return;
-    await graph(drivePath(filePath("projects", project.id)), { method: "DELETE" });
-    if (editingProjectId === project.id) resetProjectForm();
-    await refreshData("Project deleted"); toast("Project deleted.", "success");
+    toast("Permanent project deletion is disabled. Archive the project instead; all project information is retained.", "error");
   }
 
   async function submitProject(event) {
@@ -610,8 +613,11 @@
       if (!editingProjectId && state.projects.some((project) => String(project.ProjectCode || "").trim().toUpperCase() === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
       const existing = state.projects.find((project) => project.id === editingProjectId);
       const id = editingProjectId || recordId("project");
-      await saveRecord("projects", id, { Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: existing?.createdAt || new Date().toISOString() });
-      const message = editingProjectId ? "Project updated" : "Project created";
+      const now = new Date().toISOString();
+      const action = editingProjectId ? "Project updated" : "Project created";
+      const history = [...(Array.isArray(existing?.UpdateHistory) ? existing.UpdateHistory : []), { at: now, by: state.profile.displayName || accountEmail(), action }];
+      await saveRecord("projects", id, { ...(existing || {}), Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, Status: byId("project-status").value, TargetDate: byId("project-target-date").value || "", createdAt: existing?.createdAt || now, UpdatedBy: state.profile.displayName || accountEmail(), LastUpdateAction: action, UpdateHistory: history });
+      const message = action;
       resetProjectForm(); await refreshData(message); toast(`${message}.`, "success");
     } catch (error) { toast(error.message || "Could not create project.", "error"); }
   }
@@ -666,8 +672,8 @@
       const updating = Boolean(editingEmployeeEmail);
       if (updating && email !== editingEmployeeEmail) return toast("Email cannot be changed while updating a team member.", "error");
       if (email === CONFIG.bootstrapAdminEmail.toLowerCase() && byId("employee-active").value === "No") return toast("The portal's bootstrap Admin cannot be marked inactive here.", "error");
-      const employee = { Title: name, Email: email, DisplayName: name, Designation: byId("employee-designation").value, Discipline: byId("employee-discipline").value, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: state.employees.find((member) => (member.Email || "").toLowerCase() === email)?.createdAt || new Date().toISOString() };
       const previous = state.employees.find((member) => (member.Email || "").toLowerCase() === email);
+      const employee = { ...(previous || {}), Title: name, Email: email, DisplayName: name, Designation: byId("employee-designation").value, Discipline: byId("employee-discipline").value, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: previous?.createdAt || new Date().toISOString() };
       const accessChanged = previous && (previous.Active !== employee.Active || previous.Role !== employee.Role);
       if (accessChanged) await revokeEmployeePortalAccess(previous);
       await saveRecord("employees", emailKey(email), employee);
