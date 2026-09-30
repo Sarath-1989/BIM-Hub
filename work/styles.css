@@ -161,3 +161,20 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
   .metrics{grid-template-columns:1fr}
   .topbar-actions .button{padding-inline:8px}
 }
+
+/* Narrow-screen navigation and form refinements */
+.mobile-nav-toggle,.table-scroll-hint{display:none}
+@media(max-width:620px){
+  .sidebar{display:block;position:relative;top:auto;overflow:visible}
+  .mobile-nav-toggle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:44px;padding:10px 14px;border:1px solid rgba(255,255,255,.22);border-radius:9px;background:rgba(255,255,255,.09);color:#fff;font:700 .86rem "DM Sans",sans-serif}
+  .mobile-nav-toggle::before{content:"☰";font-size:1.05rem}
+  .sidebar.menu-open .mobile-nav-toggle::before{content:"×";font-size:1.25rem;line-height:.8}
+  .nav-list{display:none;width:100%;min-width:0;padding:8px 0 0;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  .sidebar.menu-open .nav-list{display:grid}
+  .nav-item{width:100%;min-height:42px;padding:9px 10px;white-space:normal;text-align:center;font-size:.8rem}
+  .page-heading>div{min-width:0;width:100%}
+  .page-heading .muted{overflow-wrap:anywhere}
+  .form-grid input,.form-grid select,.form-grid textarea{width:100%;max-width:100%}
+  .table-scroll-hint{display:block;margin:0 0 9px;color:var(--muted);font-size:.76rem;font-weight:700;text-align:right;white-space:nowrap}
+  .data-table{min-width:680px}
+}
