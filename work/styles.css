@@ -23,6 +23,8 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .button-primary:hover{background:#167b60}
 .button-wide{width:min(100%,390px);padding:14px}
 .button-quiet{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.button-danger{background:#fff0f0;color:#af3030;border:1px solid #efcaca}
+.button-danger:hover{background:#ffe4e4}
 .muted{color:var(--muted);font-size:.9rem}
 .app-shell{min-height:100vh}
 .topbar{height:66px;background:#fff;border-bottom:1px solid var(--line);padding:0 28px;display:flex;align-items:center;justify-content:space-between;overflow:hidden}
@@ -80,6 +82,8 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .data-table{width:100%;border-collapse:collapse;font-size:.86rem}
 .data-table th,.data-table td{padding:11px 9px;text-align:left;border-bottom:1px solid #e8eeea;vertical-align:top}
 .data-table th{font-size:.72rem;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.table-actions{display:flex;flex-wrap:wrap;gap:7px;min-width:205px}
+.table-actions .button{padding:7px 9px;font-size:.78rem}
 .setup-card{max-width:680px}
 .setup-list{padding-left:20px;line-height:2}
 .filter-card{margin:0 0 18px;padding:18px}
