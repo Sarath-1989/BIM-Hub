@@ -444,7 +444,8 @@ function projectByCode(code) { return state.projects.find((project) => project.P
 
   function formatManDays(minutes) {
     const days = Math.max(0, Number(minutes) || 0) / 480;
-    return `${Number.isInteger(days) ? days : days.toFixed(1)} man-days`;
+    const value = Number.isInteger(days) ? days : days.toFixed(1);
+    return `${value} ${Number(days) === 1 ? "man-day" : "man-days"}`;
   }
 
   function formatNormalTime(summary) {
@@ -600,6 +601,19 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     byId("recent-work").innerHTML = entries.length ? entries.map((entry) => `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span></div>`).join("") : `<p class="muted">No work entries have been logged yet.</p>`;
   }
 
+  function projectMonthlyWorkmanshipRows(projects, projectCode, today = dubaiDate()) {
+    const month = monthKey(today);
+    return projects.filter((project) => !projectCode || project.ProjectCode === projectCode).map((project) => {
+      const logs = state.workLogs.filter((entry) => entry.ProjectCode === project.ProjectCode && monthKey(entry.WorkDate) === month);
+      const tasks = state.tasks.filter((task) => task.ProjectCode === project.ProjectCode);
+      const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
+      const contributors = new Set(logs.map((entry) => String(entry.EmployeeEmail || "").toLowerCase()).filter(Boolean));
+      const assignedMembers = new Set(tasks.map((task) => String(task.AssigneeEmail || "").toLowerCase()).filter(Boolean));
+      const openTasks = tasks.filter((task) => task.Status !== "Completed");
+      return { project, actualMinutes, contributors, assignedMembers, entryCount: logs.length, openTasks, taskCount: tasks.length };
+    }).sort((a, b) => b.actualMinutes - a.actualMinutes || String(a.project.ProjectCode || "").localeCompare(String(b.project.ProjectCode || "")));
+  }
+
   function renderAdminMonitor() {
     const staffDashboard = byId("staff-dashboard-content");
     const monitor = byId("admin-monitor");
@@ -617,6 +631,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     const projectData = currentProjects.filter((project) => !projectCode || project.ProjectCode === projectCode).map((project) => monitoringDataForProject(project, today));
     const teamRows = monitoringTeamRows(projectCode, today);
     const monthlyRows = monthlyWorkmanshipRows(projectCode, today);
+    const projectMonthlyRows = projectMonthlyWorkmanshipRows(currentProjects, projectCode, today);
     const visibleLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
     const todayMinutes = visibleLogs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
     const weekStart = mondayOfWeek(today);
@@ -648,6 +663,13 @@ function projectByCode(code) { return state.projects.find((project) => project.P
       return `<tr><td><strong>${esc(name)}</strong><br><span class="muted">${esc(row.employee.Designation || row.employee.Role || "BIM team member")}</span></td><td>${esc(taskText)}</td><td><strong>${esc(formatMinutes(row.todayMinutes))}</strong><br><span class="muted">${row.noDailyLog ? "No log yet" : "Logged"}</span></td><td>${esc(formatMinutes(row.weekMinutes))}</td><td><strong>${esc(formatMinutes(row.monthMinutes))}</strong><br><span class="muted">${esc(formatManDays(row.monthMinutes))}</span></td><td>${esc(latest)}</td></tr>`;
     }).join("")}</tbody></table>` : `<p class="muted">No active team activity matches this monitoring filter.</p>`;
     byId("admin-monthly-workmanship").innerHTML = monthlyRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table monitor-table monthly-workmanship-table"><thead><tr><th>Month</th><th>Normal work time / member</th><th>Logged workmanship</th><th>Man-days</th><th>Contributors</th><th>Work entries</th></tr></thead><tbody>${monthlyRows.map((row) => `<tr><td><strong>${esc(row.label)}</strong><br><span class="muted">${row.monthToDate ? "Month to date" : "Full month"}</span></td><td>${esc(formatNormalTime(row.normalSchedule))}</td><td><strong>${esc(formatMinutes(row.actualMinutes))}</strong></td><td>${esc(formatManDays(row.actualMinutes))}</td><td>${esc(String(row.contributors.size))}</td><td>${esc(String(row.entryCount))}</td></tr>`).join("")}</tbody></table>` : `<p class="muted">No monthly workmanship data is available for this monitoring filter.</p>`;
+
+    byId("admin-project-monthly-workmanship").innerHTML = projectMonthlyRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table monitor-table project-monthly-workmanship-table"><thead><tr><th>Project / coordinator</th><th>Logged this month</th><th>Man-days</th><th>Contributors</th><th>Work entries</th><th>Active BIM tasks</th></tr></thead><tbody>${projectMonthlyRows.map((row) => {
+      const coordinator = row.project.CoordinatorName || row.project.CoordinatorEmail || "Coordinator required";
+      const teamText = `${row.contributors.size} logged · ${row.assignedMembers.size} assigned`;
+      const taskText = row.taskCount ? `${row.openTasks.length} open / ${row.taskCount} total` : "No tasks assigned";
+      return `<tr><td><strong>${esc(row.project.ProjectCode || "—")}</strong><br><span class="muted">${esc(row.project.Title || "Untitled project")}</span><br><span class="muted">${esc(coordinator)}</span></td><td><strong>${esc(formatMinutes(row.actualMinutes))}</strong><br><span class="muted">Month to date</span></td><td>${esc(formatManDays(row.actualMinutes))}</td><td>${esc(teamText)}</td><td>${esc(String(row.entryCount))}</td><td>${esc(taskText)}</td></tr>`;
+    }).join("")}</tbody></table>` : `<p class="muted">No current projects match this monitoring filter.</p>`;
     const recent = [...visibleLogs].sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 10);
     byId("admin-activity-timeline").innerHTML = recent.length ? recent.map((entry) => `<div class="activity-row"><strong>${esc(entry.EmployeeName || entry.EmployeeEmail || "Team member")} · ${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(formatMinutes(workLogMinutes(entry)))} · ${esc(entry.WorkNote || "No note")}</span></div>`).join("") : `<p class="muted">No work entries have been logged for this monitoring filter.</p>`;
   }
