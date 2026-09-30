@@ -322,8 +322,82 @@
     const isAssignee = (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase();
     return isAdmin() || canManageProject(projectByCode(task.ProjectCode)) || isAssignee;
   }
-  function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
+  
+function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
+
+  function projectCodeKey(value) { return String(value || "").trim().toUpperCase(); }
+
+  function projectCodeReferenceGroups(oldCode) {
+    const key = projectCodeKey(oldCode);
+    const matches = (record) => projectCodeKey(record.ProjectCode) === key;
+    const groups = [
+      ...state.tasks.filter(matches).map((record) => ({ key: "tasks", label: "task", record })),
+      ...state.workLogs.filter(matches).map((record) => ({ key: "workLogs", label: "work log", record })),
+      ...state.issues.filter(matches).map((record) => ({ key: "issues", label: "BIM issue", record })),
+      ...state.registers.filter(matches).map((record) => ({ key: "registers", label: "model / sheet register", record }))
+    ];
+    const invalid = groups.find((reference) => !reference.record?.id || (reference.key === "workLogs" && !String(reference.record.EmployeeEmail || "").trim()));
+    if (invalid) throw new Error(`A linked ${invalid.label} is missing its record identity. The project code was not changed, so no information was lost.`);
+    return groups;
+  }
+
+  function projectCodeReferenceSummary(references) {
+    const labels = { tasks: "task", workLogs: "work log", issues: "BIM issue", registers: "model / sheet register" };
+    return Object.entries(labels).map(([key, label]) => {
+      const count = references.filter((reference) => reference.key === key).length;
+      return count ? `${count} ${label}${count === 1 ? "" : "s"}` : "";
+    }).filter(Boolean).join(", ");
+  }
+
+  function projectCodeMigrationFields(reference, projectCode, audit) {
+    const action = `Project code changed from ${audit.from} to ${audit.to}`;
+    const history = Array.isArray(reference.record.UpdateHistory) ? reference.record.UpdateHistory : [];
+    return {
+      ...reference.record,
+      ProjectCode: projectCode,
+      UpdatedBy: audit.by,
+      LastUpdateAction: action,
+      UpdateHistory: [...history, { at: audit.at, by: audit.by, action }]
+    };
+  }
+
+  async function writeProjectCodeReference(reference, fields) {
+    if (reference.key === "workLogs") return saveRecordAt(workspaceLogsPath(reference.record.EmployeeEmail), reference.record.id, fields);
+    return saveRecord(reference.key, reference.record.id, fields);
+  }
+
+  async function rollbackProjectCodeReferences(references, writer = writeProjectCodeReference) {
+    let failures = 0;
+    for (let index = 0; index < references.length; index += 6) {
+      const batch = references.slice(index, index + 6);
+      const results = await Promise.allSettled(batch.map((reference) => writer(reference, reference.record)));
+      failures += results.filter((result) => result.status === "rejected").length;
+    }
+    return failures;
+  }
+
+  async function migrateProjectCodeReferences(references, projectCode, audit, writer = writeProjectCodeReference) {
+    const applied = [];
+    for (let index = 0; index < references.length; index += 6) {
+      const batch = references.slice(index, index + 6);
+      const results = await Promise.allSettled(batch.map(async (reference) => {
+        await writer(reference, projectCodeMigrationFields(reference, projectCode, audit));
+        return reference;
+      }));
+      results.forEach((result) => { if (result.status === "fulfilled") applied.push(result.value); });
+      const failed = results.find((result) => result.status === "rejected");
+      if (failed) {
+        const rollbackFailures = await rollbackProjectCodeReferences([...applied].reverse(), writer);
+        const reason = failed.reason?.message || "a linked record could not be updated";
+        const rollbackNote = rollbackFailures ? " Some linked records could not be restored automatically; do not retry until an Admin checks SharePoint." : " Linked records already changed were restored.";
+        throw new Error(`Project code was not changed because ${reason}.${rollbackNote}`);
+      }
+    }
+    return applied;
+  }
+
   function coordinatorEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role === "Team Lead"); }
+
   function modellerEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin" && /Modell?er|Technician/i.test(employee.Designation || "")); }
 
   function toUtcDate(value) {
@@ -759,7 +833,7 @@
     if (!project) return toast("Project could not be found.", "error");
     editingProjectId = project.id;
     byId("project-code").value = project.ProjectCode || "";
-    byId("project-code").readOnly = true;
+    byId("project-code").readOnly = false;
     byId("project-name").value = project.Title || "";
     byId("project-client").value = project.Client || "";
     byId("project-coordinator").value = coordinatorEmailFor(project);
@@ -769,8 +843,9 @@
     byId("project-form-heading").textContent = "Update BIM project";
     byId("project-save-button").textContent = "Save project changes";
     byId("project-cancel-button").classList.remove("hidden");
-    byId("project-name").focus();
+    byId("project-code").focus();
   }
+
   async function archiveProject(event) {
     const button = event.target.closest("[data-archive-project]");
     if (!button || !isAdmin()) return;
@@ -801,25 +876,64 @@
     event.preventDefault();
     if (!isAdmin()) return toast("Only an Admin can create or edit projects.", "error");
     try {
-      const projectCode = byId("project-code").value.trim().toUpperCase();
+      const projectCode = projectCodeKey(byId("project-code").value);
       const coordinatorEmail = byId("project-coordinator").value.trim().toLowerCase();
       const coordinator = coordinatorEmployees().find((employee) => (employee.Email || "").toLowerCase() === coordinatorEmail);
       const startDate = byId("project-start-date").value || "";
       const targetDate = byId("project-target-date").value || "";
+      const existing = state.projects.find((project) => project.id === editingProjectId);
+      const id = editingProjectId || recordId("project");
       if (!projectCode) return toast("Enter a project code.", "error");
       if (!coordinator) return toast("Select an active BIM Coordinator or Team Lead.", "error");
       if (startDate && targetDate && targetDate < startDate) return toast("Target date must be on or after the project start date.", "error");
-      if (!editingProjectId && state.projects.some((project) => String(project.ProjectCode || "").trim().toUpperCase() === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
-      const existing = state.projects.find((project) => project.id === editingProjectId);
-      const id = editingProjectId || recordId("project");
+      if (state.projects.some((project) => project.id !== id && projectCodeKey(project.ProjectCode) === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
+      if (editingProjectId && !existing) return toast("This project could not be found. Refresh and try again.", "error");
+
+      const oldProjectCode = projectCodeKey(existing?.ProjectCode);
+      const isCodeChange = Boolean(existing && oldProjectCode && oldProjectCode !== projectCode);
+      const references = isCodeChange ? projectCodeReferenceGroups(oldProjectCode) : [];
+      const referenceSummary = projectCodeReferenceSummary(references);
+      if (isCodeChange && !window.confirm(`Change project code from ${oldProjectCode} to ${projectCode}?${referenceSummary ? ` This will update ${referenceSummary}.` : ""} No records will be deleted.`)) return;
+
       const now = new Date().toISOString();
-      const action = editingProjectId ? "Project updated" : "Project created";
-      const history = [...(Array.isArray(existing?.UpdateHistory) ? existing.UpdateHistory : []), { at: now, by: state.profile.displayName || accountEmail(), action }];
-      await saveRecord("projects", id, { ...(existing || {}), Title: byId("project-name").value.trim(), ProjectCode: projectCode, Client: byId("project-client").value.trim(), CoordinatorEmail: coordinatorEmail, CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail, StartDate: startDate, Status: byId("project-status").value, TargetDate: targetDate, createdAt: existing?.createdAt || now, UpdatedBy: state.profile.displayName || accountEmail(), LastUpdateAction: action, UpdateHistory: history });
-      const message = action;
-      resetProjectForm(); await refreshData(message); toast(`${message}.`, "success");
+      const updatedBy = state.profile.displayName || accountEmail();
+      const action = isCodeChange ? `Project code changed from ${oldProjectCode} to ${projectCode}` : editingProjectId ? "Project updated" : "Project created";
+      const history = [...(Array.isArray(existing?.UpdateHistory) ? existing.UpdateHistory : []), { at: now, by: updatedBy, action }];
+      const codeHistory = isCodeChange ? [...(Array.isArray(existing?.ProjectCodeHistory) ? existing.ProjectCodeHistory : []), { at: now, by: updatedBy, from: oldProjectCode, to: projectCode }] : existing?.ProjectCodeHistory;
+      const projectFields = {
+        ...(existing || {}),
+        Title: byId("project-name").value.trim(),
+        ProjectCode: projectCode,
+        Client: byId("project-client").value.trim(),
+        CoordinatorEmail: coordinatorEmail,
+        CoordinatorName: coordinator.DisplayName || coordinator.Title || coordinatorEmail,
+        StartDate: startDate,
+        Status: byId("project-status").value,
+        TargetDate: targetDate,
+        createdAt: existing?.createdAt || now,
+        UpdatedBy: updatedBy,
+        LastUpdateAction: action,
+        UpdateHistory: history,
+        ...(isCodeChange ? { ProjectCodeHistory: codeHistory } : {})
+      };
+
+      let migratedReferences = [];
+      try {
+        if (isCodeChange) migratedReferences = await migrateProjectCodeReferences(references, projectCode, { from: oldProjectCode, to: projectCode, at: now, by: updatedBy });
+        await saveRecord("projects", id, projectFields);
+      } catch (error) {
+        if (migratedReferences.length) {
+          const rollbackFailures = await rollbackProjectCodeReferences([...migratedReferences].reverse());
+          if (rollbackFailures) error.message = `${error.message || "Project update failed."} Some linked records could not be restored automatically; do not retry until an Admin checks SharePoint.`;
+        }
+        throw error;
+      }
+
+      const message = isCodeChange ? "Project code and linked records updated" : action;
+      resetProjectForm(); await refreshData(message); toast(`${message}. No project information was deleted.`, "success");
     } catch (error) { toast(error.message || "Could not create project.", "error"); }
   }
+
   async function submitTask(event) {
     event.preventDefault();
     if (!isManager()) return toast("Only an Admin or assigned Coordinator can assign tasks.", "error");
