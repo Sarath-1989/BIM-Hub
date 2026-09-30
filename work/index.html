@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20260930f" />
+    <link rel="stylesheet" href="./styles.css?v=20260930g" />
     <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
   </head>
   <body>
@@ -71,7 +71,7 @@
               <div class="status-pill" id="role-badge">Staff</div>
             </div>
             <div class="metrics" id="metrics"></div>
-            <div class="content-grid">
+            <div id="staff-dashboard-content" class="content-grid">
               <section class="card work-card">
                 <div class="card-heading"><div><p class="eyebrow">NEW ENTRY</p><h2>Log today’s BIM work</h2></div></div>
                 <form id="work-log-form" class="form-grid">
@@ -89,6 +89,35 @@
                 <div id="recent-work" class="activity-list"></div>
               </section>
             </div>
+
+            <section id="admin-monitor" class="admin-monitor hidden">
+              <section class="card admin-monitor-toolbar">
+                <div>
+                  <p class="eyebrow">ADMIN MONITOR</p>
+                  <h2>Team activity, programme & workmanship</h2>
+                  <p class="muted">Normal schedule: Monday–Friday 8h · Saturday 4h · Sunday off. Workmanship is calculated from logged task time.</p>
+                </div>
+                <label class="monitor-filter">Project
+                  <select id="admin-monitor-project"><option value="">All current projects</option></select>
+                </label>
+              </section>
+              <div id="admin-monitor-summary" class="admin-monitor-summary"></div>
+              <section class="admin-monitor-alerts" id="admin-monitor-alerts"></section>
+              <div class="admin-monitor-grid">
+                <section class="card list-card">
+                  <div class="card-heading"><div><p class="eyebrow">PROJECT CONTROL</p><h2>Programme duration & workmanship</h2></div></div>
+                  <div id="admin-project-monitor" class="table-wrap"></div>
+                </section>
+                <section class="card list-card">
+                  <div class="card-heading"><div><p class="eyebrow">TEAM ACTIVITY</p><h2>Today & weekly work time</h2></div></div>
+                  <div id="admin-team-monitor" class="table-wrap"></div>
+                </section>
+              </div>
+              <section class="card">
+                <div class="card-heading"><div><p class="eyebrow">LIVE ACTIVITY</p><h2>Latest team work updates</h2></div></div>
+                <div id="admin-activity-timeline" class="activity-list"></div>
+              </section>
+            </section>
           </section>
 
           <section id="tasks-view" class="page-view hidden">
@@ -113,6 +142,7 @@
                   <label>Project name<input id="project-name" required placeholder="Project name" /></label>
                   <label>Client<input id="project-client" placeholder="Client name" /></label>
                   <label>Project coordinator<select id="project-coordinator" required><option value="">Select BIM Coordinator / Team Lead</option></select></label>
+                  <label>Project start date<input id="project-start-date" type="date" /></label>
                   <label>Target date<input id="project-target-date" type="date" /></label>
                   <label class="full-width">Status<select id="project-status"><option>Active</option><option>On hold</option><option>Completed</option><option>Archived</option></select></label>
                   <div class="form-actions full-width"><div class="form-action-buttons"><button id="project-save-button" class="button button-primary" type="submit">Create project</button><button id="project-cancel-button" class="button button-quiet hidden" type="button">Cancel</button></div></div>
@@ -211,6 +241,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20260930h"></script>
+    <script src="./app.js?v=20260930i"></script>
   </body>
 </html>
