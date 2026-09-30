@@ -60,7 +60,7 @@
     } catch (error) {
       console.error(error);
       byId("sign-in-status").textContent = "Microsoft sign-in could not complete.";
-      toast(error.message || "Microsoft sign-in could not complete.", "error");
+      toast("Microsoft sign-in could not complete. Please try again.", "error");
     }
   }
 
@@ -253,10 +253,11 @@
 
   function setRole() {
     const email = accountEmail().toLowerCase();
+    const isBootstrapAdmin = email === CONFIG.bootstrapAdminEmail.toLowerCase();
     const matchingEmployee = state.employees.find((employee) => (employee.Email || "").toLowerCase() === email);
-    state.inactive = matchingEmployee?.Active === "No";
+    state.inactive = !isBootstrapAdmin && matchingEmployee?.Active === "No";
     const entry = state.inactive ? null : matchingEmployee;
-    state.role = entry?.Role || (state.inactive ? "Inactive" : email === CONFIG.bootstrapAdminEmail.toLowerCase() ? "Admin" : "Staff");
+    state.role = isBootstrapAdmin ? "Admin" : entry?.Role || (state.inactive ? "Inactive" : "Staff");
   }
 
   function setProfileUI() {
@@ -294,8 +295,8 @@
   function canUpdateTask(task) { return isManager() || (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase(); }
 
   function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
-  function coordinatorEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && (employee.Role === "Team Lead" || /BIM Coordinator|BIM Team Leader/i.test(employee.Designation || ""))); }
-  function modellerEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin" && /Modeler|Technician/i.test(employee.Designation || "")); }
+  function coordinatorEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role === "Team Lead"); }
+  function modellerEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin" && /Modell?er|Technician/i.test(employee.Designation || "")); }
 
   function renderMetrics() {
     const today = dubaiDate();
@@ -528,11 +529,10 @@
     } catch (error) {
       console.error(error);
       setSync("SharePoint connection needs attention", true);
-      byId("sign-in-view").classList.add("hidden"); byId("app-view").classList.remove("hidden");
-      state.profile = state.profile || { displayName: state.account?.name || "Asterwix User", mail: state.account?.username || "" };
-      state.role = accountEmail().toLowerCase() === CONFIG.bootstrapAdminEmail.toLowerCase() ? "Admin" : "Staff";
-      renderAll();
-      toast(`SharePoint connection needs attention: ${error.message}`, "error");
+      byId("app-view").classList.add("hidden");
+      byId("sign-in-view").classList.remove("hidden");
+      byId("sign-in-status").textContent = "We could not load Asterwix SharePoint data. Check your access and try again.";
+      toast("SharePoint connection needs attention. Please try signing in again.", "error");
     }
   }
 
@@ -574,7 +574,7 @@
     byId("project-code").readOnly = true;
     byId("project-name").value = project.Title || "";
     byId("project-client").value = project.Client || "";
-    byId("project-coordinator").value = project.CoordinatorEmail || "";
+    byId("project-coordinator").value = coordinatorEmailFor(project);
     byId("project-target-date").value = project.TargetDate || "";
     byId("project-status").value = project.Status || "Active";
     byId("project-form-heading").textContent = "Update BIM project";
@@ -627,6 +627,7 @@
     if (!isManager()) return toast("Only an Admin or assigned Coordinator can assign tasks.", "error");
     try {
       const id = recordId("task");
+      const now = new Date().toISOString();
       const assigneeEmail = byId("task-assignee").value.trim().toLowerCase();
       const startDate = byId("task-start-date").value || "";
       const endDate = byId("task-end-date").value || "";
@@ -634,14 +635,16 @@
       if (!assignee) return toast("Select an active employee.", "error");
       const project = projectByCode(byId("task-project").value);
       if (!project || ["Completed", "Archived"].includes(project.Status)) return toast("Select an active project.", "error");
-      if (isCoordinator() && (project.CoordinatorEmail || "").toLowerCase() !== accountEmail().toLowerCase()) return toast("You can assign tasks only in projects assigned to you as Coordinator.", "error");
+      if (isCoordinator() && coordinatorEmailFor(project) !== accountEmail().toLowerCase()) return toast("You can assign tasks only in projects assigned to you as Coordinator.", "error");
       if (isCoordinator() && !modellerEmployees().some((employee) => (employee.Email || "").toLowerCase() === assigneeEmail)) return toast("A Coordinator can assign tasks only to active BIM Modelers or BIM Technicians.", "error");
       if (startDate && endDate && endDate < startDate) return toast("End date must be on or after the start date.", "error");
       const discipline = byId("task-discipline").value;
       const deliverable = byId("task-deliverable").value;
       const bimStage = byId("task-lod").value;
       if (!discipline || !deliverable || !bimStage) return toast("Select discipline, deliverable, and BIM stage / LOD.", "error");
-      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, Discipline: discipline, Deliverable: deliverable, BIMStage: bimStage, ModelDrawingNo: byId("task-reference").value.trim(), Revision: byId("task-revision").value.trim(), AssigneeEmail: assigneeEmail, StartDate: startDate, EndDate: endDate, Priority: byId("task-priority").value, Status: byId("task-status").value, Notes: byId("task-notes").value.trim(), createdAt: new Date().toISOString() });
+      const taskStatus = byId("task-status").value;
+      const assignedBy = state.profile.displayName || accountEmail();
+      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, Discipline: discipline, Deliverable: deliverable, BIMStage: bimStage, ModelDrawingNo: byId("task-reference").value.trim(), Revision: byId("task-revision").value.trim(), AssigneeEmail: assigneeEmail, StartDate: startDate, EndDate: endDate, Priority: byId("task-priority").value, Status: taskStatus, Notes: byId("task-notes").value.trim(), createdAt: now, UpdatedBy: assignedBy, LastUpdateAction: "Task assigned", UpdateHistory: [{ at: now, by: assignedBy, action: "Task assigned", status: taskStatus }] });
       try { await inviteToItem(filePath("tasks", id), assigneeEmail, "write"); }
       catch (error) { await refreshData("Task assigned"); toast(`Task saved, but ${assigneeEmail} could not be granted status-update access: ${error.message}`, "error"); return; }
       event.target.reset(); await refreshData("Task assigned"); toast("Task assigned.", "success");
@@ -657,7 +660,10 @@
     if (!TASK_STATUSES.includes(status) || !allowedTaskStatuses(task).includes(status)) return toast("This status can only be set by a BIM manager or team lead.", "error");
     const label = button.textContent; button.disabled = true; button.textContent = "Saving…";
     try {
-      await saveRecord("tasks", task.id, { ...task, Status: status, StatusUpdatedAt: new Date().toISOString(), StatusUpdatedBy: state.profile.displayName || accountEmail() });
+      const now = new Date().toISOString();
+      const updatedBy = state.profile.displayName || accountEmail();
+      const history = [...(Array.isArray(task.UpdateHistory) ? task.UpdateHistory : []), { at: now, by: updatedBy, action: `Status changed to ${status}`, status }];
+      await saveRecord("tasks", task.id, { ...task, Status: status, StatusUpdatedAt: now, StatusUpdatedBy: updatedBy, UpdatedBy: updatedBy, LastUpdateAction: `Status changed to ${status}`, UpdateHistory: history });
       await refreshData("Task status updated"); toast("Task status updated.", "success");
     } catch (error) { toast(error.message || "Could not update task status.", "error"); }
     finally { button.disabled = false; button.textContent = label; }
@@ -673,7 +679,9 @@
       if (updating && email !== editingEmployeeEmail) return toast("Email cannot be changed while updating a team member.", "error");
       if (email === CONFIG.bootstrapAdminEmail.toLowerCase() && byId("employee-active").value === "No") return toast("The portal's bootstrap Admin cannot be marked inactive here.", "error");
       const previous = state.employees.find((member) => (member.Email || "").toLowerCase() === email);
-      const employee = { ...(previous || {}), Title: name, Email: email, DisplayName: name, Designation: byId("employee-designation").value, Discipline: byId("employee-discipline").value, Role: byId("employee-role").value, Active: byId("employee-active").value, createdAt: previous?.createdAt || new Date().toISOString() };
+      const isBootstrapAdmin = email === CONFIG.bootstrapAdminEmail.toLowerCase();
+      const role = isBootstrapAdmin ? "Admin" : byId("employee-role").value;
+      const employee = { ...(previous || {}), Title: name, Email: email, DisplayName: name, Designation: byId("employee-designation").value, Discipline: byId("employee-discipline").value, Role: role, Active: byId("employee-active").value, createdAt: previous?.createdAt || new Date().toISOString() };
       const accessChanged = previous && (previous.Active !== employee.Active || previous.Role !== employee.Role);
       if (accessChanged) await revokeEmployeePortalAccess(previous);
       await saveRecord("employees", emailKey(email), employee);
