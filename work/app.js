@@ -202,7 +202,7 @@
     await inviteToFolder(folderPath("projects"), email, employee.Role === "Team Lead" ? "write" : "read");
     await inviteToFolder(folderPath("tasks"), email, employee.Role === "Team Lead" ? "write" : "read");
     await inviteToFolder(workspacePath(email), email, "write");
-    await Promise.all(state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email && task.id).map((task) => inviteToItem(filePath("tasks", task.id), email, "write")));
+    await Promise.all(state.tasks.filter((task) => !isTaskInRecycleBin(task) && (task.AssigneeEmail || "").toLowerCase() === email && task.id).map((task) => inviteToItem(filePath("tasks", task.id), email, "write")));
     if (employee.Role === "Team Lead") {
       await inviteToFolder(folderPath("workspaces"), email, "read");
       await maybeInviteToFolder("issues", email, "write");
@@ -308,22 +308,38 @@
   function scopedManagerRecords(records) {
     return isAdmin() ? records : records.filter((record) => canManageProject(projectByCode(record.ProjectCode)));
   }
-  function visibleTasks() {
+  function isTaskInRecycleBin(task) {
+    return Boolean(task?.DeletedAt || task?.InRecycleBin === "Yes");
+  }
+
+  function canRecycleTask(task) {
+    return Boolean(task?.id && canManageProject(projectByCode(task.ProjectCode)));
+  }
+
+  function taskRecordState() {
+    const control = byId("task-filter-record-state");
+    return isManager() && control?.value === "recycle" ? "recycle" : "active";
+  }
+
+  function visibleTasks({ includeDeleted = false } = {}) {
     const email = accountEmail().toLowerCase();
-    if (isAdmin()) return state.tasks;
-    if (isCoordinator()) {
+    let tasks;
+    if (isAdmin()) tasks = state.tasks;
+    else if (isCoordinator()) {
       const codes = new Set(managedProjects().map((project) => project.ProjectCode));
-      return state.tasks.filter((task) => codes.has(task.ProjectCode) || (task.AssigneeEmail || "").toLowerCase() === email);
+      tasks = state.tasks.filter((task) => codes.has(task.ProjectCode) || (task.AssigneeEmail || "").toLowerCase() === email);
+    } else {
+      tasks = state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email);
     }
-    return state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email);
+    return includeDeleted ? tasks : tasks.filter((task) => !isTaskInRecycleBin(task));
   }
 
   function canUpdateTask(task) {
     const isAssignee = (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase();
     return isAdmin() || canManageProject(projectByCode(task.ProjectCode)) || isAssignee;
   }
-  
-function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
+
+  function projectByCode(code) { return state.projects.find((project) => project.ProjectCode === code); }
 
   function projectCodeKey(value) { return String(value || "").trim().toUpperCase(); }
 
@@ -471,7 +487,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
       if (todayDate >= startDate) elapsedSchedule = normalTimeBetween(start, dateKey(todayDate > targetDate ? targetDate : todayDate));
       if (todayDate <= targetDate) remainingSchedule = normalTimeBetween(dateKey(todayDate > startDate ? todayDate : startDate), target);
     }
-    const tasks = state.tasks.filter((task) => task.ProjectCode === project.ProjectCode);
+    const tasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && task.ProjectCode === project.ProjectCode);
     const logs = state.workLogs.filter((entry) => entry.ProjectCode === project.ProjectCode);
     const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
     const completedTasks = tasks.filter((task) => task.Status === "Completed").length;
@@ -525,7 +541,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
   function monitoringTeamRows(projectCode, today = dubaiDate()) {
     const weekStart = mondayOfWeek(today);
     const monthStart = monthStartKey(today);
-    const relevantTasks = state.tasks.filter((task) => !projectCode || task.ProjectCode === projectCode);
+    const relevantTasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && (!projectCode || task.ProjectCode === projectCode));
     const relevantLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
     return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").map((employee) => {
       const email = String(employee.Email || "").toLowerCase();
@@ -559,7 +575,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
       const activeProjects = state.projects.filter((project) => project.Status === "Active").length;
       const activeTeam = state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").length;
       const todayMinutes = state.workLogs.filter((entry) => entry.WorkDate === today).reduce((total, entry) => total + workLogMinutes(entry), 0);
-      const overdueTasks = state.tasks.filter((task) => task.EndDate && task.EndDate < today && task.Status !== "Completed").length;
+      const overdueTasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && task.EndDate && task.EndDate < today && task.Status !== "Completed").length;
       byId("metrics").innerHTML = [[String(activeProjects), "Active BIM projects"], [String(activeTeam), "Active team members"], [formatMinutes(todayMinutes), "Team workmanship today"], [String(overdueTasks), "Overdue BIM tasks"]].map(([value, label]) => `<div class="metric"><div class="metric-value">${esc(value)}</div><div class="metric-label">${esc(label)}</div></div>`).join("");
       return;
     }
@@ -605,7 +621,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     const month = monthKey(today);
     return projects.filter((project) => !projectCode || project.ProjectCode === projectCode).map((project) => {
       const logs = state.workLogs.filter((entry) => entry.ProjectCode === project.ProjectCode && monthKey(entry.WorkDate) === month);
-      const tasks = state.tasks.filter((task) => task.ProjectCode === project.ProjectCode);
+      const tasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && task.ProjectCode === project.ProjectCode);
       const actualMinutes = logs.reduce((total, entry) => total + workLogMinutes(entry), 0);
       const contributors = new Set(logs.map((entry) => String(entry.EmployeeEmail || "").toLowerCase()).filter(Boolean));
       const assignedMembers = new Set(tasks.map((task) => String(task.AssigneeEmail || "").toLowerCase()).filter(Boolean));
@@ -681,7 +697,8 @@ function projectByCode(code) { return state.projects.find((project) => project.P
       select.innerHTML = `<option value="">${esc(placeholder)}</option>${options.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}`;
       if ([...select.options].some((option) => option.value === previous)) select.value = previous;
     };
-    const tasks = visibleTasks();
+    const showingRecycleBin = taskRecordState() === "recycle";
+    const tasks = visibleTasks({ includeDeleted: showingRecycleBin }).filter((task) => showingRecycleBin ? isTaskInRecycleBin(task) : !isTaskInRecycleBin(task));
     const projectCodes = new Set(tasks.map((task) => task.ProjectCode));
     managedProjects().forEach((project) => projectCodes.add(project.ProjectCode));
     const visibleProjects = state.projects.filter((project) => projectCodes.has(project.ProjectCode));
@@ -691,7 +708,9 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     setOptions("task-filter-status", TASK_STATUSES.map((status) => [status, status]), "All statuses");
     setOptions("task-filter-assignee", state.employees.filter((employee) => employee.Active !== "No" && assigneeEmails.has((employee.Email || "").toLowerCase())).map((employee) => [employee.Email, `${employee.DisplayName || employee.Email} · ${employee.Designation || "BIM team member"}`]), "All assignees");
   }
-  function filteredTasks(tasks = visibleTasks()) {
+
+  function filteredTasks(tasks = visibleTasks({ includeDeleted: taskRecordState() === "recycle" })) {
+    const showingRecycleBin = taskRecordState() === "recycle";
     const project = byId("task-filter-project").value;
     const discipline = byId("task-filter-discipline").value;
     const status = byId("task-filter-status").value;
@@ -701,18 +720,19 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     const nextWeek = new Date(`${today}T00:00:00Z`); nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
     const nextWeekDate = nextWeek.toISOString().slice(0, 10);
     return tasks.filter((task) => {
+      if (showingRecycleBin ? !isTaskInRecycleBin(task) : isTaskInRecycleBin(task)) return false;
       if (project && task.ProjectCode !== project) return false;
       if (discipline && task.Discipline !== discipline) return false;
       if (status && (task.Status || "Not started") !== status) return false;
       if (assignee && (task.AssigneeEmail || "").toLowerCase() !== assignee) return false;
-      if (due === "overdue" && !(task.EndDate && task.EndDate < today && task.Status !== "Completed")) return false;
-      if (due === "due" && !(task.EndDate && task.EndDate <= today && task.Status !== "Completed")) return false;
-      if (due === "next-7" && !(task.EndDate && task.EndDate >= today && task.EndDate <= nextWeekDate && task.Status !== "Completed")) return false;
+      if (!showingRecycleBin && due === "overdue" && !(task.EndDate && task.EndDate < today && task.Status !== "Completed")) return false;
+      if (!showingRecycleBin && due === "due" && !(task.EndDate && task.EndDate <= today && task.Status !== "Completed")) return false;
+      if (!showingRecycleBin && due === "next-7" && !(task.EndDate && task.EndDate >= today && task.EndDate <= nextWeekDate && task.Status !== "Completed")) return false;
       return true;
     });
   }
 
-  function allowedTaskStatuses(task) {
+    function allowedTaskStatuses(task) {
     const currentStatus = task.Status || "Not started";
     if (isManager()) return TASK_STATUSES;
     return STAFF_TASK_STATUSES.includes(currentStatus) ? STAFF_TASK_STATUSES : [];
@@ -724,15 +744,19 @@ function projectByCode(code) { return state.projects.find((project) => project.P
       const project = projectByCode(task.ProjectCode);
       const status = task.Status || "Not started";
       const choices = allowedTaskStatuses(task);
-      const controls = canUpdateTask(task) && task.id && choices.length ? `<div class="task-actions"><label class="task-status-control">Update status<select class="task-status-select">${choices.map((option) => `<option${option === status ? " selected" : ""}>${esc(option)}</option>`).join("")}</select></label><button class="button button-primary" type="button" data-task-id="${esc(task.id)}">Save status</button></div>` : "";
+      const recycled = isTaskInRecycleBin(task);
+      const updateControls = !recycled && canUpdateTask(task) && task.id && choices.length ? `<div class="task-actions"><label class="task-status-control">Update status<select class="task-status-select">${choices.map((option) => `<option${option === status ? " selected" : ""}>${esc(option)}</option>`).join("")}</select></label><button class="button button-primary" type="button" data-task-id="${esc(task.id)}">Save status</button></div>` : "";
+      const recycleControls = canRecycleTask(task) && task.id ? (recycled
+        ? `<div class="task-recycle-actions"><p class="task-recycle-note">${esc(task.DeletedAt ? `Moved to Recycle Bin by ${task.DeletedBy || "Asterwix team"} · ${new Date(task.DeletedAt).toLocaleDateString("en-GB")}` : "This task is in the Recycle Bin.")}</p><button class="button button-primary" type="button" data-restore-task="${esc(task.id)}">Restore task</button></div>`
+        : `<div class="task-recycle-actions"><button class="button button-danger" type="button" data-delete-task="${esc(task.id)}">Delete task</button></div>`) : "";
       const deliveryDetails = [task.Discipline, task.Deliverable].filter(Boolean).join(" · ");
       const referenceDetails = [task.BIMStage, task.ModelDrawingNo, task.Revision ? `Rev ${task.Revision}` : ""].filter(Boolean).join(" · ");
       const qualityDetails = task.StatusUpdatedAt ? `Last updated by ${task.StatusUpdatedBy || "Asterwix team"} · ${new Date(task.StatusUpdatedAt).toLocaleDateString("en-GB")}` : "";
-      return `<article class="task-card"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(deliveryDetails || "BIM delivery details not set")}</p><p>${esc(referenceDetails || project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${qualityDetails ? `<p class="task-audit">${esc(qualityDetails)}</p>` : ""}${controls}</article>`;
-    }).join("") : `<section class="card"><p class="muted">No BIM tasks match the current filters.</p></section>`;
+      return `<article class="task-card${recycled ? " task-card-recycled" : ""}"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(deliveryDetails || "BIM delivery details not set")}</p><p>${esc(referenceDetails || project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(recycled ? "Recycle Bin" : status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${qualityDetails ? `<p class="task-audit">${esc(qualityDetails)}</p>` : ""}${updateControls}${recycleControls}</article>`;
+    }).join("") : `<section class="card"><p class="muted">${taskRecordState() === "recycle" ? "No tasks are in the Recycle Bin for the current filters." : "No BIM tasks match the current filters."}</p></section>`;
   }
 
-  function renderManagers() {
+    function renderManagers() {
     if (!isManager()) return;
     const availableProjects = managedProjects().filter((project) => !["Completed", "Archived"].includes(project.Status));
     const coordinators = coordinatorEmployees();
@@ -882,7 +906,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     const duration = durationMinutes(byId("work-start").value, byId("work-end").value);
     const task = state.tasks.find((item) => item.id === byId("work-task").value);
     if (!byId("work-project").value || !task || !duration) return toast("Select project, assigned BIM task, and valid start/end time.", "error");
-    if (task.ProjectCode !== byId("work-project").value || task.Status === "Completed") return toast("Choose an active BIM task from the selected project.", "error");
+    if (task.ProjectCode !== byId("work-project").value || task.Status === "Completed" || isTaskInRecycleBin(task)) return toast("Choose an active BIM task from the selected project.", "error");
     if ((task.AssigneeEmail || "").toLowerCase() !== accountEmail().toLowerCase()) return toast("You can log work only against a BIM task assigned to you.", "error");
     try {
       await ensureWorkspace();
@@ -1041,6 +1065,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     if (!button) return;
     const task = state.tasks.find((item) => item.id === button.dataset.taskId);
     if (!task || !canUpdateTask(task)) return toast("You cannot update this task.", "error");
+    if (isTaskInRecycleBin(task)) return toast("Restore this task before updating its status.", "error");
     const status = button.closest(".task-card")?.querySelector(".task-status-select")?.value;
     if (!TASK_STATUSES.includes(status) || !allowedTaskStatuses(task).includes(status)) return toast("This status can only be set by a BIM manager or team lead.", "error");
     const label = button.textContent; button.disabled = true; button.textContent = "Saving…";
@@ -1054,7 +1079,50 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     finally { button.disabled = false; button.textContent = label; }
   }
 
-  async function submitEmployee(event) {
+  async function recycleTask(event) {
+    const button = event.target.closest("[data-delete-task]");
+    if (!button) return;
+    const task = state.tasks.find((item) => item.id === button.dataset.deleteTask);
+    if (!task || !canRecycleTask(task)) return toast("Only an Admin or the assigned Coordinator can delete this task.", "error");
+    if (isTaskInRecycleBin(task)) return toast("This task is already in the Recycle Bin.", "success");
+    if (!window.confirm(`Move "${task.Title}" to the Task Recycle Bin? It will disappear from active My Tasks, but the task, its history, and every work log will be retained.`)) return;
+    const label = button.textContent; button.disabled = true; button.textContent = "Moving…";
+    try {
+      const now = new Date().toISOString();
+      const updatedBy = state.profile.displayName || accountEmail();
+      const history = [...(Array.isArray(task.UpdateHistory) ? task.UpdateHistory : []), { at: now, by: updatedBy, action: "Moved to Task Recycle Bin", status: task.Status || "Not started" }];
+      await saveRecord("tasks", task.id, { ...task, DeletedAt: now, DeletedBy: updatedBy, InRecycleBin: "Yes", LastUpdateAction: "Moved to Task Recycle Bin", UpdatedBy: updatedBy, UpdateHistory: history });
+      await refreshData("Task moved to Recycle Bin");
+      toast("Task moved to Recycle Bin. No task, history, or work-log data was deleted.", "success");
+    } catch (error) { toast(error.message || "Could not move this task to the Recycle Bin.", "error"); }
+    finally { button.disabled = false; button.textContent = label; }
+  }
+
+  async function restoreTask(event) {
+    const button = event.target.closest("[data-restore-task]");
+    if (!button) return;
+    const task = state.tasks.find((item) => item.id === button.dataset.restoreTask);
+    if (!task || !canRecycleTask(task)) return toast("Only an Admin or the assigned Coordinator can restore this task.", "error");
+    if (!isTaskInRecycleBin(task)) return toast("This task is already active.", "success");
+    const label = button.textContent; button.disabled = true; button.textContent = "Restoring…";
+    try {
+      const now = new Date().toISOString();
+      const updatedBy = state.profile.displayName || accountEmail();
+      const history = [...(Array.isArray(task.UpdateHistory) ? task.UpdateHistory : []), { at: now, by: updatedBy, action: "Restored from Task Recycle Bin", status: task.Status || "Not started" }];
+      await saveRecord("tasks", task.id, { ...task, DeletedAt: "", DeletedBy: "", InRecycleBin: "No", RestoredAt: now, RestoredBy: updatedBy, LastUpdateAction: "Restored from Task Recycle Bin", UpdatedBy: updatedBy, UpdateHistory: history });
+      await refreshData("Task restored");
+      toast("Task restored to active My Tasks.", "success");
+    } catch (error) { toast(error.message || "Could not restore this task.", "error"); }
+    finally { button.disabled = false; button.textContent = label; }
+  }
+
+  async function handleTaskCardAction(event) {
+    if (event.target.closest("[data-delete-task]")) return recycleTask(event);
+    if (event.target.closest("[data-restore-task]")) return restoreTask(event);
+    return updateTaskStatus(event);
+  }
+
+    async function submitEmployee(event) {
     event.preventDefault();
     if (!isAdmin()) return;
     try {
@@ -1139,7 +1207,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     byId("task-form").addEventListener("submit", submitTask);
     byId("issue-form").addEventListener("submit", submitIssue);
     byId("register-form").addEventListener("submit", submitRegister);
-    byId("tasks-list").addEventListener("click", updateTaskStatus);
+    byId("tasks-list").addEventListener("click", handleTaskCardAction);
     byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); deleteProject(event); });
     byId("employee-form").addEventListener("submit", submitEmployee);
     byId("team-list").addEventListener("click", beginEmployeeEdit);
@@ -1150,7 +1218,7 @@ function projectByCode(code) { return state.projects.find((project) => project.P
     byId("work-project").addEventListener("change", renderWorkTaskOptions);
     byId("admin-monitor-project")?.addEventListener("change", renderAdminMonitor);
     byId("task-filter-form").addEventListener("submit", (event) => event.preventDefault());
-    ["task-filter-project", "task-filter-discipline", "task-filter-status", "task-filter-assignee", "task-filter-due"].forEach((id) => byId(id).addEventListener("change", renderTasks));
+    ["task-filter-project", "task-filter-discipline", "task-filter-status", "task-filter-assignee", "task-filter-due", "task-filter-record-state"].forEach((id) => byId(id).addEventListener("change", () => { renderTaskFilters(); renderTasks(); }));
     byId("clear-task-filters").addEventListener("click", () => { byId("task-filter-form").reset(); renderTaskFilters(); renderTasks(); });
     [byId("work-start"), byId("work-end")].forEach((input) => input.addEventListener("input", updateDuration));
     document.querySelectorAll(".nav-item").forEach((button) => button.addEventListener("click", () => showView(button.dataset.view)));
