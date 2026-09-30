@@ -178,3 +178,30 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
   .table-scroll-hint{display:block;margin:0 0 9px;color:var(--muted);font-size:.76rem;font-weight:700;text-align:right;white-space:nowrap}
   .data-table{min-width:680px}
 }
+
+/* Keep mobile content inside the viewport and use cards for the team directory */
+.mobile-team-list{display:none}
+@media(max-width:620px){
+  .workspace,.sidebar,.content,.page-view,.card,.table-wrap{min-width:0;max-width:100%}
+  .mobile-nav-toggle{min-width:0;max-width:100%;overflow:hidden;white-space:nowrap;box-sizing:border-box}
+  .nav-list{max-width:100%;box-sizing:border-box}
+  .nav-item{min-width:0}
+  #team-list.table-wrap{overflow:visible;margin:0;padding:0}
+  .mobile-team-list{display:grid;gap:12px}
+  .desktop-team-table{display:none}
+  .mobile-team-card{border:1px solid var(--line);border-radius:12px;padding:15px;background:#fff;box-shadow:0 3px 12px rgba(32,54,47,.035)}
+  .mobile-team-head{display:flex;align-items:center;gap:10px;padding-bottom:12px;border-bottom:1px solid #e8eeea}
+  .mobile-team-avatar{width:38px;height:38px;flex:0 0 38px;display:grid;place-items:center;border-radius:50%;background:#e3f5ee;color:#167457;font:800 .8rem Manrope,sans-serif}
+  .mobile-team-name{min-width:0;display:grid;gap:1px}
+  .mobile-team-name strong{overflow-wrap:anywhere}
+  .mobile-team-name span{color:var(--muted);font-size:.8rem;overflow-wrap:anywhere}
+  .team-active-badge{margin-left:auto;flex:0 0 auto;border-radius:999px;padding:4px 8px;background:#e3f5ee;color:#167457;font-size:.72rem;font-weight:700}
+  .team-active-badge.inactive{background:#fff0f0;color:#a93232}
+  .mobile-team-details{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin:13px 0 0}
+  .mobile-team-details div{min-width:0;display:grid;gap:2px}
+  .mobile-team-details div.full{grid-column:1 / -1}
+  .mobile-team-details span{color:var(--muted);font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.04em}
+  .mobile-team-details strong{font-size:.88rem;font-weight:600;overflow-wrap:anywhere}
+  .mobile-team-actions{display:flex;gap:8px;margin-top:14px}
+  .mobile-team-actions .button{width:100%}
+}
