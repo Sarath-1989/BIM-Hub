@@ -61,6 +61,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .form-grid input,.form-grid select,.form-grid textarea{font:400 .9rem "DM Sans",sans-serif;border:1px solid #cedbd4;border-radius:8px;padding:10px;background:#fff;color:var(--ink);min-width:0}
 .form-grid input:focus,.form-grid select:focus,.form-grid textarea:focus{outline:2px solid #bce9db;border-color:var(--blue)}
 .full-width{grid-column:1/-1}
+.work-entry-help{margin:4px 0 0}
 .form-actions{display:flex!important;align-items:center;justify-content:space-between;gap:12px;margin-top:2px}
 .form-action-buttons{display:flex;flex-wrap:wrap;gap:10px}
 .activity-list{display:grid;gap:11px}

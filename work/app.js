@@ -12,6 +12,7 @@
   let editingEmployeeEmail = "";
   let editingProjectId = "";
   let editingTaskId = "";
+  let editingWorkLogId = "";
   const isManager = () => state.role === "Admin" || state.role === "Team Lead";
   const isAdmin = () => state.role === "Admin";
   const isCoordinator = () => state.role === "Team Lead";
@@ -714,6 +715,7 @@
     if ([...select.options].some((option) => option.value === selectedProject)) select.value = selectedProject;
     renderWorkTaskOptions();
     if (!byId("work-date").value) byId("work-date").value = dubaiDate();
+    syncWorkEntryForSelection();
   }
 
   function workLogTasks() {
@@ -729,12 +731,54 @@
     if ([...select.options].some((option) => option.value === selectedTaskId)) select.value = selectedTaskId;
   }
 
+  function ownWorkLogForSelection() {
+    const employeeEmail = accountEmail().toLowerCase();
+    const taskId = byId("work-task").value;
+    const workDate = byId("work-date").value;
+    if (!taskId || !workDate) return null;
+    return state.workLogs.filter((entry) => !isVoidedWorkLog(entry) && String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.TaskId === taskId && entry.WorkDate === workDate).sort((a, b) => String(b.updatedAt || b.createdAt || "").localeCompare(String(a.updatedAt || a.createdAt || "")))[0] || null;
+  }
+
+  function setWorkEntryMode(entry = null) {
+    const heading = byId("work-entry-heading");
+    const help = byId("work-entry-help");
+    const button = byId("work-save-button");
+    if (entry) {
+      heading.textContent = "Update today’s BIM work";
+      help.textContent = "This task already has a work entry for the selected date. Update the same record—do not create a duplicate.";
+      button.textContent = "Update work entry";
+      return;
+    }
+    heading.textContent = "Log today’s BIM work";
+    help.textContent = "Save one entry per task per day. Select the same task and date to update it.";
+    button.textContent = "Save work entry";
+  }
+
+  function syncWorkEntryForSelection() {
+    const entry = ownWorkLogForSelection();
+    editingWorkLogId = entry?.id || "";
+    if (entry) {
+      byId("work-start").value = entry.StartTime || "";
+      byId("work-end").value = entry.EndTime || "";
+      byId("work-note").value = entry.WorkNote || "";
+    } else {
+      byId("work-start").value = "";
+      byId("work-end").value = "";
+      byId("work-note").value = "";
+    }
+    setWorkEntryMode(entry);
+    updateDuration();
+  }
+
   function renderRecentWork() {
     const email = accountEmail().toLowerCase();
     const entries = uniqueWorkLogs(state.workLogs.filter((entry) => isAdmin() || canManageProject(projectByCode(entry.ProjectCode)) || (entry.EmployeeEmail || "").toLowerCase() === email)).sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 7);
     byId("recent-work").innerHTML = entries.length ? entries.map((entry) => {
+      const ownEntry = String(entry.EmployeeEmail || "").toLowerCase() === email;
+      const taskStillAssigned = visibleTasks().some((task) => task.id === entry.TaskId && !isTaskInRecycleBin(task));
+      const canEdit = Boolean(entry.id && ownEntry && taskStillAssigned);
       const canCorrect = Boolean(entry.id && isAdmin());
-      return `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span>${canCorrect ? `<button class="button button-quiet activity-action" type="button" data-void-work="${esc(entry.id)}">Mark incorrect</button>` : ""}</div>`;
+      return `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span>${canEdit ? `<button class="button button-quiet activity-action" type="button" data-edit-work="${esc(entry.id)}">Edit work entry</button>` : ""}${canCorrect ? `<button class="button button-quiet activity-action" type="button" data-void-work="${esc(entry.id)}">Mark incorrect</button>` : ""}</div>`;
     }).join("") : `<p class="muted">No work entries have been logged yet.</p>`;
   }
 
@@ -1035,24 +1079,44 @@
     if (task.ProjectCode !== byId("work-project").value || task.Status === "Completed" || isTaskInRecycleBin(task)) return toast("Choose an active BIM task from the selected project.", "error");
     const employeeEmail = accountEmail().toLowerCase();
     if ((task.AssigneeEmail || "").toLowerCase() !== employeeEmail) return toast("You can log work only against a BIM task assigned to you.", "error");
+    const existing = editingWorkLogId ? state.workLogs.find((entry) => entry.id === editingWorkLogId && !isVoidedWorkLog(entry) && String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.TaskId === task.id && entry.WorkDate === workDate) : null;
     const candidate = { EmployeeEmail: employeeEmail, WorkDate: workDate, ProjectCode: task.ProjectCode, TaskId: task.id, StartTime: startTime, EndTime: endTime };
-    const existingDayLogs = state.workLogs.filter((entry) => !isVoidedWorkLog(entry) && String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.WorkDate === workDate);
+    const existingDayLogs = state.workLogs.filter((entry) => !isVoidedWorkLog(entry) && entry.id !== existing?.id && String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.WorkDate === workDate);
     if (existingDayLogs.some((entry) => workLogSignature(entry) === workLogSignature(candidate))) return toast("This work entry already exists for the same task, date, and time. It was not saved again.", "error");
     const overlappingEntry = existingDayLogs.find((entry) => workTimesOverlap(startTime, endTime, entry));
     if (overlappingEntry) return toast(`This time overlaps your saved work entry (${overlappingEntry.StartTime}–${overlappingEntry.EndTime}). Use non-overlapping time.`, "error");
     try {
       await ensureWorkspace();
-      await saveRecordAt(workspaceLogsPath(), recordId("work"), { Title: `${workDate} · ${task.Title}`, WorkDate: workDate, TaskId: task.id, TaskTitle: task.Title, ProjectCode: task.ProjectCode, Discipline: task.Discipline || "", Deliverable: task.Deliverable || "", BIMStage: task.BIMStage || "", ModelDrawingNo: task.ModelDrawingNo || "", Revision: task.Revision || "", EmployeeEmail: employeeEmail, EmployeeName: state.profile.displayName, StartTime: startTime, EndTime: endTime, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: new Date().toISOString() });
+      const now = new Date().toISOString();
+      const action = existing ? "Daily work entry updated" : "Daily work entry created";
+      const history = [...(Array.isArray(existing?.UpdateHistory) ? existing.UpdateHistory : []), { at: now, by: state.profile.displayName || employeeEmail, action, startTime, endTime }];
+      await saveRecordAt(workspaceLogsPath(), existing?.id || recordId("work"), { ...(existing || {}), Title: `${workDate} · ${task.Title}`, WorkDate: workDate, TaskId: task.id, TaskTitle: task.Title, ProjectCode: task.ProjectCode, Discipline: task.Discipline || "", Deliverable: task.Deliverable || "", BIMStage: task.BIMStage || "", ModelDrawingNo: task.ModelDrawingNo || "", Revision: task.Revision || "", EmployeeEmail: employeeEmail, EmployeeName: state.profile.displayName, StartTime: startTime, EndTime: endTime, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: existing?.createdAt || now, UpdatedBy: state.profile.displayName || employeeEmail, LastUpdateAction: action, UpdateHistory: history });
       let taskStarted = false;
       if ((task.Status || "Not started") === "Not started") {
-        const now = new Date().toISOString();
         const updatedBy = state.profile.displayName || accountEmail();
         const history = [...(Array.isArray(task.UpdateHistory) ? task.UpdateHistory : []), { at: now, by: updatedBy, action: "Started from first work entry", status: "In progress" }];
         await saveRecord("tasks", task.id, { ...task, Status: "In progress", StatusUpdatedAt: now, StatusUpdatedBy: updatedBy, UpdatedBy: updatedBy, LastUpdateAction: "Started from first work entry", UpdateHistory: history });
         taskStarted = true;
       }
-      event.target.reset(); byId("work-date").value = dubaiDate(); updateDuration(); await refreshData("Work entry saved"); toast(taskStarted ? "Work entry saved and task marked In progress." : "Daily work entry saved to SharePoint.", "success");
+      await refreshData(existing ? "Work entry updated" : "Work entry saved");
+      toast(taskStarted ? "Work entry saved and task marked In progress." : existing ? "Today’s work entry updated." : "Daily work entry saved to SharePoint.", "success");
     } catch (error) { toast(error.message || "Could not save work entry.", "error"); }
+  }
+
+  function beginWorkEntryEdit(event) {
+    const button = event.target.closest("[data-edit-work]");
+    if (!button) return false;
+    const email = accountEmail().toLowerCase();
+    const entry = state.workLogs.find((item) => item.id === button.dataset.editWork && !isVoidedWorkLog(item) && String(item.EmployeeEmail || "").toLowerCase() === email);
+    if (!entry) { toast("This work entry is not available for editing.", "error"); return true; }
+    showView("dashboard");
+    byId("work-project").value = entry.ProjectCode || "";
+    renderWorkTaskOptions();
+    byId("work-task").value = entry.TaskId || "";
+    byId("work-date").value = entry.WorkDate || dubaiDate();
+    syncWorkEntryForSelection();
+    byId("work-log-form").scrollIntoView({ behavior: "smooth", block: "start" });
+    return true;
   }
   function resetProjectForm() {
     editingProjectId = "";
@@ -1456,7 +1520,7 @@
     byId("issue-form").addEventListener("submit", submitIssue);
     byId("register-form").addEventListener("submit", submitRegister);
     byId("tasks-list").addEventListener("click", handleTaskCardAction);
-    byId("recent-work").addEventListener("click", markIncorrectWorkEntry);
+    byId("recent-work").addEventListener("click", (event) => { if (beginWorkEntryEdit(event)) return; markIncorrectWorkEntry(event); });
     byId("admin-activity-timeline").addEventListener("click", markIncorrectWorkEntry);
     byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); deleteProject(event); });
     byId("employee-form").addEventListener("submit", submitEmployee);
@@ -1467,7 +1531,9 @@
     byId("prepare-bim-registers").addEventListener("click", prepareBimRegisters);
     byId("reset-confirmation").addEventListener("input", updateResetButtonState);
     byId("reset-portal-data").addEventListener("click", resetPortalWorkData);
-    byId("work-project").addEventListener("change", renderWorkTaskOptions);
+    byId("work-project").addEventListener("change", () => { renderWorkTaskOptions(); syncWorkEntryForSelection(); });
+    byId("work-task").addEventListener("change", syncWorkEntryForSelection);
+    byId("work-date").addEventListener("change", syncWorkEntryForSelection);
     byId("admin-monitor-project")?.addEventListener("change", renderAdminMonitor);
     byId("task-filter-form").addEventListener("submit", (event) => event.preventDefault());
     ["task-filter-project", "task-filter-discipline", "task-filter-status", "task-filter-assignee", "task-filter-due", "task-filter-record-state"].forEach((id) => byId(id).addEventListener("change", () => { renderTaskFilters(); renderTasks(); }));

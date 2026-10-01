@@ -73,15 +73,15 @@
             <div class="metrics" id="metrics"></div>
             <div id="staff-dashboard-content" class="content-grid">
               <section class="card work-card">
-                <div class="card-heading"><div><p class="eyebrow">NEW ENTRY</p><h2>Log today’s BIM work</h2></div></div>
+                <div class="card-heading"><div><p class="eyebrow">DAILY WORK</p><h2 id="work-entry-heading">Log today’s BIM work</h2><p id="work-entry-help" class="muted work-entry-help">Save one entry per task per day. Select the same task and date to update it.</p></div></div>
                 <form id="work-log-form" class="form-grid">
                   <label>BIM project<select id="work-project" required><option value="">Select a project</option></select></label>
                   <label>Assigned BIM task<select id="work-task" required><option value="">Select a project first</option></select></label>
-                  <label>Work date<input id="work-date" type="date" required /></label>
+                  <label class="full-width work-date-field">Work date<input id="work-date" type="date" required /></label>
                   <label>Start time<input id="work-start" type="time" required /></label>
                   <label>End time<input id="work-end" type="time" required /></label>
                   <label class="full-width">Work update<textarea id="work-note" rows="3" placeholder="What was completed or coordinated today?"></textarea></label>
-                  <div class="form-actions full-width"><span id="work-duration" class="muted">Duration: —</span><button class="button button-primary" type="submit">Save work entry</button></div>
+                  <div class="form-actions full-width"><span id="work-duration" class="muted">Duration: —</span><button id="work-save-button" class="button button-primary" type="submit">Save work entry</button></div>
                 </form>
               </section>
               <section class="card activity-card">
