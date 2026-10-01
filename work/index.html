@@ -243,7 +243,7 @@
 
           <section id="setup-view" class="page-view hidden admin-only">
             <div class="page-heading"><div><p class="eyebrow">ADMIN ONLY</p><h1>SharePoint setup</h1><p class="muted">Every employee receives a separate protected work-log folder.</p></div></div>
-            <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><div class="form-action-buttons"><button id="prepare-bim-registers" class="button button-primary" type="button">Prepare BIM registers</button><button id="refresh-setup" class="button button-quiet" type="button">Refresh storage status</button></div><p class="muted">Prepare BIM registers once to create the issue and model/sheet register folders, with Team Lead access. When an Admin adds an active employee, the portal creates that employee’s workspace and grants only the required SharePoint access.</p></section>
+            <section class="card setup-card"><h2>Required storage folders</h2><ul id="setup-list" class="setup-list"></ul><div class="form-action-buttons"><button id="prepare-bim-registers" class="button button-primary" type="button">Prepare BIM registers</button><button id="prepare-hr-storage" class="button button-primary" type="button">Prepare private HR storage</button><button id="refresh-setup" class="button button-quiet" type="button">Refresh storage status</button></div><p class="muted">Private HR storage is kept separate from project work folders. The portal does not grant Team Leads or staff access to attendance, leave, payroll, or payslip records.</p></section>
             <section class="card setup-card reset-card">
               <div class="card-heading"><div><p class="eyebrow">TASKS &amp; WORK HOURS</p><h2>Clear task assignments &amp; work hours</h2></div></div>
               <p class="muted">This clears only task assignments and employee work logs, which resets project work-hour figures. Projects, staff directory, BIM issues, model / sheet registers, access setup, folders, and portal code remain unchanged.</p>
@@ -257,6 +257,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20261001c"></script>
+    <script src="./app.js?v=20261001d"></script>
   </body>
 </html>
