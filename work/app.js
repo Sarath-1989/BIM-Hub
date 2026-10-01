@@ -4,11 +4,10 @@
   const CONFIG = window.ASTERWIX_PORTAL_CONFIG;
   const GRAPH_SCOPES = ["User.Read", "Sites.ReadWrite.All"];
   const FOLDERS = { employees: "employees", projects: "projects", tasks: "tasks", workspaces: "employee-workspaces", issues: "bim-issues", registers: "bim-registers" };
-  const HR_FOLDERS = { root: "hr-private", attendance: "attendance-records", leave: "leave-requests", payroll: "payroll" };
   const CORE_FOLDERS = ["employees", "projects", "tasks"];
   const TASK_STATUSES = ["Not started", "In progress", "Ready for QA/QC", "QA/QC review", "Revise & resubmit", "Ready to submit", "Submitted", "Client review", "Approved", "Blocked", "Completed"];
   const STAFF_TASK_STATUSES = ["Not started", "In progress", "Ready for QA/QC", "Revise & resubmit", "Ready to submit", "Blocked"];
-  const state = { account: null, profile: null, role: "Staff", projects: [], tasks: [], workLogs: [], employees: [], issues: [], registers: [], missingFolders: [], bimStorage: { issues: false, registers: false }, hrReady: false, inactive: false };
+  const state = { account: null, profile: null, role: "Staff", projects: [], tasks: [], workLogs: [], employees: [], issues: [], registers: [], missingFolders: [], bimStorage: { issues: false, registers: false }, inactive: false };
   const byId = (id) => document.getElementById(id);
   let editingEmployeeEmail = "";
   let editingProjectId = "";
@@ -114,8 +113,6 @@
   function filePath(key, id) { return `${folderPath(key)}/${id}.json`; }
   function workspacePath(email = accountEmail()) { return `${folderPath("workspaces")}/${emailKey(String(email).toLowerCase())}`; }
   function workspaceLogsPath(email = accountEmail()) { return `${workspacePath(email)}/work-logs`; }
-  function hrRootPath() { return `${CONFIG.storageFolder}/${HR_FOLDERS.root}`; }
-  function hrFolderPath(key) { return `${hrRootPath()}/${HR_FOLDERS[key]}`; }
   function drivePath(path, suffix = "") { return `/drives/${CONFIG.driveId}/root:/${path}:${suffix}`; }
 
   async function checkPaths(paths, append = false) {
@@ -129,17 +126,6 @@
 
   async function checkFolders() {
     await checkPaths(CORE_FOLDERS.map((key) => ({ label: key, path: folderPath(key) })));
-  }
-
-  async function checkHrStorage() {
-    if (!isAdmin()) { state.hrReady = false; return; }
-    try {
-      await Promise.all([getFolder(hrRootPath()), ...["attendance", "leave", "payroll"].map((key) => getFolder(hrFolderPath(key)))]);
-      state.hrReady = true;
-    } catch (error) {
-      if (error.status === 404 || error.status === 403) { state.hrReady = false; return; }
-      throw error;
-    }
   }
 
   async function getFolder(path) { return graph(drivePath(path)); }
@@ -205,7 +191,7 @@
   async function revokeEmployeePortalAccess(employee) {
     const email = String(employee.Email || "").toLowerCase();
     if (!email || employee.Role === "Admin") return;
-    const paths = [folderPath("employees"), folderPath("projects"), folderPath("tasks"), folderPath("workspaces"), workspacePath(email), folderPath("issues"), folderPath("registers"), hrRootPath(), ...Object.keys(HR_FOLDERS).filter((key) => key !== "root").map(hrFolderPath), ...state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email && task.id).map((task) => filePath("tasks", task.id))];
+    const paths = [folderPath("employees"), folderPath("projects"), folderPath("tasks"), folderPath("workspaces"), workspacePath(email), folderPath("issues"), folderPath("registers"), ...state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email && task.id).map((task) => filePath("tasks", task.id))];
     for (const path of [...new Set(paths)]) await revokeDirectAccess(path, email);
   }
 
@@ -323,7 +309,6 @@
     [state.projects, state.tasks, state.employees] = await Promise.all([listRecords("projects"), listRecords("tasks"), listRecords("employees")]);
     setRole();
     if (state.inactive) return;
-    await checkHrStorage();
     await checkPaths([{ label: isManager() ? FOLDERS.workspaces : "your personal work folder", path: isManager() ? folderPath("workspaces") : workspaceLogsPath() }], true);
     if (state.missingFolders.length) return;
     const loadedWorkLogs = isManager() ? await listAllWorkspaceLogs() : await listRecordsAt(workspaceLogsPath());
@@ -1019,12 +1004,10 @@
 
   function renderSetup() {
     if (!isAdmin()) return;
-    const workStorage = Object.entries(FOLDERS).map(([key, name]) => {
+    byId("setup-list").innerHTML = Object.entries(FOLDERS).map(([key, name]) => {
       const ready = CORE_FOLDERS.includes(key) ? !state.missingFolders.includes(key) : key === "workspaces" ? !state.missingFolders.includes(key) : state.bimStorage[key];
       return `<li><strong>${esc(name)}</strong> — ${ready ? "ready" : key === "issues" || key === "registers" ? "prepare BIM registers" : "not created"}</li>`;
-    });
-    workStorage.push(`<li><strong>Private HR records</strong> — ${state.hrReady ? "ready for Admin-only use" : "prepare private HR storage before attendance or payroll"}</li>`);
-    byId("setup-list").innerHTML = workStorage.join("");
+    }).join("");
     updateResetButtonState();
   }
 
@@ -1486,20 +1469,6 @@
     finally { button.disabled = false; button.textContent = label; }
   }
 
-  async function prepareHrStorage() {
-    if (!isAdmin()) return;
-    const button = byId("prepare-hr-storage");
-    const label = button.textContent; button.disabled = true; button.textContent = "Preparing…";
-    try {
-      await ensureFolder(CONFIG.storageFolder, HR_FOLDERS.root);
-      await Promise.all(["attendance", "leave", "payroll"].map((key) => ensureFolder(hrRootPath(), HR_FOLDERS[key])));
-      state.hrReady = true;
-      await refreshData("Private HR storage ready");
-      toast("Private HR storage is ready. No employee or Team Lead access was granted.", "success");
-    } catch (error) { toast(error.message || "Could not prepare private HR storage.", "error"); }
-    finally { button.disabled = false; button.textContent = label; }
-  }
-
   async function ensureBimRegister(key) {
     if (state.bimStorage[key]) return;
     if (!isAdmin()) throw new Error("BIM register storage is not ready. Ask an Admin to prepare it from SharePoint setup.");
@@ -1536,7 +1505,7 @@
     catch (error) { console.error("Could not clear the local portal session.", error); }
     msalInstance.setActiveAccount(null);
     state.account = null; state.profile = null; state.role = "Staff";
-    state.projects = []; state.tasks = []; state.workLogs = []; state.employees = []; state.issues = []; state.registers = []; state.missingFolders = []; state.bimStorage = { issues: false, registers: false }; state.hrReady = false; state.inactive = false;
+    state.projects = []; state.tasks = []; state.workLogs = []; state.employees = []; state.issues = []; state.registers = []; state.missingFolders = []; state.bimStorage = { issues: false, registers: false }; state.inactive = false;
     byId("app-view").classList.add("hidden");
     byId("sign-in-view").classList.remove("hidden");
     byId("sign-in-status").textContent = "You have exited the Work Portal.";
@@ -1562,7 +1531,6 @@
     byId("employee-active").addEventListener("change", updateEmployeeSaveLabel);
     byId("refresh-setup").addEventListener("click", refreshSetup);
     byId("prepare-bim-registers").addEventListener("click", prepareBimRegisters);
-    byId("prepare-hr-storage").addEventListener("click", prepareHrStorage);
     byId("reset-confirmation").addEventListener("input", updateResetButtonState);
     byId("reset-portal-data").addEventListener("click", resetPortalWorkData);
     byId("work-project").addEventListener("change", () => { renderWorkTaskOptions(); syncWorkEntryForSelection(); });
