@@ -172,7 +172,7 @@
                   <label>Priority<select id="task-priority"><option>Medium</option><option>High</option><option>Low</option></select></label>
                   <label>Status<select id="task-status"><option>Not started</option><option>In progress</option><option>Ready for QA/QC</option><option>QA/QC review</option><option>Revise &amp; resubmit</option><option>Ready to submit</option><option>Submitted</option><option>Client review</option><option>Approved</option><option>Blocked</option><option>Completed</option></select></label>
                   <label class="full-width">Notes<textarea id="task-notes" rows="2" placeholder="Scope, links, or coordination note"></textarea></label>
-                  <div class="form-actions full-width"><button class="button button-primary" type="submit">Assign task</button></div>
+                  <div class="form-actions full-width"><div class="form-action-buttons"><button id="task-save-button" class="button button-primary" type="submit">Assign task</button><button id="task-cancel-button" class="button button-quiet hidden" type="button">Cancel</button></div></div>
                 </form>
               </section>
             </div>

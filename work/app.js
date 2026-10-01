@@ -11,6 +11,7 @@
   const byId = (id) => document.getElementById(id);
   let editingEmployeeEmail = "";
   let editingProjectId = "";
+  let editingTaskId = "";
   const isManager = () => state.role === "Admin" || state.role === "Team Lead";
   const isAdmin = () => state.role === "Admin";
   const isCoordinator = () => state.role === "Team Lead";
@@ -519,6 +520,10 @@
     return Number.isFinite(saved) && saved > 0 ? saved : durationMinutes(entry.StartTime, entry.EndTime);
   }
 
+  function isVoidedWorkLog(entry) {
+    return Boolean(entry?.VoidedAt || entry?.ExcludedFromReporting === "Yes");
+  }
+
   function workLogSignature(entry) {
     const employee = String(entry?.EmployeeEmail || "").trim().toLowerCase();
     const workDate = String(entry?.WorkDate || "").slice(0, 10);
@@ -531,7 +536,7 @@
 
   function uniqueWorkLogs(entries) {
     const seen = new Set();
-    return entries.filter((entry) => {
+    return entries.filter((entry) => !isVoidedWorkLog(entry)).filter((entry) => {
       const signature = workLogSignature(entry);
       if (!signature || !seen.has(signature)) {
         if (signature) seen.add(signature);
@@ -727,7 +732,10 @@
   function renderRecentWork() {
     const email = accountEmail().toLowerCase();
     const entries = uniqueWorkLogs(state.workLogs.filter((entry) => isAdmin() || canManageProject(projectByCode(entry.ProjectCode)) || (entry.EmployeeEmail || "").toLowerCase() === email)).sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 7);
-    byId("recent-work").innerHTML = entries.length ? entries.map((entry) => `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span></div>`).join("") : `<p class="muted">No work entries have been logged yet.</p>`;
+    byId("recent-work").innerHTML = entries.length ? entries.map((entry) => {
+      const canCorrect = Boolean(entry.id && isAdmin());
+      return `<div class="activity-row"><strong>${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(entry.StartTime || "")}–${esc(entry.EndTime || "")} · ${esc(entry.EmployeeName || "")}</span>${canCorrect ? `<button class="button button-quiet activity-action" type="button" data-void-work="${esc(entry.id)}">Mark incorrect</button>` : ""}</div>`;
+    }).join("") : `<p class="muted">No work entries have been logged yet.</p>`;
   }
 
   function projectMonthlyWorkmanshipRows(projects, projectCode, today = dubaiDate()) {
@@ -800,7 +808,7 @@
       return `<tr><td><strong>${esc(row.project.ProjectCode || "—")}</strong><br><span class="muted">${esc(row.project.Title || "Untitled project")}</span><br><span class="muted">${esc(coordinator)}</span></td><td><strong>${esc(formatMinutes(row.actualMinutes))}</strong><br><span class="muted">Month to date</span></td><td>${esc(formatManDays(row.actualMinutes))}</td><td>${esc(teamText)}</td><td>${esc(String(row.entryCount))}</td><td>${esc(taskText)}</td></tr>`;
     }).join("")}</tbody></table>` : `<p class="muted">No current projects match this monitoring filter.</p>`;
     const recent = [...visibleLogs].sort((a, b) => `${b.WorkDate || ""}${b.StartTime || ""}`.localeCompare(`${a.WorkDate || ""}${a.StartTime || ""}`)).slice(0, 10);
-    byId("admin-activity-timeline").innerHTML = recent.length ? recent.map((entry) => `<div class="activity-row"><strong>${esc(entry.EmployeeName || entry.EmployeeEmail || "Team member")} · ${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(formatMinutes(workLogMinutes(entry)))} · ${esc(entry.WorkNote || "No note")}</span></div>`).join("") : `<p class="muted">No work entries have been logged for this monitoring filter.</p>`;
+    byId("admin-activity-timeline").innerHTML = recent.length ? recent.map((entry) => `<div class="activity-row"><strong>${esc(entry.EmployeeName || entry.EmployeeEmail || "Team member")} · ${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(formatMinutes(workLogMinutes(entry)))} · ${esc(entry.WorkNote || "No note")}</span><button class="button button-quiet activity-action" type="button" data-void-work="${esc(entry.id || "")}">Mark incorrect</button></div>`).join("") : `<p class="muted">No work entries have been logged for this monitoring filter.</p>`;
   }
 
   function renderTaskFilters() {
@@ -859,13 +867,14 @@
       const choices = allowedTaskStatuses(task);
       const recycled = isTaskInRecycleBin(task);
       const updateControls = !recycled && canUpdateTask(task) && task.id && choices.length ? `<div class="task-actions"><label class="task-status-control">Update status<select class="task-status-select">${choices.map((option) => `<option${option === status ? " selected" : ""}>${esc(option)}</option>`).join("")}</select></label><button class="button button-primary" type="button" data-task-id="${esc(task.id)}">Save status</button></div>` : "";
+      const editControls = !recycled && canRecycleTask(task) && task.id ? `<div class="task-recycle-actions"><button class="button button-quiet" type="button" data-edit-task="${esc(task.id)}">Edit / reassign task</button></div>` : "";
       const recycleControls = canRecycleTask(task) && task.id ? (recycled
         ? `<div class="task-recycle-actions"><p class="task-recycle-note">${esc(task.DeletedAt ? `Moved to Recycle Bin by ${task.DeletedBy || "Asterwix team"} · ${new Date(task.DeletedAt).toLocaleDateString("en-GB")}` : "This task is in the Recycle Bin.")}</p><button class="button button-primary" type="button" data-restore-task="${esc(task.id)}">Restore task</button></div>`
         : `<div class="task-recycle-actions"><button class="button button-danger" type="button" data-delete-task="${esc(task.id)}">Delete task</button></div>`) : "";
       const deliveryDetails = [task.Discipline, task.Deliverable].filter(Boolean).join(" · ");
       const referenceDetails = [task.BIMStage, task.ModelDrawingNo, task.Revision ? `Rev ${task.Revision}` : ""].filter(Boolean).join(" · ");
       const qualityDetails = task.StatusUpdatedAt ? `Last updated by ${task.StatusUpdatedBy || "Asterwix team"} · ${new Date(task.StatusUpdatedAt).toLocaleDateString("en-GB")}` : "";
-      return `<article class="task-card${recycled ? " task-card-recycled" : ""}"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(deliveryDetails || "BIM delivery details not set")}</p><p>${esc(referenceDetails || project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(recycled ? "Recycle Bin" : status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${qualityDetails ? `<p class="task-audit">${esc(qualityDetails)}</p>` : ""}${updateControls}${recycleControls}</article>`;
+      return `<article class="task-card${recycled ? " task-card-recycled" : ""}"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(deliveryDetails || "BIM delivery details not set")}</p><p>${esc(referenceDetails || project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p><div class="task-meta"><span class="badge">${esc(recycled ? "Recycle Bin" : status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${qualityDetails ? `<p class="task-audit">${esc(qualityDetails)}</p>` : ""}${updateControls}${editControls}${recycleControls}</article>`;
     }).join("") : `<section class="card"><p class="muted">${taskRecordState() === "recycle" ? "No tasks are in the Recycle Bin for the current filters." : "No BIM tasks match the current filters."}</p></section>`;
   }
 
@@ -1027,14 +1036,22 @@
     const employeeEmail = accountEmail().toLowerCase();
     if ((task.AssigneeEmail || "").toLowerCase() !== employeeEmail) return toast("You can log work only against a BIM task assigned to you.", "error");
     const candidate = { EmployeeEmail: employeeEmail, WorkDate: workDate, ProjectCode: task.ProjectCode, TaskId: task.id, StartTime: startTime, EndTime: endTime };
-    const existingDayLogs = state.workLogs.filter((entry) => String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.WorkDate === workDate);
+    const existingDayLogs = state.workLogs.filter((entry) => !isVoidedWorkLog(entry) && String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.WorkDate === workDate);
     if (existingDayLogs.some((entry) => workLogSignature(entry) === workLogSignature(candidate))) return toast("This work entry already exists for the same task, date, and time. It was not saved again.", "error");
     const overlappingEntry = existingDayLogs.find((entry) => workTimesOverlap(startTime, endTime, entry));
     if (overlappingEntry) return toast(`This time overlaps your saved work entry (${overlappingEntry.StartTime}–${overlappingEntry.EndTime}). Use non-overlapping time.`, "error");
     try {
       await ensureWorkspace();
       await saveRecordAt(workspaceLogsPath(), recordId("work"), { Title: `${workDate} · ${task.Title}`, WorkDate: workDate, TaskId: task.id, TaskTitle: task.Title, ProjectCode: task.ProjectCode, Discipline: task.Discipline || "", Deliverable: task.Deliverable || "", BIMStage: task.BIMStage || "", ModelDrawingNo: task.ModelDrawingNo || "", Revision: task.Revision || "", EmployeeEmail: employeeEmail, EmployeeName: state.profile.displayName, StartTime: startTime, EndTime: endTime, DurationMinutes: duration, WorkNote: byId("work-note").value.trim(), createdAt: new Date().toISOString() });
-      event.target.reset(); byId("work-date").value = dubaiDate(); updateDuration(); await refreshData("Work entry saved"); toast("Daily work entry saved to SharePoint.", "success");
+      let taskStarted = false;
+      if ((task.Status || "Not started") === "Not started") {
+        const now = new Date().toISOString();
+        const updatedBy = state.profile.displayName || accountEmail();
+        const history = [...(Array.isArray(task.UpdateHistory) ? task.UpdateHistory : []), { at: now, by: updatedBy, action: "Started from first work entry", status: "In progress" }];
+        await saveRecord("tasks", task.id, { ...task, Status: "In progress", StatusUpdatedAt: now, StatusUpdatedBy: updatedBy, UpdatedBy: updatedBy, LastUpdateAction: "Started from first work entry", UpdateHistory: history });
+        taskStarted = true;
+      }
+      event.target.reset(); byId("work-date").value = dubaiDate(); updateDuration(); await refreshData("Work entry saved"); toast(taskStarted ? "Work entry saved and task marked In progress." : "Daily work entry saved to SharePoint.", "success");
     } catch (error) { toast(error.message || "Could not save work entry.", "error"); }
   }
   function resetProjectForm() {
@@ -1154,11 +1171,51 @@
     } catch (error) { toast(error.message || "Could not create project.", "error"); }
   }
 
+  function resetTaskForm() {
+    editingTaskId = "";
+    byId("task-form").reset();
+    byId("task-form-heading").textContent = isAdmin() ? "Assign BIM task" : "Delegate task to BIM modeller";
+    byId("task-assignment-note").textContent = isAdmin() ? "Assign the project coordinator's package or a direct BIM task." : "You can assign tasks only within projects where you are the assigned Coordinator.";
+    byId("task-save-button").textContent = "Assign task";
+    byId("task-cancel-button").classList.add("hidden");
+  }
+
+  function beginTaskEdit(event) {
+    const button = event.target.closest("[data-edit-task]");
+    if (!button) return false;
+    const task = state.tasks.find((item) => item.id === button.dataset.editTask);
+    if (!task || !canRecycleTask(task) || isTaskInRecycleBin(task)) { toast("Only an Admin or the assigned Coordinator can edit this active task.", "error"); return true; }
+    showView("projects");
+    renderManagers();
+    editingTaskId = task.id;
+    byId("task-project").value = task.ProjectCode || "";
+    byId("task-assignee").value = (task.AssigneeEmail || "").toLowerCase();
+    byId("task-discipline").value = task.Discipline || "";
+    byId("task-deliverable").value = task.Deliverable || "";
+    byId("task-title").value = task.Title || "";
+    byId("task-lod").value = task.BIMStage || "";
+    byId("task-reference").value = task.ModelDrawingNo || "";
+    byId("task-revision").value = task.Revision || "";
+    byId("task-start-date").value = task.StartDate || "";
+    byId("task-end-date").value = task.EndDate || "";
+    byId("task-priority").value = task.Priority || "Medium";
+    byId("task-status").value = task.Status || "Not started";
+    byId("task-notes").value = task.Notes || "";
+    byId("task-form-heading").textContent = "Edit or reassign BIM task";
+    byId("task-assignment-note").textContent = "Task history is retained. If a work entry was logged by mistake, mark that entry incorrect before entering corrected time.";
+    byId("task-save-button").textContent = "Save task changes";
+    byId("task-cancel-button").classList.remove("hidden");
+    byId("task-form").scrollIntoView({ behavior: "smooth", block: "start" });
+    return true;
+  }
+
   async function submitTask(event) {
     event.preventDefault();
     if (!isManager()) return toast("Only an Admin or assigned Coordinator can assign tasks.", "error");
     try {
-      const id = recordId("task");
+      const existing = editingTaskId ? state.tasks.find((item) => item.id === editingTaskId) : null;
+      const id = editingTaskId || recordId("task");
+      if (editingTaskId && (!existing || !canRecycleTask(existing))) return toast("This task can no longer be edited by your account. Refresh and try again.", "error");
       const now = new Date().toISOString();
       const assigneeEmail = byId("task-assignee").value.trim().toLowerCase();
       const startDate = byId("task-start-date").value || "";
@@ -1169,6 +1226,7 @@
       if (!project || ["Completed", "Archived"].includes(project.Status)) return toast("Select an active project.", "error");
       if (isCoordinator() && coordinatorEmailFor(project) !== accountEmail().toLowerCase()) return toast("You can assign tasks only in projects assigned to you as Coordinator.", "error");
       if (isCoordinator() && !modellerEmployees().some((employee) => (employee.Email || "").toLowerCase() === assigneeEmail)) return toast("A Coordinator can assign tasks only to active BIM Modelers or BIM Technicians.", "error");
+      if (existing && existing.ProjectCode !== project.ProjectCode && state.workLogs.some((entry) => !isVoidedWorkLog(entry) && entry.TaskId === existing.id)) return toast("This task already has work entries. Keep the project code unchanged, or mark incorrect work entries before moving the task.", "error");
       if (startDate && endDate && endDate < startDate) return toast("End date must be on or after the start date.", "error");
       const discipline = byId("task-discipline").value;
       const deliverable = byId("task-deliverable").value;
@@ -1176,10 +1234,14 @@
       if (!discipline || !deliverable || !bimStage) return toast("Select discipline, deliverable, and BIM stage / LOD.", "error");
       const taskStatus = byId("task-status").value;
       const assignedBy = state.profile.displayName || accountEmail();
-      await saveRecord("tasks", id, { Title: byId("task-title").value.trim(), ProjectCode: byId("task-project").value, Discipline: discipline, Deliverable: deliverable, BIMStage: bimStage, ModelDrawingNo: byId("task-reference").value.trim(), Revision: byId("task-revision").value.trim(), AssigneeEmail: assigneeEmail, StartDate: startDate, EndDate: endDate, Priority: byId("task-priority").value, Status: taskStatus, Notes: byId("task-notes").value.trim(), createdAt: now, UpdatedBy: assignedBy, LastUpdateAction: "Task assigned", UpdateHistory: [{ at: now, by: assignedBy, action: "Task assigned", status: taskStatus }] });
+      const wasReassigned = Boolean(existing && (existing.AssigneeEmail || "").toLowerCase() !== assigneeEmail);
+      const action = existing ? (wasReassigned ? `Task reassigned from ${existing.AssigneeEmail || "unassigned"} to ${assigneeEmail}` : "Task details updated") : "Task assigned";
+      const history = [...(Array.isArray(existing?.UpdateHistory) ? existing.UpdateHistory : []), { at: now, by: assignedBy, action, status: taskStatus }];
+      await saveRecord("tasks", id, { ...(existing || {}), Title: byId("task-title").value.trim(), ProjectCode: project.ProjectCode, Discipline: discipline, Deliverable: deliverable, BIMStage: bimStage, ModelDrawingNo: byId("task-reference").value.trim(), Revision: byId("task-revision").value.trim(), AssigneeEmail: assigneeEmail, StartDate: startDate, EndDate: endDate, Priority: byId("task-priority").value, Status: taskStatus, Notes: byId("task-notes").value.trim(), createdAt: existing?.createdAt || now, UpdatedBy: assignedBy, LastUpdateAction: action, UpdateHistory: history });
       try { await inviteToItem(filePath("tasks", id), assigneeEmail, "write"); }
       catch (error) { await refreshData("Task assigned"); toast(`Task saved, but ${assigneeEmail} could not be granted status-update access: ${error.message}`, "error"); return; }
-      event.target.reset(); await refreshData("Task assigned"); toast("Task assigned.", "success");
+      if (wasReassigned && existing?.AssigneeEmail) await revokeDirectAccess(filePath("tasks", id), existing.AssigneeEmail);
+      resetTaskForm(); await refreshData(existing ? "Task updated" : "Task assigned"); toast(existing ? (wasReassigned ? "Task reassigned. Previous work records were retained." : "Task details updated.") : "Task assigned.", "success");
     } catch (error) { toast(error.message || "Could not assign task.", "error"); }
   }
 
@@ -1239,7 +1301,27 @@
     finally { button.disabled = false; button.textContent = label; }
   }
 
+  async function markIncorrectWorkEntry(event) {
+    const button = event.target.closest("[data-void-work]");
+    if (!button) return false;
+    const entry = state.workLogs.find((item) => item.id === button.dataset.voidWork);
+    if (!entry || !isAdmin()) { toast("Only an Admin can mark a saved work entry incorrect. Coordinators can edit or reassign the task.", "error"); return true; }
+    if (!window.confirm(`Mark the ${entry.WorkDate} ${entry.StartTime}–${entry.EndTime} work entry as incorrect? It will be kept in SharePoint audit history but excluded from Recent work, overlap checks, and workmanship reporting.`)) return true;
+    const label = button.textContent; button.disabled = true; button.textContent = "Correcting…";
+    try {
+      const now = new Date().toISOString();
+      const correctedBy = state.profile.displayName || accountEmail();
+      const history = [...(Array.isArray(entry.CorrectionHistory) ? entry.CorrectionHistory : []), { at: now, by: correctedBy, action: "Marked incorrect and excluded from reporting" }];
+      await saveRecordAt(workspaceLogsPath(entry.EmployeeEmail), entry.id, { ...entry, VoidedAt: now, VoidedBy: correctedBy, ExcludedFromReporting: "Yes", CorrectionHistory: history, LastCorrectionAction: "Marked incorrect and excluded from reporting" });
+      await refreshData("Incorrect work entry excluded");
+      toast("Incorrect work entry kept for audit and excluded from reporting. You can now enter corrected non-overlapping time.", "success");
+    } catch (error) { toast(error.message || "Could not correct this work entry.", "error"); }
+    finally { button.disabled = false; button.textContent = label; }
+    return true;
+  }
+
   async function handleTaskCardAction(event) {
+    if (beginTaskEdit(event)) return;
     if (event.target.closest("[data-delete-task]")) return recycleTask(event);
     if (event.target.closest("[data-restore-task]")) return restoreTask(event);
     return updateTaskStatus(event);
@@ -1370,9 +1452,12 @@
     byId("project-form").addEventListener("submit", submitProject);
     byId("project-cancel-button").addEventListener("click", resetProjectForm);
     byId("task-form").addEventListener("submit", submitTask);
+    byId("task-cancel-button").addEventListener("click", resetTaskForm);
     byId("issue-form").addEventListener("submit", submitIssue);
     byId("register-form").addEventListener("submit", submitRegister);
     byId("tasks-list").addEventListener("click", handleTaskCardAction);
+    byId("recent-work").addEventListener("click", markIncorrectWorkEntry);
+    byId("admin-activity-timeline").addEventListener("click", markIncorrectWorkEntry);
     byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); deleteProject(event); });
     byId("employee-form").addEventListener("submit", submitEmployee);
     byId("team-list").addEventListener("click", beginEmployeeEdit);

@@ -67,6 +67,7 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .activity-row{border-left:3px solid #31b391;padding:7px 0 7px 11px}
 .activity-row strong,.activity-row span{display:block}
 .activity-row span{font-size:.78rem;color:var(--muted)}
+.activity-row .activity-action{margin-top:8px}
 .task-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
 .task-card{background:#fff;border:1px solid var(--line);border-radius:12px;padding:18px;box-shadow:0 4px 14px rgba(32,54,47,.035)}
 .task-card h2{font:700 1rem Manrope,sans-serif;margin:5px 0}
