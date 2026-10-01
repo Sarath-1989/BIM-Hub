@@ -475,7 +475,9 @@
 
   function normalDayMinutes(date) {
     const day = date.getUTCDay();
-    return day === 0 ? 0 : day === 6 ? 240 : 480;
+    const dayOfMonth = date.getUTCDate();
+    const isSecondOrFourthSaturday = day === 6 && ((dayOfMonth >= 8 && dayOfMonth <= 14) || (dayOfMonth >= 22 && dayOfMonth <= 28));
+    return day === 0 || isSecondOrFourthSaturday ? 0 : 480;
   }
 
   function normalTimeBetween(startValue, endValue) {
