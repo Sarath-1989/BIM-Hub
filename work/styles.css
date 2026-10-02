@@ -303,3 +303,6 @@ body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.5 "DM Sans",s
 .reset-confirmation-label input:focus{outline:2px solid #f2cccc;border-color:#bd4d4d}
 .reset-card .button-danger{width:100%}
 .reset-warning{margin:12px 0 0;color:#9b4d4d;font-size:.78rem;line-height:1.45}
+
+/* Login heading scale */
+.sign-in-panel h1{font-size:clamp(2.2rem,3.3vw,3.5rem)}
