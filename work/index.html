@@ -8,32 +8,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./styles.css?v=20261001b" />
+    <link rel="stylesheet" href="./styles.css?v=20261002c" />
     <script src="https://cdn.jsdelivr.net/npm/@azure/msal-browser@3.14.0/lib/msal-browser.min.js"></script>
   </head>
   <body>
     <div id="toast-region" class="toast-region" aria-live="polite"></div>
 
     <main id="sign-in-view" class="sign-in-shell">
-      <section class="sign-in-panel" aria-labelledby="portal-title">
-        <img class="brand-logo sign-in-logo" src="./assets/asterwix-logo.svg" alt="Asterwix" />
-        <p class="eyebrow">ASTERWIX · TEAM OPERATIONS</p>
-        <h1 id="portal-title">WORK SPACE</h1>
-        <p class="intro">Log BIM delivery work, manage project tasks, and keep the delivery team aligned.</p>
-        <button id="sign-in-button" class="button button-primary button-wide" type="button">
-          Sign in with Asterwix Microsoft account
-        </button>
-        <p id="sign-in-status" class="muted">Only approved Asterwix users can access work data.</p>
-      </section>
-      <aside class="sign-in-aside">
-        <p class="eyebrow">DAILY TRACE</p>
-        <h2>One record for every working day.</h2>
-        <ul>
-          <li>Project and BIM deliverable</li>
-          <li>Start time and end time</li>
-          <li>Clear update for BIM coordinators</li>
+      <section class="sign-in-panel" aria-labelledby="portal-title">        <div class="sign-in-content">
+          <img class="brand-logo sign-in-logo" src="./assets/asterwix-logo.svg" alt="Asterwix" />          <p class="sign-in-kicker">TEAM OPERATIONS</p>          <h1 id="portal-title">WORK <span>SPACE</span></h1>          <p class="intro">Manage work, collaborate with your team, and stay aligned — all in one place.</p>          <button id="sign-in-button" class="button button-primary button-wide microsoft-sign-in" type="button">            <span class="microsoft-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+            <span>Sign in with Microsoft account</span><b aria-hidden="true">›</b>
+        </button>          <p id="sign-in-status" class="muted">Only approved Asterwix users can access work data.</p>
+        </div>
+      </section>      <aside class="sign-in-aside">
+        <div class="sign-in-aside-content">          <p class="eyebrow">TEAM WORKSPACE</p>          <h2>One record for every<br />working day.</h2>
+          <span class="aside-rule" aria-hidden="true"></span>
+        <ul>            <li>Projects</li>            <li>Tasks</li>            <li>Team</li>
+
+<li>Documents</li>
         </ul>
-      </aside>
+              
+        </div>
+</aside>
     </main>
 
     <div id="app-view" class="app-shell hidden">
