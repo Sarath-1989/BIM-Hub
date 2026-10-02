@@ -458,9 +458,11 @@
       }
     }
     return applied;
-  }
+  }  function isCoordinatorDesignation(designation) { return /BIM (Coordinator|Team Leader)/i.test(String(designation || "")); }
 
-  function coordinatorEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role === "Team Lead"); }
+  function coordinatorEmployees() {
+    return state.employees.filter((employee) => employee.Active !== "No" && ["Team Lead", "Admin"].includes(employee.Role) && isCoordinatorDesignation(employee.Designation));
+  }
 
   function modellerEmployees() { return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin" && /Modell?er|Technician/i.test(employee.Designation || "")); }
 
@@ -1404,8 +1406,10 @@
       if (email === CONFIG.bootstrapAdminEmail.toLowerCase() && byId("employee-active").value === "No") return toast("The portal's bootstrap Admin cannot be marked inactive here.", "error");
       const previous = state.employees.find((member) => (member.Email || "").toLowerCase() === email);
       const isBootstrapAdmin = email === CONFIG.bootstrapAdminEmail.toLowerCase();
-      const role = isBootstrapAdmin ? "Admin" : byId("employee-role").value;
-      const employee = { ...(previous || {}), Title: name, Email: email, DisplayName: name, Designation: byId("employee-designation").value, Discipline: byId("employee-discipline").value, Role: role, Active: byId("employee-active").value, createdAt: previous?.createdAt || new Date().toISOString() };
+      const designation = byId("employee-designation").value;
+      const selectedRole = byId("employee-role").value;
+      const role = isBootstrapAdmin ? "Admin" : isCoordinatorDesignation(designation) && selectedRole === "Staff" ? "Team Lead" : selectedRole;
+      const employee = { ...(previous || {}), Title: name, Email: email, DisplayName: name, Designation: designation, Discipline: byId("employee-discipline").value, Role: role, Active: byId("employee-active").value, createdAt: previous?.createdAt || new Date().toISOString() };
       const accessChanged = previous && (previous.Active !== employee.Active || previous.Role !== employee.Role);
       if (accessChanged) await revokeEmployeePortalAccess(previous);
       await saveRecord("employees", emailKey(email), employee);
