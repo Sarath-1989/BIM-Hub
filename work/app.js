@@ -361,15 +361,21 @@
   }
 
   function canRecycleTask(task) {
-    return Boolean(task?.id && canManageProject(projectByCode(task.ProjectCode)));
+    return Boolean(task?.id && !isTaskOnTerminatedProject(task) && canManageProject(projectByCode(task.ProjectCode)));
+  }
+
+  function isTaskOnTerminatedProject(task) {
+    const code = projectCodeKey(task?.ProjectCode);
+    return Boolean(code && state.projects.some((project) => project.TerminatedAt && projectCodeKey(project.ProjectCode) === code));
   }
 
   function taskRecordState() {
     const control = byId("task-filter-record-state");
+    if (isAdmin() && control?.value === "terminated") return "terminated";
     return isManager() && control?.value === "recycle" ? "recycle" : "active";
   }
 
-  function visibleTasks({ includeDeleted = false } = {}) {
+  function visibleTasks({ includeDeleted = false, includeTerminated = false } = {}) {
     const email = accountEmail().toLowerCase();
     let tasks;
     if (isAdmin()) tasks = state.tasks;
@@ -379,10 +385,11 @@
     } else {
       tasks = state.tasks.filter((task) => (task.AssigneeEmail || "").toLowerCase() === email);
     }
-    return includeDeleted ? tasks : tasks.filter((task) => !isTaskInRecycleBin(task));
+    return tasks.filter((task) => (includeDeleted || !isTaskInRecycleBin(task)) && (includeTerminated || !isTaskOnTerminatedProject(task)));
   }
 
   function canUpdateTask(task) {
+    if (isTaskOnTerminatedProject(task)) return false;
     const isAssignee = (task.AssigneeEmail || "").toLowerCase() === accountEmail().toLowerCase();
     return isAdmin() || canManageProject(projectByCode(task.ProjectCode)) || isAssignee;
   }
@@ -664,7 +671,7 @@
   function monitoringTeamRows(projectCode, today = dubaiDate()) {
     const weekStart = mondayOfWeek(today);
     const monthStart = monthStartKey(today);
-    const relevantTasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && (!projectCode || task.ProjectCode === projectCode));
+    const relevantTasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && !isTaskOnTerminatedProject(task) && (!projectCode || task.ProjectCode === projectCode));
     const relevantLogs = state.workLogs.filter((entry) => !projectCode || entry.ProjectCode === projectCode);
     return state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").map((employee) => {
       const email = String(employee.Email || "").toLowerCase();
@@ -698,7 +705,7 @@
       const activeProjects = state.projects.filter((project) => project.Status === "Active").length;
       const activeTeam = state.employees.filter((employee) => employee.Active !== "No" && employee.Role !== "Admin").length;
       const todayMinutes = workLogTotalMinutes(state.workLogs.filter((entry) => entry.WorkDate === today));
-      const overdueTasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && task.EndDate && task.EndDate < today && task.Status !== "Completed").length;
+      const overdueTasks = state.tasks.filter((task) => !isTaskInRecycleBin(task) && !isTaskOnTerminatedProject(task) && task.EndDate && task.EndDate < today && task.Status !== "Completed").length;
       byId("metrics").innerHTML = [[String(activeProjects), "Active BIM projects"], [String(activeTeam), "Active team members"], [formatMinutes(todayMinutes), "Team workmanship today"], [String(overdueTasks), "Overdue BIM tasks"]].map(([value, label]) => `<div class="metric"><div class="metric-value">${esc(value)}</div><div class="metric-label">${esc(label)}</div></div>`).join("");
       return;
     }
@@ -859,6 +866,13 @@
     byId("admin-activity-timeline").innerHTML = recent.length ? recent.map((entry) => `<div class="activity-row"><strong>${esc(entry.EmployeeName || entry.EmployeeEmail || "Team member")} · ${esc(entry.TaskTitle || "Work entry")}</strong><span>${esc(entry.ProjectCode || "—")} · ${esc(entry.WorkDate || "")} · ${esc(formatMinutes(workLogMinutes(entry)))} · ${esc(entry.WorkNote || "No note")}</span><button class="button button-quiet activity-action" type="button" data-void-work="${esc(entry.id || "")}">Mark incorrect</button></div>`).join("") : `<p class="muted">No work entries have been logged for this monitoring filter.</p>`;
   }
 
+  function tasksForRecordView() {
+    const view = taskRecordState();
+    const tasks = visibleTasks({ includeDeleted: view !== "active", includeTerminated: view === "terminated" });
+    if (view === "terminated") return tasks.filter(isTaskOnTerminatedProject);
+    return view === "recycle" ? tasks.filter(isTaskInRecycleBin) : tasks;
+  }
+
   function renderTaskFilters() {
     const setOptions = (id, options, placeholder) => {
       const select = byId(id);
@@ -866,11 +880,12 @@
       select.innerHTML = `<option value="">${esc(placeholder)}</option>${options.map(([value, label]) => `<option value="${esc(value)}">${esc(label)}</option>`).join("")}`;
       if ([...select.options].some((option) => option.value === previous)) select.value = previous;
     };
-    const showingRecycleBin = taskRecordState() === "recycle";
-    const tasks = visibleTasks({ includeDeleted: showingRecycleBin }).filter((task) => showingRecycleBin ? isTaskInRecycleBin(task) : !isTaskInRecycleBin(task));
-    const projectCodes = new Set(tasks.map((task) => task.ProjectCode));
-    managedProjects().forEach((project) => projectCodes.add(project.ProjectCode));
-    const visibleProjects = state.projects.filter((project) => projectCodes.has(project.ProjectCode));
+    const recordSelect = byId("task-filter-record-state");
+    const historyOption = [...recordSelect.options].find((option) => option.value === "terminated");
+    if (historyOption) { historyOption.hidden = !isAdmin(); historyOption.disabled = !isAdmin(); }
+    const tasks = tasksForRecordView();
+    const projectCodes = new Set(tasks.map((task) => projectCodeKey(task.ProjectCode)));
+    const visibleProjects = state.projects.filter((project) => projectCodes.has(projectCodeKey(project.ProjectCode)));
     const assigneeEmails = new Set(tasks.map((task) => (task.AssigneeEmail || "").toLowerCase()).filter(Boolean));
     setOptions("task-filter-project", visibleProjects.map((project) => [project.ProjectCode, `${project.ProjectCode} · ${project.Title}`]), "All projects");
     setOptions("task-filter-discipline", [...new Set(tasks.map((task) => task.Discipline).filter(Boolean))].sort().map((discipline) => [discipline, discipline]), "All disciplines");
@@ -878,8 +893,8 @@
     setOptions("task-filter-assignee", state.employees.filter((employee) => employee.Active !== "No" && assigneeEmails.has((employee.Email || "").toLowerCase())).map((employee) => [employee.Email, `${employee.DisplayName || employee.Email} · ${employee.Designation || "BIM team member"}`]), "All assignees");
   }
 
-  function filteredTasks(tasks = visibleTasks({ includeDeleted: taskRecordState() === "recycle" })) {
-    const showingRecycleBin = taskRecordState() === "recycle";
+  function filteredTasks(tasks = tasksForRecordView()) {
+    const showingActive = taskRecordState() === "active";
     const project = byId("task-filter-project").value;
     const discipline = byId("task-filter-discipline").value;
     const status = byId("task-filter-status").value;
@@ -889,14 +904,13 @@
     const nextWeek = new Date(`${today}T00:00:00Z`); nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
     const nextWeekDate = nextWeek.toISOString().slice(0, 10);
     return tasks.filter((task) => {
-      if (showingRecycleBin ? !isTaskInRecycleBin(task) : isTaskInRecycleBin(task)) return false;
-      if (project && task.ProjectCode !== project) return false;
+      if (project && projectCodeKey(task.ProjectCode) !== projectCodeKey(project)) return false;
       if (discipline && task.Discipline !== discipline) return false;
       if (status && (task.Status || "Not started") !== status) return false;
       if (assignee && (task.AssigneeEmail || "").toLowerCase() !== assignee) return false;
-      if (!showingRecycleBin && due === "overdue" && !(task.EndDate && task.EndDate < today && task.Status !== "Completed")) return false;
-      if (!showingRecycleBin && due === "due" && !(task.EndDate && task.EndDate <= today && task.Status !== "Completed")) return false;
-      if (!showingRecycleBin && due === "next-7" && !(task.EndDate && task.EndDate >= today && task.EndDate <= nextWeekDate && task.Status !== "Completed")) return false;
+      if (showingActive && due === "overdue" && !(task.EndDate && task.EndDate < today && task.Status !== "Completed")) return false;
+      if (showingActive && due === "due" && !(task.EndDate && task.EndDate <= today && task.Status !== "Completed")) return false;
+      if (showingActive && due === "next-7" && !(task.EndDate && task.EndDate >= today && task.EndDate <= nextWeekDate && task.Status !== "Completed")) return false;
       return true;
     });
   }
@@ -914,6 +928,8 @@
       const status = task.Status || "Not started";
       const choices = allowedTaskStatuses(task);
       const recycled = isTaskInRecycleBin(task);
+      const terminated = isTaskOnTerminatedProject(task);
+      const taskBadge = terminated ? (recycled ? "Archived · previously recycled" : ["Completed", "Approved"].includes(status) ? `${status} · archived` : `Cancelled · was ${status}`) : recycled ? "Recycle Bin" : status;
       const updateControls = !recycled && canUpdateTask(task) && task.id && choices.length ? `<div class="task-actions"><label class="task-status-control">Update status<select class="task-status-select">${choices.map((option) => `<option${option === status ? " selected" : ""}>${esc(option)}</option>`).join("")}</select></label><button class="button button-primary" type="button" data-task-id="${esc(task.id)}">Save status</button></div>` : "";
       const editControls = !recycled && canRecycleTask(task) && task.id ? `<div class="task-recycle-actions"><button class="button button-quiet" type="button" data-edit-task="${esc(task.id)}">Edit / reassign task</button></div>` : "";
       const recycleControls = canRecycleTask(task) && task.id ? (recycled
@@ -922,8 +938,8 @@
       const deliveryDetails = [task.Discipline, task.Deliverable].filter(Boolean).join(" · ");
       const referenceDetails = [task.BIMStage, task.ModelDrawingNo, task.Revision ? `Rev ${task.Revision}` : ""].filter(Boolean).join(" · ");      const qualityDetails = task.StatusUpdatedAt ? `Last updated by ${task.StatusUpdatedBy || "Asterwix team"} · ${new Date(task.StatusUpdatedAt).toLocaleDateString("en-GB")}` : "";
       const taskNote = String(task.Notes || "").trim();
-      return `<article class="task-card${recycled ? " task-card-recycled" : ""}"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(deliveryDetails || "BIM delivery details not set")}</p><p>${esc(referenceDetails || project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p>${taskNote ? `<div class="task-note"><strong>Note</strong><span>${esc(taskNote)}</span></div>` : ""}<div class="task-meta"><span class="badge">${esc(recycled ? "Recycle Bin" : status)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${qualityDetails ? `<p class="task-audit">${esc(qualityDetails)}</p>` : ""}${updateControls}${editControls}${recycleControls}</article>`;
-    }).join("") : `<section class="card"><p class="muted">${taskRecordState() === "recycle" ? "No tasks are in the Recycle Bin for the current filters." : "No BIM tasks match the current filters."}</p></section>`;
+      return `<article class="task-card${recycled ? " task-card-recycled" : ""}"><p class="eyebrow">${esc(task.ProjectCode || "NO PROJECT")}</p><h2>${esc(task.Title)}</h2><p>${esc(deliveryDetails || "BIM delivery details not set")}</p><p>${esc(referenceDetails || project?.Client || "Asterwix project")}</p><p>${esc(task.AssigneeEmail || "")}</p>${taskNote ? `<div class="task-note"><strong>Note</strong><span>${esc(taskNote)}</span></div>` : ""}<div class="task-meta"><span class="badge">${esc(taskBadge)}</span><span>Due: ${esc(task.EndDate || "—")}</span></div>${qualityDetails ? `<p class="task-audit">${esc(qualityDetails)}</p>` : ""}${updateControls}${editControls}${recycleControls}</article>`;
+    }).join("") : `<section class="card"><p class="muted">${taskRecordState() === "recycle" ? "No tasks are in the Recycle Bin for the current filters." : taskRecordState() === "terminated" ? "No archived project tasks match the current filters." : "No BIM tasks match the current filters."}</p></section>`;
   }
 
     function renderManagers() {
@@ -945,7 +961,7 @@
     const noProjectMessage = isAdmin()
       ? "No projects created yet. Archived projects and their records are retained."
       : "No projects are assigned to your account yet. Existing project records are retained; ask an Admin to assign or update the Coordinator."; 
-    byId("projects-list").innerHTML = projectRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || project.AssignedCoordinatorEmail || "Unassigned — Admin action required")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions"><button class="button button-quiet" type="button" data-edit-project="${esc(project.id || "")}">Edit</button>${project.Status !== "Archived" ? `<button class="button button-quiet" type="button" data-archive-project="${esc(project.id || "")}">Archive</button>` : ""}</div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">${noProjectMessage}</p>`;
+    byId("projects-list").innerHTML = projectRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || project.AssignedCoordinatorEmail || "Unassigned — Admin action required")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions">${project.TerminatedAt ? `<span class="muted" title="${esc(project.TerminationReason || "")}">Terminated</span>` : project.id ? `<button class="button button-quiet" type="button" data-edit-project="${esc(project.id)}">Edit</button>${project.Status !== "Archived" ? `<button class="button button-quiet" type="button" data-archive-project="${esc(project.id)}">Archive</button>` : ""}<button class="button button-danger" type="button" data-terminate-project="${esc(project.id)}">Terminate &amp; archive</button>` : ""}</div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">${noProjectMessage}</p>`;
     const teamActionHeader = isAdmin() ? "<th>Action</th>" : "";
     const teamTableRows = state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Designation || "—")}</td><td>${esc(employee.Discipline || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("");
     const teamMobileCards = state.employees.map((employee) => {
@@ -1080,7 +1096,7 @@
     const duration = durationMinutes(startTime, endTime);
     const task = state.tasks.find((item) => item.id === byId("work-task").value);
     if (!byId("work-project").value || !task || !duration) return toast("Select project, assigned BIM task, and valid start/end time.", "error");
-    if (task.ProjectCode !== byId("work-project").value || task.Status === "Completed" || isTaskInRecycleBin(task)) return toast("Choose an active BIM task from the selected project.", "error");
+    if (task.ProjectCode !== byId("work-project").value || task.Status === "Completed" || isTaskInRecycleBin(task) || isTaskOnTerminatedProject(task)) return toast("Choose an active BIM task from the selected project.", "error");
     const employeeEmail = accountEmail().toLowerCase();
     if ((task.AssigneeEmail || "").toLowerCase() !== employeeEmail) return toast("You can log work only against a BIM task assigned to you.", "error");
     const existing = editingWorkLogId ? state.workLogs.find((entry) => entry.id === editingWorkLogId && !isVoidedWorkLog(entry) && String(entry.EmployeeEmail || "").toLowerCase() === employeeEmail && entry.TaskId === task.id && entry.WorkDate === workDate) : null;
@@ -1136,6 +1152,7 @@
     if (!button || !isAdmin()) return;
     const project = state.projects.find((item) => item.id === button.dataset.editProject);
     if (!project) return toast("Project could not be found.", "error");
+    if (project.TerminatedAt) return toast("A terminated project is read-only.", "error");
     editingProjectId = project.id;
     byId("project-code").value = project.ProjectCode || "";
     byId("project-code").readOnly = false;
@@ -1171,10 +1188,41 @@
       button.disabled = false; button.textContent = label;
     }
   }
-  async function deleteProject(event) {
-    const button = event.target.closest("[data-delete-project]");
+  async function terminateProject(event) {
+    const button = event.target.closest("[data-terminate-project]");
     if (!button || !isAdmin()) return;
-    toast("Permanent project deletion is disabled. Archive the project instead; all project information is retained.", "error");
+    const project = state.projects.find((item) => item.id === button.dataset.terminateProject);
+    if (!project || !projectCodeKey(project.ProjectCode)) return toast("A valid project is required.", "error");
+    if (project.TerminatedAt) return toast("This project has already been terminated.", "success");
+    const code = projectCodeKey(project.ProjectCode);
+    if (state.projects.some((item) => item.id !== project.id && projectCodeKey(item.ProjectCode) === code)) return toast("Resolve the duplicate project code before terminating this project.", "error");
+    const activeTasks = state.tasks.filter((task) => projectCodeKey(task.ProjectCode) === code && !isTaskInRecycleBin(task));
+    const pending = activeTasks.filter((task) => !["Completed", "Approved"].includes(task.Status)).length;
+    const reason = window.prompt(`Why are you terminating ${code}? Enter a short reason for project history. Do not include confidential details.`);
+    if (reason === null) return;
+    const terminationReason = reason.trim();
+    if (!terminationReason || terminationReason.length > 500) return toast("Enter a termination reason of 1–500 characters.", "error");
+    if (!window.confirm(`Terminate and archive "${project.Title}" (${code})? ${activeTasks.length} linked task(s) leave active views, including ${pending} pending task(s) shown as cancelled in history. No tasks, work logs, issues, or registers will be deleted. This cannot be undone in the portal.`)) return;
+    const label = button.textContent;
+    button.disabled = true;
+    button.textContent = "Terminating…";
+    let saved = false;
+    try {
+      const now = new Date().toISOString();
+      const by = state.profile?.displayName || accountEmail();
+      const history = [...(Array.isArray(project.UpdateHistory) ? project.UpdateHistory : []), { at: now, by, action: "Terminated and archived", reason: terminationReason }];
+      const terminated = await saveRecord("projects", project.id, { ...project, Status: "Archived", ArchivedAt: project.ArchivedAt || now, ArchivedBy: project.ArchivedBy || by, TerminatedAt: now, TerminatedBy: by, TerminationReason: terminationReason, LastUpdateAction: "Terminated and archived", UpdatedBy: by, UpdateHistory: history });
+      saved = true;
+      state.projects = state.projects.map((item) => item.id === project.id ? terminated : item);
+      if (editingProjectId === project.id) resetProjectForm();
+      await refreshData("Project terminated and archived");
+      toast("Project archived. Linked tasks and recorded work were retained in history.", "success");
+    } catch (error) {
+      toast(saved ? "Project was archived, but the view did not refresh. Reload before making more changes." : error.message || "Could not terminate this project.", "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = label;
+    }
   }
 
   async function submitProject(event) {
@@ -1192,6 +1240,7 @@
       if (!coordinator) return toast("Select an active BIM Coordinator or Team Lead.", "error");
       if (startDate && targetDate && targetDate < startDate) return toast("Target date must be on or after the project start date.", "error");
       if (state.projects.some((project) => project.id !== id && projectCodeKey(project.ProjectCode) === projectCode)) return toast(`Project code ${projectCode} already exists.`, "error");
+      if (existing?.TerminatedAt) return toast("A terminated project is read-only.", "error");
       if (editingProjectId && !existing) return toast("This project could not be found. Refresh and try again.", "error");
 
       const oldProjectCode = projectCodeKey(existing?.ProjectCode);
@@ -1528,7 +1577,7 @@
     byId("tasks-list").addEventListener("click", handleTaskCardAction);
     byId("recent-work").addEventListener("click", (event) => { if (beginWorkEntryEdit(event)) return; markIncorrectWorkEntry(event); });
     byId("admin-activity-timeline").addEventListener("click", markIncorrectWorkEntry);
-    byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); deleteProject(event); });
+    byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); terminateProject(event); });
     byId("employee-form").addEventListener("submit", submitEmployee);
     byId("team-list").addEventListener("click", beginEmployeeEdit);
     byId("employee-cancel-button").addEventListener("click", resetEmployeeForm);
