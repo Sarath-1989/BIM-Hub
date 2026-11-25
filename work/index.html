@@ -129,7 +129,7 @@
               <label>Project<select id="task-filter-project"><option value="">All projects</option></select></label>
               <label>Discipline<select id="task-filter-discipline"><option value="">All disciplines</option></select></label>
               <label>Status<select id="task-filter-status"><option value="">All statuses</option></select></label>
-              <label class="manager-only">Task records<select id="task-filter-record-state"><option value="active">Active tasks</option><option value="recycle">Recycle Bin</option></select></label>
+              <label class="manager-only">Task records<select id="task-filter-record-state"><option value="active">Active tasks</option><option value="recycle">Recycle Bin</option><option value="terminated" hidden disabled>Terminated project history</option></select></label>
               <label class="manager-only">Assignee<select id="task-filter-assignee"><option value="">All assignees</option></select></label>
               <label>Due date<select id="task-filter-due"><option value="">All dates</option><option value="overdue">Overdue</option><option value="due">Due today / overdue</option><option value="next-7">Due within 7 days</option></select></label>
               <div class="form-actions full-width"><span class="muted">Filter the BIM task register by project, discipline, responsibility, status, or due date.</span><button id="clear-task-filters" class="button button-quiet" type="button">Clear filters</button></div>
@@ -171,7 +171,7 @@
                 </form>
               </section>
             </div>
-            <section class="card list-card"><div class="card-heading"><h2>Projects</h2><p class="muted">Archive completed work. Permanent deletion is disabled and all linked records are retained.</p></div><div id="projects-list" class="table-wrap"></div></section>
+            <section class="card list-card"><div class="card-heading"><h2>Projects</h2><p class="muted">Admins can terminate and archive a project to remove its assignments from active views. Linked records and work hours are retained.</p></div><div id="projects-list" class="table-wrap"></div></section>
           </section>
 
           <section id="issues-view" class="page-view hidden manager-only">
@@ -252,6 +252,6 @@
     </div>
 
     <script src="./config.js"></script>
-    <script src="./app.js?v=20261002b"></script>
+    <script src="./app.js?v=20261125a"></script>
   </body>
 </html>
