@@ -961,7 +961,7 @@
     const noProjectMessage = isAdmin()
       ? "No projects created yet. Archived projects and their records are retained."
       : "No projects are assigned to your account yet. Existing project records are retained; ask an Admin to assign or update the Coordinator."; 
-    byId("projects-list").innerHTML = projectRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || project.AssignedCoordinatorEmail || "Unassigned — Admin action required")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions">${project.TerminatedAt ? `<span class="muted" title="${esc(project.TerminationReason || "")}">Terminated</span>` : project.id ? `<button class="button button-quiet" type="button" data-edit-project="${esc(project.id)}">Edit</button>${project.Status !== "Archived" ? `<button class="button button-quiet" type="button" data-archive-project="${esc(project.id)}">Archive</button>` : ""}<button class="button button-danger" type="button" data-terminate-project="${esc(project.id)}">Terminate &amp; archive</button>` : ""}</div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">${noProjectMessage}</p>`;
+    byId("projects-list").innerHTML = projectRows.length ? `<p class="table-scroll-hint">Swipe left or right to see all columns</p><table class="data-table"><thead><tr><th>Code</th><th>Project</th><th>Coordinator</th><th>Client</th><th>Status</th><th>Target</th>${projectActions}</tr></thead><tbody>${projectRows.map((project) => `<tr><td>${esc(project.ProjectCode)}</td><td>${esc(project.Title)}</td><td>${esc(project.CoordinatorName || project.CoordinatorEmail || project.AssignedCoordinatorEmail || "Unassigned — Admin action required")}</td><td>${esc(project.Client || "—")}</td><td>${esc(project.Status || "—")}</td><td>${esc(project.TargetDate || "—")}</td>${isAdmin() ? `<td><div class="table-actions">${project.TerminatedAt ? `<span class="muted" title="${esc(project.TerminationReason || "")}">Terminated</span>${project.id && projectDeletionEnabled() ? `<button class="button button-danger" type="button" data-recycle-project="${esc(project.id)}">Delete project</button>` : ""}` : project.id ? `<button class="button button-quiet" type="button" data-edit-project="${esc(project.id)}">Edit</button>${project.Status !== "Archived" ? `<button class="button button-quiet" type="button" data-archive-project="${esc(project.id)}">Archive</button>` : ""}<button class="button button-danger" type="button" data-terminate-project="${esc(project.id)}">Terminate &amp; archive</button>` : ""}</div></td>` : ""}</tr>`).join("")}</tbody></table>` : `<p class="muted">${noProjectMessage}</p>`;
     const teamActionHeader = isAdmin() ? "<th>Action</th>" : "";
     const teamTableRows = state.employees.map((employee) => `<tr><td>${esc(employee.DisplayName || "—")}</td><td>${esc(employee.Designation || "—")}</td><td>${esc(employee.Discipline || "—")}</td><td>${esc(employee.Email || "—")}</td><td>${esc(employee.Role || "Staff")}</td><td>${esc(employee.Active || "Yes")}</td>${isAdmin() ? `<td><button class="button button-quiet" type="button" data-edit-employee="${esc(employee.Email || "")}">Edit</button></td>` : ""}</tr>`).join("");
     const teamMobileCards = state.employees.map((employee) => {
@@ -1219,6 +1219,92 @@
       toast("Project archived. Linked tasks and recorded work were retained in history.", "success");
     } catch (error) {
       toast(saved ? "Project was archived, but the view did not refresh. Reload before making more changes." : error.message || "Could not terminate this project.", "error");
+    } finally {
+      button.disabled = false;
+      button.textContent = label;
+    }
+  }
+
+  // Enable only after effective SharePoint delete permissions have been validated
+  // on the projects/tasks folders and individually shared task files.
+  function projectDeletionEnabled() {
+    return CONFIG?.enableProjectRecycle === true && isAdmin();
+  }
+
+  async function strictDeletionRecords(path, optional = false) {
+    const items = optional ? await recordItemsAt(path) : (await listGraphCollection(`${drivePath(path, "/children")}?$top=999`)).filter((item) => item.file && item.name.endsWith(".json"));
+    return mapWithConcurrency(items, async (item) => {
+      const record = await graph(`/drives/${CONFIG.driveId}/items/${item.id}/content`);
+      if (!record || typeof record !== "object" || item.name !== `${record.id}.json`) {
+        throw new Error("A SharePoint record could not be verified. Nothing was deleted.");
+      }
+      return { item, record };
+    });
+  }
+
+  async function projectDeletionPlan(projectId) {
+    const [projects, tasks, issues, registers, sharedLogs, workspaceFolders] = await Promise.all([
+      strictDeletionRecords(folderPath("projects")),
+      strictDeletionRecords(folderPath("tasks")),
+      strictDeletionRecords(folderPath("issues"), true),
+      strictDeletionRecords(folderPath("registers"), true),
+      strictDeletionRecords(`${CONFIG.storageFolder}/work-logs`, true),
+      listGraphCollection(`${drivePath(folderPath("workspaces"), "/children")}?$top=999`)
+    ]);
+    const project = projects.find(({ record }) => record.id === projectId);
+    const code = projectCodeKey(project?.record?.ProjectCode);
+    if (!code || !project.record.TerminatedAt || project.record.Status !== "Archived") throw new Error("Terminate and archive this project before deleting it.");
+    const matches = ({ record }) => projectCodeKey(record.ProjectCode) === code;
+    if (projects.filter(matches).length !== 1) throw new Error("This project code is not unique. Nothing was deleted.");
+    const linkedTasks = tasks.filter(matches);
+    const taskIds = new Set(linkedTasks.map(({ record }) => record.id));
+    const folders = workspaceFolders.filter((item) => item.folder);
+    const workspaceLogs = (await mapWithConcurrency(folders, (folder) => strictDeletionRecords(`${folderPath("workspaces")}/${folder.name}/work-logs`, true), 3)).flat();
+    if (issues.some(matches) || registers.some(matches) || [...sharedLogs, ...workspaceLogs].some((row) => matches(row) || taskIds.has(row.record.TaskId))) {
+      throw new Error("This project has work logs, issues, or register records. Keep it archived to preserve its history.");
+    }
+    const items = [...linkedTasks, project].map(({ item }) => item);
+    if (items.some((item) => !item.id || !item.eTag)) throw new Error("Could not verify SharePoint file versions. Nothing was deleted.");
+    return { project, code, linkedTasks, items };
+  }
+
+  function deletionPlanFingerprint(plan) {
+    return JSON.stringify(plan.items.map((item) => [item.id, item.eTag]).sort((a, b) => a[0].localeCompare(b[0])));
+  }
+
+  async function recycleProject(event) {
+    const button = event.target.closest("[data-recycle-project]");
+    if (!button || !projectDeletionEnabled() || button.disabled) return;
+    button.disabled = true;
+    const label = button.textContent;
+    button.textContent = "Checking linked records…";
+    let moved = 0;
+    let completed = false;
+    try {
+      const preview = await projectDeletionPlan(button.dataset.recycleProject);
+      if (!window.confirm(`Delete "${preview.project.record.Title}" (${preview.code}) and ${preview.linkedTasks.length} linked task(s) from the portal? They will move to the SharePoint Recycle Bin. No work hours, issues, or register records will be removed.`)) return;
+      if (window.prompt(`Type the project code ${preview.code} to confirm.`)?.trim() !== preview.code) return;
+      if (!projectDeletionEnabled()) throw new Error("Only an Admin can delete a project.");
+      const checked = await projectDeletionPlan(button.dataset.recycleProject);
+      if (deletionPlanFingerprint(preview) !== deletionPlanFingerprint(checked)) throw new Error("The project or its tasks changed. Review the updated count and try again.");
+      button.textContent = "Moving to Recycle Bin…";
+      // Delete the project itself last: it remains archived if a task fails.
+      for (const item of checked.items) {
+        await graph(`/drives/${CONFIG.driveId}/items/${item.id}`, { method: "DELETE", headers: { "If-Match": item.eTag } });
+        moved++;
+      }
+      completed = true;
+      await refreshData("Project moved to Recycle Bin");
+      toast(`Project and ${checked.linkedTasks.length} linked task(s) moved to the SharePoint Recycle Bin.`, "success");
+    } catch (error) {
+      if (completed) {
+        toast("The items moved to the Recycle Bin, but the portal could not refresh. Reload the portal.", "error");
+      } else if (moved) {
+        await refreshData("Deletion incomplete; project retained").catch(() => {});
+        toast(`${moved} task(s) moved to SharePoint Recycle Bin. The project remains archived. Review SharePoint before retrying.`, "error");
+      } else {
+        toast(error.message || "The project could not be deleted.", "error");
+      }
     } finally {
       button.disabled = false;
       button.textContent = label;
@@ -1577,7 +1663,7 @@
     byId("tasks-list").addEventListener("click", handleTaskCardAction);
     byId("recent-work").addEventListener("click", (event) => { if (beginWorkEntryEdit(event)) return; markIncorrectWorkEntry(event); });
     byId("admin-activity-timeline").addEventListener("click", markIncorrectWorkEntry);
-    byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); terminateProject(event); });
+    byId("projects-list").addEventListener("click", (event) => { beginProjectEdit(event); archiveProject(event); terminateProject(event); recycleProject(event); });
     byId("employee-form").addEventListener("submit", submitEmployee);
     byId("team-list").addEventListener("click", beginEmployeeEdit);
     byId("employee-cancel-button").addEventListener("click", resetEmployeeForm);
